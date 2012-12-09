@@ -1,0 +1,112 @@
+div.nor_button{
+    height:32px;
+    padding:0px 6px;
+    background-color:#393939;
+    font-size:16px; 
+    font-weight:bold;
+    text-align:center;
+    line-height:32px;
+    color:#E9E9E9;
+    cursor:pointer;
+}
+div.nor_button_m{
+    background-color:#36454F;
+}
+
+div.nor_tab{
+    width:auto;
+    height:32px;
+}
+div.nor_tab div.button{
+    width:auto;
+    height:100%;
+    padding:0px 8px 0px 8px;
+    font-weight:normal;
+    font-size:18px;
+    line-height:32px;
+    color:#E9E9E9;
+    float:left;
+    cursor:pointer;
+}
+div.nor_tab div.button_m{
+    color:#FFFFFF;
+}
+div.nor_tab div.button_s{
+    background-color:#2E8B57;
+}
+div.nor_tab a.button{
+    width:100%;
+    height:100%;
+    font-weight:normal;
+    font-size:18px;
+    line-height:32px;
+    color:#E9E9E9;
+    text-decoration:none;
+    display:block;
+}
+div.nor_tab a:hover.button{
+    color:#FFFFFF;
+}
+
+div.nor_mask_head{
+    width:100%;
+    height:32px;
+    background-color:#050505;
+    position:relative;
+}
+div.nor_mask_head div.title{
+    margin:0px 0px 0px 6px;
+    font-weight:bold;
+    font-size:18px;
+    line-height:32px;
+    float:left;
+}
+div.nor_mask_head div.content{
+    width:auto;
+    padding:0px 0px 0px 6px;
+    font-weight:bold;
+    font-size:18px;
+    line-height:32px;
+    float:left;
+}
+div.nor_mask_head div.button{
+    height:100%;
+    padding:0px 6px 0px 6px;
+    font-weight:bold;
+    font-size:18px;
+    line-height:32px;
+    text-align:center;
+    float:right;
+    cursor:pointer;
+}
+div.nor_mask_head div.button_m{
+    color:#FFFFFF;
+}
+div.nor_mask_box{
+    width:100%;
+    position:absolute;
+    left:0px;
+    top:32px;
+    overflow:hidden;
+}
+
+div.nor_chpg{
+    margin:0px auto auto;
+    padding:16px 0px 16px 0px;
+    font-size:20px;
+    text-align:center;
+}
+a.nor_chpg{
+    height:100%;
+    padding:0px 3px 0px 3px;
+    color:#E9E9E9;
+    text-decoration:none;
+    cursor:pointer;
+    display:inline-block;
+}
+a.nor_chpg_s{
+    background-color:#36454F;
+}
+a:hover.nor_chpg{
+    background-color:#36454F;
+}

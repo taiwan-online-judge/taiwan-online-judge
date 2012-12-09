@@ -1,0 +1,167 @@
+div.square_rank{
+    width:100%;
+}
+div.square_rank > table.list{
+    width:62%;
+    margin:6px auto 0px auto;
+    font-size:20px;
+    text-align:left;
+    border-spacing:0px;
+    border-collapse:collapse;
+}
+div.square_rank tr.head{
+    height:32px;
+}
+div.square_rank tr.item{
+    height:32px;
+}
+div.square_rank th.rank,div.square_rank td.rank{
+    width:64px;
+}
+div.square_rank th.name,div.square_rank td.name{
+    width:auto;
+}
+div.square_rank th.rate,div.square_rank td.rate{
+    width:128px;
+}
+div.square_rank th.score,div.square_rank td.score{
+    width:64px;
+}
+div.square_rank a.link{
+    width:100%;
+    height:100%;
+    text-decoration:none;
+    color:#E9E9E9;
+    display:block;
+}
+div.square_rank a.link:hover{
+    text-decoration:underline;
+}
+
+div.square_problem{
+    width:100%;
+}
+div.square_problem > table.list{
+    width:62%;
+    margin:6px auto 0px auto;
+    font-size:20px;
+    text-align:left;
+    border-spacing:0px;
+    border-collapse:collapse;
+}
+div.square_problem tr.head{
+    height:32px;
+}
+div.square_problem tr.item{
+    height:32px;
+    border-left:#333333 5px solid; 
+    cursor:pointer;
+}
+div.square_problem tr:hover.item{
+    background-color:#36454F;
+}
+div.square_problem th.blank,div.square_problem td.blank{
+    width:8px;
+}
+div.square_problem th.id,div.square_problem td.id{
+    width:64px;
+}
+div.square_problem th.name,div.square_problem td.name{
+    width:auto;
+}
+div.square_problem th.rate,div.square_problem td.rate{
+    width:128px;
+}
+div.square_problem a.link{
+    width:100%;
+    height:100%;
+    text-decoration:none;
+    color:#E9E9E9;
+    display:block;
+}
+div.square_problem a:hover.link{
+    text-decoration:underline;
+}
+
+div.square_scoreboard{
+    padding:6px 6px;
+    overflow:auto;
+}
+div.square_scoreboard > table.list{
+    width:100%;
+    font-size:20px;
+    text-align:left;
+    border-spacing:0px;
+    border-collapse:collapse;
+}
+div.square_scoreboard tr.head{
+    height:32px;
+}
+div.square_scoreboard tr.item{
+    height:32px;
+}
+div.square_scoreboard th.rank,div.square_scoreboard td.rank{
+    width:64px;
+    border:#333333 1px solid;
+}
+div.square_scoreboard th.name,div.square_scoreboard td.name{
+    width:192px;
+    border:#333333 1px solid;
+}
+div.square_scoreboard th.problem,div.square_scoreboard td.problem{
+    width:104px;
+    font-size:16px;
+    text-align:center;
+    border:#333333 1px solid;
+}
+div.square_scoreboard a.link{
+    width:100%;
+    height:100%;
+    text-decoration:none;
+    color:#E9E9E9;
+    display:block;
+}
+div.square_scoreboard a.link:hover{
+    text-decoration:underline;
+}
+
+div.squaremg_square{
+    width:31%;
+    float:left;
+}
+div.squaremg_square > div.head{
+    font-size:32px;
+    padding:0px 0px 6px 0px;
+}
+div.squaremg_square > div.squarelist{
+    margin:6px 0px 0px 0px;
+}
+div.squaremg_square > div.squarelist > div.head{
+    font-size:24px;
+    border-bottom:#2E8B57 3px solid;
+}
+div.squaremg_square > div.squarelist > table.list{
+    width:100%;
+    margin:6px 0px 0px 0px;
+    text-align:left;
+    border-spacing:0px;
+    border-collapse:collapse;
+}
+div.squaremg_square > div.squarelist tr.item{
+    height:36px;
+}
+div.squaremg_square > div.squarelist tr:hover.item{
+    color:#FFFFFF;
+}
+div.squaremg_square > div.squarelist td.name{
+    width:auto;
+    font-size:16px;
+}
+div.squaremg_square > div.squarelist td.time{
+    width:256px;
+    font-size:16px;
+}
+div.squaremg_square > div.squarelist td.button{
+    width:96px;
+}
+

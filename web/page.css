@@ -1,0 +1,6 @@
+div.page_box{
+    width:auto;
+    height:100%;
+    overflow:auto;
+    display:none;
+}

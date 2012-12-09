@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>ExpOJ</title>
+<style type="text/css">
+body{
+    width:100%;
+    height:100%;
+    margin:0px 0px;
+    background-color:#151515;
+    color:#E9E9E9;
+    font-family:Tahoma,Geneva;
+    overflow:hidden;
+}
+div.index_head{
+    width:100%;
+    height:32px;
+    background-color:#050505;
+    z-index:0;
+}
+div.index_head div.title{
+    margin:0px 0px 0px 6px;
+    font-weight:bold;
+    font-size:18px;
+    line-height:32px;
+    float:left;
+}
+div.index_head div.tab{
+    position:absolute;
+    top:0px;
+    left:31%;
+}
+div.index_head div.content{
+    width:auto;
+    padding:0px 0px 0px 6px;
+    font-weight:bold;
+    font-size:18px;
+    line-height:32px;
+    position:absolute;
+    top:0px;
+    left:19%;
+}
+div.index_head div.panel{
+    width:97px;
+    height:100%;
+    font-weight:bold;
+    font-size:18px;
+    line-height:32px;
+    text-align:center;
+    float:right;
+    cursor:pointer;
+}
+div.index_head div.panel_m{
+    color:#FFFFFF;
+}
+div.index_head div.msg{
+    height:100%;
+    padding:0px 6px 0px 6px;
+    font-weight:bold;
+    font-size:18px;
+    line-height:32px;
+    text-align:center;
+    float:right;
+    cursor:pointer;
+
+    //background-color:#FF2400;
+}
+div.index_head div.msg_m{
+    color:#FFFFFF;
+}
+
+div.index_panel_box{
+    width:256px;
+    position:absolute;
+    top:32px;
+    left:auto;
+    right:0px;
+    z-index:100;
+    overflow:hidden;
+}
+div.index_panel{
+    width:256px;
+    height:100%;
+    background-color:#001E4E;
+    position:absolute;
+    top:0px;
+    left:auto;
+    right:-256px;
+    overflow-x:hidden;
+    overflow-y:auto;
+}
+div.index_panel div.button{
+    height:48px;
+    padding:0px 0px 0px 32px;
+    font-weight:normal;
+    font-size:20px;
+    line-height:48px;
+    color:#E9E9E9;
+    position:relative;
+    top:0px;
+    left:50%;
+    cursor:pointer;
+}
+div.index_panel div.button_m{
+    background-color:rgba(255,255,255,0.1);
+}
+div.index_panel a.button{
+    height:100%;
+    font-weight:normal;
+    font-size:20px;
+    line-height:48px;
+    color:#E9E9E9;
+    text-decoration:none;
+    display:block;
+}
+
+div.index_panel div.square_list{
+    margin:0px 0px 32px 0px;
+}
+div.index_panel div.square_list div.button{
+    height:32px;
+    padding:0px 0px 0px 32px;
+    position:relative;
+    top:0px;
+    left:50%;
+    cursor:pointer;
+}
+div.index_panel div.square_list a.button{
+    height:100%;
+    font-weight:normal;
+    font-size:16px;
+    line-height:32px;
+    color:#E9E9E9;
+    text-decoration:none;
+    display:block;
+}
+
+div.index_page{
+    width:100%;
+    position:absolute;
+    top:32px;
+    left:0px;
+    z-index:0;
+    overflow:auto;
+}
+
+div.index_mask{
+    width:100%;
+    height:100%;
+    position:fixed;
+    top:0px;
+    left:0px;
+    background-color:rgba(0,0,0,0.9); 
+    z-index:1000;
+}
+</style>
+
+<script src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
+<script src="http://gsgd.co.uk/sandbox/jquery/easing/jquery.easing.1.3.js"></script>
+<script type="text/javascript" src="http://codemirror.net/lib/codemirror.js"></script>
+<link rel="stylesheet" href="http://codemirror.net/lib/codemirror.css">
+<link rel="stylesheet" href="http://codemirror.net/theme/lesser-dark.css">
+<script type="text/javascript" src="http://codemirror.net/mode/clike/clike.js"></script>
+
+<link rel="stylesheet" href="nor.css">
+<script type="text/javascript" src="nor.js"></script>
+<script type="text/javascript" src="data.js"></script>
+<link rel="stylesheet" href="page.css">
+<script type="text/javascript" src="page.js"></script>
+<link rel="stylesheet" href="page_status.css">
+<script type="text/javascript" src="page_status.js"></script>
+<link rel="stylesheet" href="page_user.css">
+<script type="text/javascript" src="page_user.js"></script>
+<link rel="stylesheet" href="page_square.css">
+<script type="text/javascript" src="page_square.js"></script>
+<link rel="stylesheet" href="page_problem.css">
+<script type="text/javascript" src="page_problem.js"></script>
+
+<script type="text/javascript">
+var initurl;
+
+$(document).ready(function(){
+    $('body').on('mouseover',function(e){
+	if(e.target == null ||
+	    e.target.id == 'index_panel' ||
+	    e.target.id == 'index_head_panel' ||
+	    $(e.target).parents('#index_panel').length > 0){
+	    return;
+	}
+
+	$('#index_head_panel').removeClass('panel_m');
+	$('#index_panel').stop().animate({opacity:0},'fast','easeOutQuad',
+	    function(){
+		$('#index_panel').css('right','-256px');
+		$('#index_panel div.button').css('left','50%');
+	    }
+	);
+    });
+
+    $('#index_head_panel').on('mouseover',function(e){
+	    $(this).addClass('panel_m');
+	    $('#index_panel').css('opacity','1').stop().animate({right:0},'slow','easeOutExpo');
+
+	    $('#index_panel div.button').stop().animate({left:0},'slow','easeOutQuart');
+    });
+
+    $('#index_panel div.button').hover(
+	function(e){
+	    $(this).addClass('button_m');
+	},
+	function(e){
+	    $(this).removeClass('button_m');
+	}
+    );
+    $('#index_panel a.button').on('click',function(e){
+	page_switch($(this.parentNode).attr('page'));
+	return false;
+    });
+
+    $('#index_panel_squarebutton').off('click').on('click',function(e){
+	var j_div;
+	
+	j_div = $('#index_panel_squarelist');
+	if(j_div.is(':visible')){
+	    j_div.stop().slideUp('slow','easeOutExpo');
+	}else{
+	    j_div.stop().slideDown('slow','easeOutExpo');
+	}
+    });
+
+    $('#index_head_msg').hover(
+	function(e){
+	    $(this).addClass('msg_m');
+	},
+	function(e){
+	    $(this).removeClass('msg_m');
+	}
+    );
+
+    nor_init();
+    data_init();
+    user_init();
+    page_init();
+    status_init();
+    square_init();
+    problem_init();
+
+    nor_expendheight();	
+    user_loginchange();
+    $(window).resize(function(e){nor_expendheight();});
+    $(window).on('popstate',function(e){
+	if(location.href == initurl){
+	    return;
+	}
+	initurl = null;
+
+	page_switch(null);
+    });
+
+    initurl = location.href;
+    page_switch(null);
+});
+</script>
+</head>
+<body>
+<div class="index_head">
+    <div id="index_head_title" class="title"></div>
+    <div id="index_head_tab" class="tab">
+	<div id="index_headtab_status" class="nor_tab" style="display:none;">
+	    <div tab="allsubmit" class="button">
+		<a class="button" href="/expoj/index.html?page=status&tab=allsubmit">All Submit</a>
+	    </div>
+	    <div tab="usersubmit" class="button" style="display:none;">
+		<a class="button" href="/expoj/index.html?page=status&tab=usersubmit">User Submit</a>
+	    </div>
+	</div>
+	<div id="index_headtab_square" class="nor_tab" style="display:none;">
+	    <div tab="rank" class="button">
+		<a class="button">Rank</a>
+	    </div>
+	    <div tab="problem" class="button">
+		<a class="button">Problem</a>
+	    </div>
+	    <div tab="scoreboard" class="button" style="display:none;">
+		<a class="button">Scoreboard</a>
+	    </div>
+	</div>
+    </div>
+    <div id="index_head_content" class="content"></div>
+    <div id="index_head_panel" class="panel">Panel</div>
+    <div id="index_head_msg" class="msg">[0]</div>
+</div>
+
+<div expendheight=true class="index_panel_box">
+<div id="index_panel" class="index_panel">
+    <div page="home" class="button" style="margin:32px 0px 0px 0px;">
+	<a class="button" href="/expoj/index.html?page=home">Home</a>
+    </div>
+    <div page="status" class="button">
+	<a class="button" href="/expoj/index.html?page=status">Status</a>
+    </div>
+    <div page="user" class="button" style="display:none;">
+	<a class="button">User</a>
+    </div>
+    <div id="index_panel_squarebutton" class="button">Square</div>
+    <div id="index_panel_squarelist" class="square_list" style="display:none;">
+	<div page="squaremg" id="index_panel_squaremg" class="button">
+	    <a class="button" style="font-weight:bold;">Manage Square</a>
+	</div>
+	<div class="button ori" style="display:none;">
+	    <a class="button"></a>
+	</div>
+    </div>
+
+    <div page="login" class="button" style="margin:64px 0px 0px 0px;">
+	<a class="button" href="/expoj/index.html?page=login">Login</a>
+    </div>
+    <div page="register" class="button">
+	<a class="button" href="/expoj/index.html?page=register">Register</a>
+    </div>
+    <div page="logout" class="button" style="margin:64px 0px 0px 0px; display:none;">Logout</div>
+</div>
+</div>
+
+<div expendheight=true class="index_page">
+    <div id="page_home" class="page_box"></div>
+
+    <div id="page_status" class="page_box">
+	<div id="status_allsubmit" class="status_submit" style="display:none;">
+	    <div class="submitinfo">
+		<div class="head">
+		    <div class="nor_button" style="margin:0px 6px 0px 0px; float:right; display:none;" onclick="status_viewcode($(this).parents('div.status_submit').data('tabo').submitid);">View Code</div>
+		</div>
+
+		<table class="info">
+		    <colgroup>
+		        <col width="80px">
+		        <col width="auto">
+		        <col width="64px">
+		        <col width="64px">
+		    </colgroup>
+		    <tr>
+		        <td>SubmitID</td>
+		        <td></td>
+		        <td>ProID</td>
+		        <td><a class="link"></a></td>
+		    </tr>
+		    <tr>
+		        <td>Name</td>
+		        <td><a class="link"></a></td>
+		        <td>Score</td>
+		        <td></td>
+		    </tr>
+		</table>
+		<table class="list">
+		    <tr>
+		        <th>No</th>
+		        <th>Result</th>
+		        <th>Score</th>
+		        <th>Time(ms)</th>
+		        <th>Mem(KB)</th>
+		    </tr>
+		</table>
+	    </div>
+
+	    <div class="submitlist">
+		<table class="list">
+		    <tr class="head">
+			<th class="id">ID</th>
+			<th class="proid">ProID</th>
+			<th class="nickname">Name</th>
+			<th class="time">Time</th>
+			<th class="result">Result</th>
+			<th class="runtime">Runtime</th>
+			<th class="score">Score</th>
+		    </tr>
+		    <tr class="item ori" style="display:none;">
+			<td class="id"></td>
+			<td class="proid"><a class="link"></a></td>
+			<td class="nickname"><a class="link"></a></td>
+			<td class="time"></td>
+			<td class="result"></td>
+			<td class="runtime"></td>
+			<td class="score"></td>
+		    </tr>
+		</table>
+		<div class="nor_chpg"></div>
+	    </div>
+	</div>
+	
+	<div id="status_usersubmit" class="status_submit" style="display:none;">
+	    <div class="submitinfo">
+		<div class="head">
+		    <div class="nor_button" style="margin:0px 6px 0px 0px; float:right; display:none;" onclick="status_viewcode($(this).parents('div.status_submit').data('tabo').submitid);">View Code</div>
+		</div>
+
+		<table class="info">
+		    <colgroup>
+		        <col width="80px">
+		        <col width="auto">
+		        <col width="64px">
+		        <col width="64px">
+		    </colgroup>
+		    <tr>
+		        <td>SubmitID</td>
+		        <td></td>
+		        <td>ProID</td>
+		        <td><a class="link"></a></td>
+		    </tr>
+		    <tr>
+		        <td>Name</td>
+		        <td><a class="link"></a></td>
+		        <td>Score</td>
+		        <td></td>
+		    </tr>
+		</table>
+		<table class="list">
+		    <tr>
+		        <th>No</th>
+		        <th>Result</th>
+		        <th>Score</th>
+		        <th>Time(ms)</th>
+		        <th>Mem(KB)</th>
+		    </tr>
+		</table>
+	    </div>
+
+	    <div class="submitlist">
+		<table class="list">
+		    <tr class="head">
+			<th class="id">ID</th>
+			<th class="proid">ProID</th>
+			<th class="nickname">Name</th>
+			<th class="time">Time</th>
+			<th class="result">Result</th>
+			<th class="runtime">Runtime</th>
+			<th class="score">Score</th>
+		    </tr>
+		    <tr class="item ori" style="display:none;">
+			<td class="id"></td>
+			<td class="proid"><a class="link"></a></td>
+			<td class="nickname"><a class="link"></a></td>
+			<td class="time"></td>
+			<td class="result"></td>
+			<td class="runtime"></td>
+			<td class="score"></td>
+		    </tr>
+		</table>
+		<div class="nor_chpg"></div>
+	    </div>
+	</div>
+    </div>
+
+    <div id="page_user" class="page_box">
+	<div id="user_info" class="user_info">
+	    <div class="head">
+		<div class="setting" style="display:none;">
+		    <div class="nor_button" style="margin:0px 6px 0px 0px; float:right;" onclick="user_infoedit(true);">Edit</div>
+		    <div class="nor_button" style="margin:0px 6px 0px 0px; float:right; display:none;" onclick="user_infoedit(false);">Cancel</div>
+		    <div class="nor_button" style="margin:0px 6px 0px 0px; float:right; display:none;" onclick="user_infosubmit();">Apply</div>
+		</div>
+		<input type="textbox" readonly=readonly class="name">
+		<input type="textbox" readonly=readonly class="aboutme">
+		<input type="textbox" class="headimg" style="display:none;">
+		<img class="headimg"></img> 
+	    </div>
+	    <table class="info">
+		<tr>
+		    <td class="info">Accepted</td>
+		    <td class="info"></td>
+		</tr>
+		<tr>
+		    <td class="info">Submited</td>
+		    <td class="info"></td>
+		</tr>
+		<tr>
+		    <td class="info">Tried</td>
+		    <td class="info"></td>
+		</tr>
+	    </table>
+	</div>
+	<div id="user_data" class="user_data">
+	    <div class="prolist"></div>
+	</div>
+    </div>
+
+    <div id="page_squaremg" class="page_box">
+	<div id="squaremg_inside" class="squaremg_square" style="margin:0px 0px 0px 19%;">
+	    <div class="head">Inside square</div>
+	    <div class="squarelist upcoming">
+		<div class="head">Upcoming</div>
+		<table class="list">
+		    <tr class="item ori" style="display:none;">
+			<td class="name"></td>
+			<td class="time"></td>
+			<td class="button"><div class="nor_button" style="display:none;">Remove</div></td>
+		    </tr>
+		</table>
+	    </div>
+	    <div class="squarelist active">
+		<div class="head">Active</div>
+		<table class="list">
+		    <tr class="item ori" style="display:none;">
+			<td class="name"></td>
+			<td class="time"></td>
+			<td class="button"><div class="nor_button" style="display:none;">Remove</div></td>
+		    </tr>
+		</table>
+	    </div>
+	    <div class="squarelist inactive">
+		<div class="head">Inactive</div>
+		<table class="list">
+		    <tr class="item ori" style="display:none;">
+			<td class="name"></td>
+			<td class="time"></td>
+			<td class="button"><div class="nor_button" style="display:none;">Remove</div></td>
+		    </tr>
+		</table>
+	    </div>
+	</div>
+	<div id="squaremg_outside" class="squaremg_square" style="margin:0px 0px 0px 16px;">
+	    <div class="head">Outside square</div>
+	    <div class="squarelist upcoming">
+		<div class="head">Upcoming</div>
+		<table class="list">
+		    <tr class="item ori" style="display:none;">
+			<td class="name"></td>
+			<td class="button"><div class="nor_button" style="display:none;">Add</div></td>
+		    </tr>
+		</table>
+	    </div>
+	    <div class="squarelist active">
+		<div class="head">Active</div>
+		<table class="list">
+		    <tr class="item ori" style="display:none;">
+			<td class="name"></td>
+			<td class="button"><div class="nor_button" style="display:none;">Add</div></td>
+		    </tr>
+		</table>
+	    </div>
+	    <div class="squarelist inactive">
+		<div class="head">Inactive</div>
+		<table class="list">
+		    <tr class="item ori" style="display:none;">
+			<td class="name"></td>
+			<td class="button"><div class="nor_button" style="display:none;">Add</div></td>
+		    </tr>
+		</table>
+	    </div>
+	</div>
+    </div>
+
+    <div id="page_square" class="page_box">
+	<div class="square_rank" style="display:none;">
+	    <table class="list">
+		<tr class="head">
+		    <th class="rank">#</th>
+		    <th class="name">Name</th>
+		    <th class="rate">AC/SU</th>
+		    <th class="score">Score</th>
+		</tr>
+		<tr class="item ori" style="display:none;">
+		    <td class="rank"></td>
+		    <td class="name"><a class="link"></a></td>
+		    <td class="rate"></td>
+		    <td class="score"></td>
+		</tr>
+	    </table>
+	    <div class="nor_chpg"></div>
+	</div>
+
+	<div class="square_problem" style="display:none;">
+	    <table class="list">
+		<tr class="head">
+		    <th class="blank"></th>
+		    <th class="id">ID</th>
+		    <th class="name">Problem Name</th>
+		    <th class="rate">AC/SU</th>
+		</tr>
+		<tr class="item ori" style="display:none;">
+		    <td class="blank"></td>
+		    <td class="id"></td>
+		    <td class="name"><a class="link"></a></td>
+		    <td class="rate"></td>
+		</tr>
+	    </table>
+	    <div class="nor_chpg"></div>
+	</div>
+
+	<div class="square_scoreboard" style="display:none;">
+	    <table class="list">
+		<tr class="head"></tr>
+	    </table>
+	</div>
+    </div>
+
+    <div id="page_problem" class="page_box">
+	<div class="problem_info">
+	    <div class="head">
+		<div class="nor_button" style="margin:0px 6px 0px 0px; float:right;" onclick="problem_codeswitch(true);">Submit</div>
+	    </div>
+	    <table class="info">
+		<tr>
+		    <td class="info">ProID</td>
+		    <td class="info"></td>
+		</tr>
+		<tr>
+		    <td class="info">AC/SU</td>
+		    <td class="info"><a class="info" onclick="problem_logswitch(true);"></a></td>
+		</tr>
+		<tr>
+		    <td class="info">Time(ms)</td>
+		    <td class="info"></td>
+		</tr>
+		<tr>
+		    <td class="info">Mem(KB)</td>
+		    <td class="info"></td>
+		</tr>
+	    </table>
+	</div>
+	<div class="problem_view">
+	    <div class="content"></div>
+	</div>
+    </div>
+
+    <div id="page_login" class="page_box">
+	<table class="login">
+	    <tr><td><div id="login_error" class="error"></div></td></tr>
+	    <tr><td>
+		<div class="head">Username</div>
+		<input id="login_username" type="textbox" class="input">
+	    </td></tr>
+	    <tr><td>
+		<div class="head">Password</div>
+		<input id="login_password" type="password" class="input">
+	    </td></tr>
+	    <tr><td>
+		<div class="nor_button" style="width:auto; float:right;" onclick="user_login_reset();">Cancel</div>
+		<div class="nor_button" style="width:auto; margin:0px 6px 0px 0px; float:right;" onclick="user_login_submit();">Login</div>
+	    </td></tr>
+	</table>
+    </div>
+    <div id="page_register" class="page_box">
+	<table class="register">
+	    <tr><td><div id="register_error" class="error"></div></td></tr>
+	    <tr><td>
+		<div class="head">Username</div>
+		<input id="register_username" type="textbox" class="input">
+	    </td></tr>
+	    <tr><td>
+		<div class="head">Password</div>
+		<input id="register_password" type="password" class="input">
+	    </td></tr>
+	    <tr><td>
+		<div class="head">Nickname</div>
+		<input id="register_nickname" type="textbox" class="input">
+	    </td></tr>
+	    <tr><td>
+		<div class="nor_button" style="width:auto; float:right;" onclick="user_register_reset();">Cancel</div>
+		<div class="nor_button" style="width:auto; margin:0px 6px 0px 0px; float:right;" onclick="user_register_submit();">Register</div>
+	    </td></tr>
+	</table>
+    </div>
+
+    <div id="index_mask" class="index_mask" style="display:none;">
+	<div id="mask_problem_log" class="mask_problem_log" style="display:none;">
+	    <div class="nor_mask_head">
+		<div class="title"></div>
+		<div class="nor_tab" style="position:absolute; top:0px; left:31%;">
+		    <div tab="allsubmit" class="button">All Submit</div>
+		    <div tab="acceptsubmit" class="button button_s">AC Submit</div>
+		</div>
+		<div class="button" style="float:right;" onclick="problem_logswitch(false);">Close</div>
+	    </div>
+	    <div expendheight=true class="nor_mask_box">
+		<div id="problem_log_acceptsubmit" class="problem_log_submit">
+		    <div class="submitinfo">
+			<div class="head">
+			    <div class="nor_button" style="margin:0px 6px 0px 0px; float:right; display:none;" onclick="status_viewcode($(this).parents('div.problem_log_submit').data('tabo').submitid);">View Code</div>
+			</div>
+
+			<table class="info">
+			    <colgroup>
+				<col width="80px">
+				<col width="auto">
+				<col width="64px">
+				<col width="64px">
+			    </colgroup>
+			    <tr>
+				<td>SubmitID</td>
+				<td></td>
+				<td>ProID</td>
+				<td></td>
+			    </tr>
+			    <tr>
+				<td>Name</td>
+				<td><a class="link"></a></td>
+				<td>Score</td>
+				<td></td>
+			    </tr>
+			</table>
+			<table class="list">
+			    <tr>
+				<th>No</th>
+				<th>Result</th>
+				<th>Score</th>
+				<th>Time(ms)</th>
+				<th>Mem(KB)</th>
+			    </tr>
+			</table>
+		    </div>
+
+		    <div class="submitlist">
+			<table class="list">
+			    <tr class="head">
+				<th class="id">ID</th>
+				<th class="nickname">Name</th>
+				<th class="time">Time</th>
+				<th class="runtime">Runtime</th>
+				<th class="score">Score</th>
+			    </tr>
+			    <tr class="item ori" style="display:none;">
+				<td class="id"></td>
+				<td class="nickname"><a class="link"></a></td>
+				<td class="time"></td>
+				<td class="runtime"></td>
+				<td class="score"></td>
+			    </tr>
+			</table>
+			<div class="nor_chpg"></div>
+		    </div>
+		</div>
+
+		<div id="problem_log_allsubmit" class="problem_log_submit" style="display:none;">
+		    <div class="submitinfo">
+			<div class="head">
+			    <div class="nor_button" style="margin:0px 6px 0px 0px; float:right; display:none;" onclick="status_viewcode($(this).parents('div.problem_log_submit').data('tabo').submitid);">View Code</div>
+			</div>
+
+			<table class="info">
+			    <colgroup>
+				<col width="80px">
+				<col width="auto">
+				<col width="64px">
+				<col width="64px">
+			    </colgroup>
+			    <tr>
+				<td>SubmitID</td>
+				<td></td>
+				<td>ProID</td>
+				<td><a class="link"></a></td>
+			    </tr>
+			    <tr>
+				<td>Name</td>
+				<td><a class="link"></a></td>
+				<td>Score</td>
+				<td></td>
+			    </tr>
+			</table>
+			<table class="list">
+			    <tr>
+				<th>No</th>
+				<th>Result</th>
+				<th>Score</th>
+				<th>Time(ms)</th>
+				<th>Mem(KB)</th>
+			    </tr>
+			</table>
+		    </div>
+
+		    <div class="submitlist">
+			<table class="list">
+			    <tr class="head">
+				<th class="id">ID</th>
+				<th class="nickname">Name</th>
+				<th class="time">Time</th>
+				<th class="runtime">Runtime</th>
+				<th class="score">Score</th>
+			    </tr>
+			    <tr class="item ori" style="display:none;">
+				<td class="id"></td>
+				<td class="nickname"><a class="link"></a></td>
+				<td class="time"></td>
+				<td class="runtime"></td>
+				<td class="score"></td>
+			    </tr>
+			</table>
+			<div class="nor_chpg"></div>
+		    </div>
+		</div>
+	    </div>
+	</div>
+
+	<div id="mask_problem_code" class="mask_problem_code" style="display:none;">
+	    <div class="nor_mask_head">
+		<div class="title"></div>
+		<div class="content error"></div>
+		<div class="button" style="float:right;" onclick="problem_codeswitch(false);">Close</div>
+		<div class="button" style="margin:0px 6px 0px 0px; float:right;" onclick="problem_code_submit();">Submit</div>
+	    </div>
+	    <div expendheight=true class="nor_mask_box">
+		<div class="code"></div>
+	    </div>
+	</div>
+    </div>
+</div>
+</body>
+</html>
+

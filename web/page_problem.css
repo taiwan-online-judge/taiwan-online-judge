@@ -1,0 +1,164 @@
+div.problem_info{
+    width:19%;
+    height:100%;
+    background-color:#222222;
+    font-size:18px;
+    overflow:auto;
+    float:left;
+}
+div.problem_info > div.head{
+    width:100%;
+    height:32px;
+    margin:6px 0px 0px 0px;
+}
+div.problem_info > table.info{
+    margin:16px auto; 
+}
+div.problem_info td.info{
+    padding:2px 3px 2px 3px;
+}
+div.problem_info a.info{
+    cursor:pointer;
+    text-decoration:underline;
+}
+div.problem_info a:hover.info{
+    color:#FFFFFF;
+}
+div.problem_view{
+    width:81%;
+    height:100%;
+    overflow:auto;
+    float:left;
+}
+div.problem_view > div.content{
+    padding:6px 6px 32px 6px;
+    font-size:18px;
+    font-family:Courier New,monospace;
+}
+
+div.mask_problem_log{
+    width:86%;
+    height:100%;
+    margin:0px auto;
+    background-color:#151515;
+}
+div.problem_log_submit{
+    width:86%;
+    height:100%;
+    margin:0px auto;
+    overflow:hidden;
+}
+div.problem_log_submit > div.submitlist{
+    width:69%;
+    height:100%;
+    margin:0px auto;
+    float:left;
+    overflow:auto;
+}
+div.problem_log_submit > div.submitlist > table.list{
+    width:95%;
+    margin:6px auto 0px auto;
+    font-size:20px;
+    text-align:left;
+    border-spacing:0px;
+    border-collapse:collapse;
+}
+div.problem_log_submit > div.submitlist tr.head{
+    height:32px;
+}
+div.problem_log_submit > div.submitlist tr.item{
+    height:32px;
+    cursor:pointer;
+}
+div.problem_log_submit > div.submitlist tr:hover.item{
+    background-color:#36454F;
+}
+div.problem_log_submit > div.submitlist th.id,div.problem_log_submit > div.submitlist td.id{
+    width:64px;
+}
+div.problem_log_submit > div.submitlist th.nickname,div.problem_log_submit > div.submitlist td.nickname{
+    width:auto;
+}
+div.problem_log_submit > div.submitlist th.time{
+    width:224px;
+}
+div.problem_log_submit > div.submitlist td.time{
+    width:192px;
+    font-weight:normal;
+    font-size:16px;
+}
+div.problem_log_submit > div.submitlist th.runtime{
+    width:104px;
+}
+div.problem_log_submit > div.submitlist td.runtime{
+    width:104px;
+    font-weight:normal;
+    font-size:16px;
+}
+div.problem_log_submit > div.submitlist th.score,div.problem_log_submit > div.submitlist td.score{
+    width:64px;
+}
+div.problem_log_submit > div.submitlist a.link{
+    height:100%;
+    color:#E9E9E9;
+    text-decoration:none;
+    cursor:pointer;
+}
+div.problem_log_submit > div.submitlist a:hover.link{
+    text-decoration:underline;
+}
+
+div.problem_log_submit > div.submitinfo{
+    width:31%;
+    height:100%;
+    background-color:#222222;
+    overflow:auto;
+    float:left;
+}
+div.problem_log_submit > div.submitinfo > div.head{
+    width:100%;
+    height:32px;
+    margin:6px 0px 0px 0px;
+}
+div.problem_log_submit > div.submitinfo > table.info{
+    width:95%;
+    margin:26px 0px 0px auto;
+    font-size:16px;
+    text-align:left;
+    border-spacing:0px;
+    border-collapse:collapse;
+}
+div.problem_log_submit > div.submitinfo > table.list{
+    width:95%;
+    margin:32px 0px 0px auto;
+    font-size:16px;
+    text-align:left;
+    border-spacing:0px;
+    border-collapse:collapse;
+}
+div.problem_log_submit > div.submitinfo a.link{
+    width:100%;
+    height:100%;
+    color:#E9E9E9;
+    text-decoration:none;
+    display:block;
+    cursor:pointer;
+}
+div.problem_log_submit div.submitinfo a:hover.link{
+    text-decoration:underline;
+}
+
+div.mask_problem_code{
+    width:62%;
+    height:100%;
+    margin:0px auto;
+    background-color:#151515;
+}
+div.mask_problem_code > div.nor_mask_head > div.error{
+    color:#FFA0A0;
+}
+div.mask_problem_code div.code{
+    width:62%;
+    height:100%;
+    margin:0px auto;
+}

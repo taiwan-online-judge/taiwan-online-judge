@@ -1,0 +1,123 @@
+div.user_info{
+    width:31%;
+    height:100%;
+    background-color:#222222;
+    font-size:18px;
+    overflow:auto;
+    float:left;
+}
+div.user_info div.head{
+    margin:6px 0px 6px 0px;
+}
+div.user_info div.setting{
+    float:right;
+}
+div.user_info div.head input.name{
+    width:62%;
+    height:32px;
+    margin:0px 0px 6px 6px;
+    background-color:#222222;
+    color:#E9E9E9;
+    font-weight:bold;
+    font-size:24px;
+    line-height:32px;
+    border-width:0px;
+}
+div.user_info div.head input.aboutme,input.headimg{
+    width:95%;
+    height:24px;
+    margin:0px 0px 6px 6px;
+    background-color:#222222;
+    color:#E9E9E9;
+    font-weight:normal;
+    font-size:16px;
+    line-height:24px;
+    border-width:0px;
+}
+div.user_info div.head img.headimg{
+    width:100%;
+    margin:0px 0px 0px 0px;
+    display:block;
+}
+div.user_info table.info{
+    width:95%;
+    margin:0px auto 0px 6px;
+}
+div.user_info table.info td.info{
+    font-weight:normal;
+    font-size:16px;
+}
+
+div.user_data{
+    width:69%;
+    height:100%;
+    overflow:auto;
+    float:left;
+}
+div.user_data div.prolist{
+    width:62%;
+    margin:32px auto 0px auto;
+}
+div.user_data div.prolist span.item{
+    width:64px;
+    height:32px;
+    line-height:32px;
+    display:inline-block;
+}
+div.user_data div.prolist a.item{
+    width:100%;
+    height:100%;
+    font-weight:bold;
+    font-size:16px;
+    text-align:center;
+    text-decoration:none;
+    display:block;
+}
+div.user_data div.prolist a:hover.item{
+    text-decoration:underline;
+}
+
+table.login{
+    width:256px;
+    margin:192px auto;
+    border-spacing:16px;
+}
+table.login div.error{
+    width:100%; 
+    height:16px;
+    font-size:16px;
+    color:#FFA0A0;
+}
+table.login div.head{
+    width:100%; 
+    font-size:16px;
+}
+table.login input.input{
+    width:100%;
+    padding:0px 0px 0px 0px;
+    font-size:20px;
+    background-color:#E9E9E9;
+    border-width:0px;
+}
+table.register{
+    width:256px;
+    margin:192px auto;
+    border-spacing:16px;
+}
+table.register div.error{
+    width:100%; 
+    height:16px;
+    font-size:16px;
+    color:#FFA0A0;
+}
+table.register div.head{
+    width:100%; 
+    font-size:16px;
+}
+table.register input.input{
+    width:100%;
+    padding:0px 0px 0px 0px;
+    font-size:20px;
+    background-color:#E9E9E9;
+    border-width:0px;
+}
