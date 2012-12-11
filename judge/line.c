@@ -155,7 +155,9 @@ DLL_PUBLIC int run(struct judgx_line_info *line_info){
 		status = JUDGE_WA;
 	    }else{ 
 		status = thread_info.status;		
-		score = set_info->score[i];
+		if(status == JUDGE_AC){
+		    score = set_info->score[i];
+		}
 	    }
 	}else{
 	    status = proc_info->status;
