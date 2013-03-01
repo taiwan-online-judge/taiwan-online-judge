@@ -1,0 +1,19 @@
+div.common_page{
+    height:100%;
+    position:relative;
+    overflow:auto;
+    display:none;
+}
+div.common_tab{
+    height:100%;
+    position:relative;
+    overflow:auto;
+    display:none;
+}
+div.common_mask_box{
+    margin:32px auto;
+    padding:0px 32px 0px 32px;
+    background-color:#373C38;
+    position:relative;
+    display:none;
+}

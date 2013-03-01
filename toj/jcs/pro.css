@@ -1,0 +1,28 @@
+div.pro_mask > div.sub_mbox{
+    width:62%;
+}
+div.pro_mask > div.sub_mbox > div.head{
+    width:100%;
+    height:32px;
+    padding:6px 0px 6px 0px;
+}
+div.pro_mask > div.sub_mbox > div.head > div.title{
+    font-size:20px;
+    line-height:32px;
+    float:left;
+}
+div.pro_mask > div.sub_mbox > div.head > div.error{
+    margin:0px 0px 0px 16px;
+    color:#FFA0A0;
+    font-size:16px;
+    line-height:32px;
+    float:left;
+}
+div.pro_mask > div.sub_mbox > div.head > div.oper{
+    float:right;
+}
+div.pro_mask > div.sub_mbox > div.head > div.oper > select{
+    height:32px;
+    border-width:0px;
+    font-size:16px;
+}

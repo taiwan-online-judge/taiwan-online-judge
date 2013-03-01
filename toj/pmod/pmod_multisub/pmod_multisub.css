@@ -1,0 +1,52 @@
+div.pmod_multisub > div.main_content{
+    margin:32px 0px 32px 256px;
+}
+div.pmod_multisub > table.probox{
+    width:100%;
+    margin:0px 0px 32px 0px;
+    border-collapse:collapse;    
+}
+div.pmod_multisub > table.probox td.info{
+    width:250px;
+    padding:0px 0px 0px 6px;
+    vertical-align:top;
+}
+div.pmod_multisub > table.probox td.info > table.statlist{
+    width:100%;
+    text-align:left;
+    border-collapse:collapse;    
+}
+div.pmod_multisub > table.probox td.info > table.statlist td.name{
+    width:96px;
+}
+div.pmod_multisub > table.probox td.info > table.statlist td.value{
+    width:auto;
+}
+div.pmod_multisub > table.probox td.info > table.limitlist{
+    width:100%;
+    text-align:left;
+    border-collapse:collapse;    
+}
+div.pmod_multisub > table.probox td.info > table.limitlist td.name{
+    width:96px
+}
+div.pmod_multisub > table.probox td.info > table.limitlist td.value{
+    width:auto;
+}
+div.pmod_multisub > table.probox td.info > table.scorelist{
+    width:100%;
+    text-align:left;
+    border-collapse:collapse;    
+}
+div.pmod_multisub > table.probox td.info > table.scorelist tr.item{
+    font-size:16;
+}
+div.pmod_multisub > table.probox td.info > table.scorelist th.no,div.pmod_multisub > td.info > table.scorelist td.no{
+    width:64px;
+}
+div.pmod_multisub > table.probox td.info > table.scorelist th.score,div.pmod_multisub > td.info > table.scorelist td.score{
+    width:auto;
+}
+div.pmod_multisub > table.probox td.content{
+    vertical-align:top;
+}

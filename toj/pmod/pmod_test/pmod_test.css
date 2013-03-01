@@ -1,0 +1,53 @@
+div.pmod_test > div.info{
+    width:250px;
+    height:100%;
+    padding:0px 0px 0px 6px;
+    position:absolute;
+    top:0px;
+    left:0px;
+    overflow:auto;
+}
+div.pmod_test > div.info > table.statlist{
+    width:100%;
+    text-align:left;
+    border-collapse:collapse;    
+}
+div.pmod_test > div.info > table.statlist td.name{
+    width:96px;
+}
+div.pmod_test > div.info > table.statlist td.value{
+    width:auto;
+}
+div.pmod_test > div.info > table.limitlist{
+    width:100%;
+    text-align:left;
+    border-collapse:collapse;    
+}
+div.pmod_test > div.info > table.limitlist td.name{
+    width:96px
+}
+div.pmod_test > div.info > table.limitlist td.value{
+    width:auto;
+}
+div.pmod_test > div.info > table.scorelist{
+    width:100%;
+    text-align:left;
+    border-collapse:collapse;    
+}
+div.pmod_test > div.info > table.scorelist tr.item{
+    font-size:16;
+}
+div.pmod_test > div.info > table.scorelist th.no,div.pmod_test > div.info > table.scorelist td.no{
+    width:64px;
+}
+div.pmod_test > div.info > table.scorelist th.score,div.pmod_test > div.info > table.scorelist td.score{
+    width:auto;
+}
+div.pmod_test > div.content{
+    height:100%;
+    padding:0px 6px 0px 0px;
+    position:absolute;
+    top:0px;
+    left:256px;
+    overflow:auto;
+}

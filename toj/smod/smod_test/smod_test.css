@@ -1,0 +1,29 @@
+div.smod_test > h1.msg{
+    padding:0px 0px 6px 0px;
+}
+div.smod_test > table.subinfolist{
+    padding:0px 0px 6px 0px;
+    text-align:left;
+}
+div.smod_test > table.subinfolist tr.head{
+    height:32px;
+    font-size:20px;
+}
+div.smod_test > table.subinfolist tr.item{
+    height:32px;
+}
+div.smod_test > table.subinfolist th.runtime,div.smod_test > table.subinfolist td.runtime{
+    width:96px;
+}
+div.smod_test > table.subinfolist th.memory,div.smod_test > table.subinfolist td.memory{
+    width:96px;
+}
+div.smod_test > table.subinfolist th.status,div.smod_test > table.subinfolist td.status{
+    width:96px;
+}
+div.smod_test > table.subinfolist th.score,div.smod_test > table.subinfolist td.score{
+    width:96px;
+}
+div.smod_test > table.subinfolist th.score,div.smod_test > table.subinfolist td.errmsg{
+    width:auto;
+}

@@ -1,0 +1,177 @@
+div.index_head{
+    width:100%;
+    height:32px;
+    font-size:20px;
+    line-height:32px;
+    background-color:#1C1C1C;
+    position:absolute;
+    left:0px;
+    top:0px;
+    z-index:1;
+}
+div.index_head > div.title{
+    width:250px;
+    height:100%;
+    margin:0px 0px 0px 6px;
+    float:left;
+}
+div.index_head > div.tab_box{
+    width:auto;
+    height:100%;
+    float:left;
+}
+div.index_head > div.tab_box > div.button{
+    height:100%;
+    margin:0px 0px;
+    float:left;
+}
+div.index_head > div.tab_box > div.button_s{
+    background-color:#3A8FB7;
+}
+div.index_head > div.tab_box > div.button > a.button{
+    height:100%;
+    padding:0px 16px 0px 16px;
+    color:#E9E9E9;
+    text-decoration:none;
+    display:block;
+}
+div.index_head > div.tab_box > div.button > a:hover.button{
+    color:#FFFFFF;
+}
+div.index_head > div.content_box{
+    width:auto;
+    height:100%;
+    float:left;
+}
+div.index_head > div.panel{
+    width:96px;
+    height:100%;
+    text-align:center;
+    cursor:pointer;
+    float:right;
+}
+div.index_head > div.panel_m{
+    color:#FFFFFF;
+}
+div.index_head > div.notice{
+    width:96px;
+    height:100%;
+    text-align:center;
+    font-family:monospace;
+    cursor:pointer;
+    float:right;
+}
+div.index_head > div:hover.notice{
+    color:#FFFFFF;
+}
+div.index_head > div.notice_s{
+    color:#FFFFFF;
+}
+div.index_head > div.notice_h{
+    background-color:#E83015;
+    color:#FFFFFF;
+}
+div.index_head > div.nickname{
+    height:100%;
+    padding:0px 16px 0px 16px;
+    float:right;
+}
+div.index_head > div.nickname > a.nickname{
+    height:100%;
+    color:#E9E9E9;
+    text-align:center;
+    text-decoration:none;
+}
+div.index_head > div.nickname > a:hover.nickname{
+    color:#FFFFFF;
+}
+
+div.index_panel_box{
+    width:0px;
+    position:absolute;
+    left:auto;
+    right:0px;
+    top:32px;
+    overflow:hidden;
+    z-index:110;
+}
+ul.index_panel{
+    width:256px;
+    height:100%;
+    margin:0px 0px;
+    padding:0px 0px;
+    background-color:#1C1C1C;
+    opacity:0;
+    position:absolute;
+    left:auto;
+    right:-256px;
+    top:0px;
+    z-index:2;
+    overflow-x:hidden;
+    overflow-y:auto;
+    list-style:none;
+}
+ul.index_panel > li.button{
+    width:auto;
+    height:64px;
+    padding:0px 0px 0px 32px;
+    font-size:20px;
+    line-height:64px;
+}
+ul.index_panel > li:hover.button{
+    color:#FFFFFF;
+    background-color:rgba(255,255,255,0.2);
+}
+ul.index_panel > ul.square_box{
+    width:100%;
+    margin:0px 0px;
+    padding:0px 0px;
+    list-style:none;
+    overflow:hidden;
+    display:none;
+}
+ul.index_panel > ul.square_box > li.button{
+    width:auto;
+    height:32px;
+    padding:0px 0px 0px 32px;
+    font-size:16px;
+    line-height:32px;
+}
+ul.index_panel > ul.square_box > li:hover.button{
+    color:#FFFFFF;
+    background-color:rgba(255,255,255,0.2);
+}
+ul.index_panel a.button{
+    width:100%;
+    height:100%;
+    color:#E9E9E9;
+    text-decoration:none;
+    position:relative;
+    top:0px;
+    left:50%;
+    cursor:pointer;
+    display:block;
+}
+ul.index_panel a.button_m{
+    color:#FFFFFF;
+}
+
+div.index_page{
+    width:100%;
+    position:absolute;
+    left:0px;
+    top:32px;
+    z-index:0;
+}
+
+div.index_mask{
+    width:100%;
+    height:100%;
+    background-color:rgba(0,0,0,0.9);
+    position:absolute;
+    top:0px;
+    left:0px;
+    z-index:3;
+    display:none;
+    overflow:auto;
+}

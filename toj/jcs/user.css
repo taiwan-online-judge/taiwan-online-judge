@@ -1,0 +1,175 @@
+div.user_page > div.main_tab > div.info_box{
+    width:256px;
+    height:100%;
+    background-color:#1C1C1C;
+    font-size:20px;
+    float:left;
+}
+div.user_page > div.main_tab > div.info_box > div.aboutme{
+    margin:6px 6px;
+    word-break:break-all;
+}
+div.user_page > div.main_tab > div.info_box > img.avatar{
+    width:100%;
+    display:block;
+}
+div.user_page > div.edit_tab > div.edit_box{
+    padding:64px 0px 64px 256px;
+}
+div.user_page > div.edit_tab > div.edit_box > img.avatar{
+    width:268px;
+    margin:0px 0px 16px 0px;
+    display:block;
+}
+div.user_page > div.edit_tab > div.edit_box > div.error{
+    margin:0px 0px 16px 0px;
+    font-size:16px;
+    color:#FFA0A0;
+}
+div.user_page > div.edit_tab > div.edit_box label{
+    font-size:16px;
+}
+div.user_page > div.edit_tab > div.edit_box input{
+    width:256px;
+    height:32px;
+    margin:0px 0px 16px 0px;
+    padding:0px 6px 0px 6px;
+    border-width:0px;
+    font-size:16px;
+    display:block;
+}
+div.user_page > div.mgsq_tab > div.in_box{
+    width:480px;
+    padding:0px 0px 64px 0px;
+    position:absolute;
+    top:64px;
+    left:256px;
+}
+div.user_page > div.mgsq_tab > div.out_box{
+    width:480px;
+    padding:0px 6px 64px 0px;
+    position:absolute;
+    top:64px;
+    left:752px;
+}
+div.user_page > div.mgsq_tab div.item{
+    margin:6px 0px 6px 0px;
+    padding:6px 6px;
+    font-size:16px;
+    cursor:pointer;
+}
+div.user_page > div.mgsq_tab div.item_s{
+    background-color:rgba(255,255,255,0.2);
+}
+div.user_page > div.mgsq_tab div:hover.item{
+    background-color:rgba(255,255,255,0.2);
+}
+div.user_page > div.mgsq_tab div.item > div.info{
+    width:100%;
+    height:32px;
+    line-height:32px;
+}
+div.user_page > div.mgsq_tab div.item > div.info > span.time{
+    height:32px;
+    font-size:14px;
+    line-height:32px;
+    text-align:right;
+    float:right;
+}
+div.user_page > div.mgsq_tab div.item > div.data{
+    width:100%;
+    height:32px;
+    margin:6px 0px 0px 0px;
+    display:none;
+}
+div.user_page > div.mgsq_tab div.item a{
+    height:100%;
+    text-decoration:none;
+    color:#E9E9E9;
+}
+div.user_page > div.mgsq_tab div.item a:hover{
+    text-decoration:underline;
+}
+div.user_page > div.mg_tab > div.left_box{
+    padding:64px 0px 0px 256px;
+    float:left;
+}
+div.user_mask > div.editsq_mbox{
+    width:31%;
+}
+div.user_mask > div.editsq_mbox > div.edit_box{
+    padding:64px 0px 64px 0px;
+}
+div.user_mask > div.editsq_mbox > div.edit_box > div.error{
+    margin:0px 0px 16px 0px;
+    font-size:16px;
+    color:#FFA0A0;
+}
+div.user_mask > div.editsq_mbox > div.edit_box label{
+    font-size:16px;
+}
+div.user_mask > div.editsq_mbox > div.edit_box input{
+    height:32px;
+    margin:0px 0px 16px 0px;
+    padding:0px 6px 0px 6px;
+    border-width:0px;
+    font-size:16px;
+    display:block;
+}
+div.user_mask > div.editsq_mbox > div.edit_box select{
+    height:32px;
+    margin:0px 0px 16px 0px;
+    border-width:0px;
+    font-size:16px;
+    display:block;
+}
+
+div.login_page > div.info_box{
+    width:31%;
+    margin:192px 0px 0px 19%;
+    float:left;
+}
+div.login_page > div.login_box{
+    width:31%;
+    margin:192px auto 0px auto;
+    float:left;
+}
+div.login_page > div.login_box > div.error{
+    margin:0px 0px 16px 0px;
+    font-size:16px;
+    color:#FFA0A0;
+}
+div.login_page > div.login_box > input{
+    width:256px;
+    height:32px;
+    margin:0px 0px 16px 0px;
+    padding:0px 6px 0px 6px;
+    border-width:0px;
+    font-size:16px;
+    display:block;
+}
+
+div.register_page > div.info_box{
+    width:31%;
+    margin:192px 0px 0px 19%;
+    float:left;
+}
+div.register_page > div.register_box{
+    width:31%;
+    margin:192px auto 0px auto;
+    float:left;
+}
+div.register_page > div.register_box > div.error{
+    margin:0px 0px 16px 0px;
+    font-size:16px;
+    color:#FFA0A0;
+}
+div.register_page > div.register_box > input{
+    width:256px;
+    height:32px;
+    margin:0px 0px 16px 0px;
+    padding:0px 6px 0px 6px;
+    border-width:0px;
+    font-size:16px;
+    display:block;
+}

@@ -1,0 +1,97 @@
+div.sqmod_test > div.pro_tab > table.prolist{
+    width:62%;
+    margin:0px 0px 6px 257px;
+    border-collapse:collapse;    
+    text-align:left;
+}
+div.sqmod_test > div.pro_tab > table.prolist tr.head{
+    height:64px;
+    font-size:20px;
+}
+div.sqmod_test > div.pro_tab > table.prolist tr.item{
+    height:32px;
+    border-left:2px solid;
+    border-color:#1C1C1C;
+}
+div.sqmod_test > div.pro_tab > table.prolist tr:hover.item{
+    background-color:rgba(255,255,255,0.2);
+}
+div.sqmod_test > div.pro_tab > table.prolist th.no,div.sqmod_test > div.pro_tab > table.prolist td.no{
+    width:96px;
+    padding:0px 0px 0px 6px;
+}
+div.sqmod_test > div.pro_tab > table.prolist th.name,div.sqmod_test > div.pro_tab > table.prolist td.name{
+    width:auto;
+}
+div.sqmod_test > div.pro_tab > table.prolist th.bscore,div.sqmod_test > div.pro_tab > table.prolist td.bscore{
+    width:128px;
+}
+div.sqmod_test > div.pro_tab > table.prolist th.team,div.sqmod_test > div.pro_tab > table.prolist td.team{
+    width:64px;
+    display:none;
+}
+div.sqmod_test > div.pro_tab > table.prolist a.link{
+    color:#E9E9E9;
+    text-decoration:none;
+}
+div.sqmod_test > div.pro_tab > table.prolist a:hover.link{
+    color:#E0E0E0;
+    text-decoration:underline;
+}
+
+div.sqmod_test > div.pro_tab > table.stat{
+    margin:32px 0px 6px 256px;
+    border-collapse:collapse;    
+    text-align:left;
+}
+div.sqmod_test > div.pro_tab > table.stat tr{
+    height:32px;
+}
+div.sqmod_test > div.pro_tab div.prog_box{
+    width:512px;
+    height:16px;
+    background-color:rgba(255,255,255,0.2);
+    color:#1C1C1C;
+    font-size:12px;
+    font-family:monospace;
+    line-height:16px;
+    text-align:right;
+    position:relative;
+}
+div.sqmod_test > div.pro_tab div.prog_box > div.pass{
+    width:0%;
+    height:16px;
+    border-right:rgba(0,255,0,0.8) 2px solid;
+    position:absolute;
+    top:0px;
+    left:0%;
+    overflow:hidden;
+}
+div.sqmod_test > div.pro_tab div.prog_box > div.good{
+    width:0%;
+    height:16px;
+    border-right:rgba(255,255,0,0.8) 2px solid;
+    position:absolute;
+    top:0px;
+    left:0%;
+    overflow:hidden;
+}
+div.sqmod_test > div.pro_tab div.prog_box > div.total{
+    width:0%;
+    height:16px;
+    border-right:rgba(255,255,255,0.8) 2px solid;
+    position:absolute;
+    top:0px;
+    left:0%;
+    overflow:hidden;
+}
+div.sqmod_test > div.pro_tab div.prog_box > div.prog{
+    width:0%;
+    height:16px;
+    background-color:rgba(0,0,0,0);
+    font-weight:bold;
+    position:absolute;
+    top:0px;
+    left:0px;
+    overflow:hidden;
+}

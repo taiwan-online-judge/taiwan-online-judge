@@ -1,0 +1,303 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Taiwan Online Judge</title>
+
+<link href='http://fonts.googleapis.com/css?family=Droid+Sans' rel='stylesheet' type='text/css'>
+
+<link rel="stylesheet" href="/codemirror.css">
+<link rel="stylesheet" href="/lesser-dark.css">
+
+<link rel="stylesheet" type="text/css" href="/toj/jcs/common.css">
+<link rel="stylesheet" type="text/css" href="/toj/jcs/index.css">
+<link rel="stylesheet" type="text/css" href="/toj/jcs/notice.css">
+<link rel="stylesheet" type="text/css" href="/toj/jcs/home.css">
+<link rel="stylesheet" type="text/css" href="/toj/jcs/stat.css">
+<link rel="stylesheet" type="text/css" href="/toj/jcs/user.css">
+<link rel="stylesheet" type="text/css" href="/toj/jcs/sq.css">
+<link rel="stylesheet" type="text/css" href="/toj/jcs/pro.css">
+
+<script src="/jquery-1.9.1.min.js"></script>
+<script src="/jquery.easing.1.3.js"></script>
+<script type="text/javascript" src="/codemirror.js"></script>
+<script type="text/javascript" src="/clike.js"></script>
+
+<script src="/toj/jcs/common.js"></script>
+<script src="/toj/jcs/index.js"></script>
+<script src="/toj/jcs/notice.js"></script>
+<script src="/toj/jcs/home.js"></script>
+<script src="/toj/jcs/stat.js"></script>
+<script src="/toj/jcs/user.js"></script>
+<script src="/toj/jcs/sq.js"></script>
+<script src="/toj/jcs/pro.js"></script>
+
+<style type="text/css">
+body{
+    color:#E9E9E9;
+    background-color:#373C38;
+    font-family:\5FAE\8EDF\6B63\9ED1\9AD4,\65B0\7D30\660E\9AD4;
+    overflow-y:hidden;
+}
+button{
+    height:32px;
+    margin:0px 0px;
+    padding:0px 16px 0px 16px;
+    font-size:16px;
+    font-family:\5FAE\8EDF\6B63\9ED1\9AD4,\65B0\7D30\660E\9AD4;
+    color:#E9E9E9;
+    background-color:#00896C;
+    border:none;
+    cursor:pointer;
+}
+button:hover{
+    background-color:#24936E;
+}
+</style>
+<script type="text/javascript">
+    $(document).ready(function(){
+	common.init();
+	user.init();
+	index.init();
+	notice.init();
+	home.init();
+	stat.init();
+	sq.init();
+	pro.init();
+
+	common.exheight();
+	$(window).resize(function(e){common.exheight();});
+	$(window).on('popstate',function(e){
+	    if(location.href != common.url_curr){
+		common.url_prev = common.url_curr;
+		common.url_curr = location.href;
+		common.page_urlchange();
+	    }
+	});
+	
+	common.page_urlchange();
+    });
+</script>
+</head>
+<body>
+
+<div id="index_head" class="index_head">
+    <div class="title">Taiwan Online Judge</div>
+    <div class="tab_box"></div>
+    <div class="content_box"></div>
+    <div id="index_head_panel" class="panel">開始</div>
+    <div id="index_head_notice" class="notice" style="display:none">[0]</div>
+    <div id="index_head_nickname" class="nickname"><a class="nickname"></a></div>
+</div>
+
+<div id="index_panel_box" exheight=true class="index_panel_box"><ul id="index_panel" class="index_panel">
+    <li page="home" class="button"><a href="/toj/home/" class="button">首頁</a></li>
+    <li page="stat" class="button"><a href="/toj/stat/" class="button">狀態</a></li>
+    <li page="user" class="button" style="display:none;"><a class="button">個人</a></li>
+    <li page="square" class="button"><a class="button">方塊</a></li>
+    <ul class="square_box"></ul>
+
+    <li page="login" class="button" style="margin:64px 0px 0px 0px; display:none;"><a href="/toj/login/" class="button">登入</a></li>
+    <li page="register" class="button" style="display:none;"><a href="/toj/register/" class="button">註冊</a></li>
+    <li page="logout" class="button" style="margin:64px 0px 0px 0px; display:none;"><a href="/toj/logout/" class="button">登出</a></li>
+</ul></div>
+
+<div id="notice_list_box" exheight=true class="notice_list_box"><ul id="notice_list" class="notice_list"></ul></div>
+
+<div id="index_page" exheight=true class="index_page">
+
+    <div page="home" class="common_page home_page">
+	<audio id="tmpload_audio" src="/tmpload.ogg" preload></audio>
+	<audio id="tmp_audio" src="/tmp.ogg" preload></audio>
+	<div id="tmpani" style="width:100%; height:100%; background-color:#0C0C0C;">
+	    <canvas id="tmpcanv" width=1280 height=720 style="margin:0px auto 0px auto; display:block;"></canvas>
+	</div>
+    </div>
+    
+    <div page="none" class="common_page none_page">
+	<div style="margin:192px 0px 0px 256px;">
+	    <h1>Oops! 此頁不存在</h1>
+	    <a href="/toj/home/" style="margin-left:6px; color:#E9E9E9;">回首頁</a>
+	</div>
+    </div>
+
+    <div page="stat" class="common_page stat_page">
+	<div tab="allsub" class="common_tab sub_tab">
+	    <table class="sublist">
+		<tr class="head">
+		    <th class="subid">SubID</th>
+		    <th class="proid" >ProID</th>
+		    <th class="nickname">暱稱</th>
+		    <th class="runtime">執行時間</th>
+		    <th class="memory">記憶體</th>
+		    <th class="result">結果</th>
+		    <th class="score">分數</th>
+		    <th class="time">時間</th>
+		    <th class="lang">語言</th>
+		</tr>
+	    </table>
+	</div>
+    </div>
+
+    <div page="user" class="common_page user_page">
+	<div tab="main" class="common_tab main_tab">
+	    <div class="info_box">
+		<img class="avatar"></img>
+		<div class="aboutme"></div>
+	    </div>
+	</div>
+	<div tab="edit" class="common_tab edit_tab">
+	    <div class="edit_box">
+		<h1>個人資料</h1>
+		<label>暱稱</label>
+		<input name="nickname" type="textbox">
+		<label>照片</label>
+		<input name="avatar" type="textbox" placeholder="http://example.png">
+		<img class="avatar"></img>
+		<label>關於我</label>
+		<input name="aboutme" type="textbox">
+		<label>電子郵件</label>
+		<input name="email" type="textbox"><br>
+
+		<h1>重設密碼</h1>
+		<label>舊使用者密碼</label>
+		<input name="password_old" type="password">
+		<label>新使用者密碼</label>
+		<input name="password_new" type="password">
+		<label>重復新密碼</label>
+		<input name="password_repeat" type="password"><br>
+		
+		<div class="error"></div>
+		<button class="submit">確定</button>
+		<button class="cancel">取消</button>
+	    </div>
+	</div>
+	<div tab="mgsq" class="common_tab mgsq_tab">
+	    <div class="in_box">
+		<h1>已加入方塊</h1>
+		<h2>等待中</h2>
+		<div class="wait"></div><br>
+		<h2>進行中</h2>
+		<div class="run"></div><br>
+		<h2>已結束</h2>
+		<div class="past"></div>
+	    </div>
+	    <div class="out_box">
+		<h1>未加入方塊</h1>
+		<h2>等待中</h2>
+		<div class="wait"></div><br>
+		<h2>進行中</h2>
+		<div class="run"></div><br>
+		<h2>已結束</h2>
+		<div class="past"></div>
+	    </div>
+	</div>
+	<div tab="mg" class="common_tab mg_tab">
+	    <div class="left_box">
+		<h1>方塊</h1>
+		<button class="newsq">建立方塊</button>
+	    </div>
+	</div>
+    </div>
+
+    <div page="sq" class="common_page sq_page"></div>
+    <div page="pro" class="common_page pro_page"></div>
+    
+    <div page="login" class="common_page login_page">
+	<div class="info_box">
+	    <h1>登入TOJ, 開始你的解題</h1>
+	    <strong>沒有帳號?</strong><a href="/toj/register/" style="margin-left:6px; color:#E9E9E9;">註冊</a>
+	</div>
+	<div class="login_box">
+	    <h1>登入</h1>
+	    <div class="error"></div>
+	    <input name="username" type="textbox" placeholder="使用者名稱">
+	    <input name="password" type="password" placeholder="使用者密碼">
+	    <button>登入</button>
+	</div>
+    </div>
+
+    <div page="register" class="common_page register_page">
+	<div class="info_box">
+	    <h1>註冊TOJ, 開始你的解題</h1>
+	    <strong>有帳號?</strong><a href="/toj/login/" style="margin-left:6px; color:#E9E9E9;">登入</a>
+	</div>
+	<div class="register_box">
+	    <h1>註冊</h1>
+	    <div class="error"></div>
+	    <input name="username" type="textbox" placeholder="使用者名稱">
+	    <input name="password" type="password" placeholder="使用者密碼">
+	    <input name="password_repeat" type="password" placeholder="重復密碼">
+	    <input name="nickname" type="textbox" placeholder="暱稱">
+	    <input name="email" type="textbox" placeholder="電子郵件">
+	    <button>註冊</button>
+	</div>
+    </div>
+
+</div>
+
+<div id="index_mask" class="index_mask">
+    <div class="user_mask">
+	<div class="common_mask_box editsq_mbox">
+	    <div class="edit_box">
+		<h1>基本資料</h1>
+		<label>方塊名稱</label>
+		<input name="sqname" type="textbox" size="16" placeholder="foo">
+		<label>模組名稱</label>
+		<input name="sqmodname" type="textbox" size="16" placeholder="sqmod_foo">
+		<label>隱私</label>
+		<select name="publicity">
+		    <option value=3>公開</option>
+		    <option value=2>可申請</option>
+		    <option value=1>秘密</option>
+		</select>
+		<label>時間限制</label>
+		<select name="infinite">
+		    <option value=1>無時限</option>
+		    <option value=2>有時限</option>
+		</select>
+		<div class="time" style="display:none;">
+		    <label>開始時間</label><br>
+		    <input name="s_year" type="textbox" size="1" placeholder="2501" style="display:inline-block">
+		    <input name="s_month" type="textbox" size="1" placeholder="1"  style="display:inline-block">
+		    <input name="s_day" type="textbox" size="1" placeholder="1" style="display:inline-block">
+		    <input name="s_hr" type="textbox" size="1" placeholder="18" style="margin:0px 0px 0px 6px; display:inline-block">
+		    <input name="s_min" type="textbox" size="1" placeholder="30" style="display:inline-block"><br>
+		    <label>結束時間</label><br>
+		    <input name="e_year" type="textbox" size="1" placeholder="2501" style="display:inline-block">
+		    <input name="e_month" type="textbox" size="1" placeholder="1" style="display:inline-block">
+		    <input name="e_day" type="textbox" size="1" placeholder="1" style="display:inline-block">
+		    <input name="e_hr" type="textbox" size="1" placeholder="18" style="margin:0px 0px 0px 6px; display:inline-block">
+		    <input name="e_min" type="textbox" size="1" placeholder="30" style="display:inline-block">
+		</div><br>
+		<button class="delete" style="display:none;">刪除</button><br><br>
+
+		<div class="error"></div>
+		<button class="submit">確定</button>
+		<button class="cancel">取消</button>
+	    </div>
+	</div>
+    </div>
+    <div class="pro_mask">
+	<div exheight=true extop=32 exbottom=32 class="common_mask_box sub_mbox">
+	    <div class="head">
+		<div class="title"></div>
+		<div class="error"></div>
+		<div class="oper">
+		    <select name="lang"> 
+			<option value="1">C++</option>
+		    </select>
+		    <button class="submit">確定</button>
+		    <button class="cancel">取消</button>
+		</div>
+	    </div>
+	    <div exheight=true extop=76 exbottom=38 class="codebox"></div>
+	</div>
+    </div>
+    <div class="stat_mask">
+	<div class="common_mask_box subinfo_mbox"></div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,56 @@
+div.stat_page > div.sub_tab > table.sublist{
+    width:85%;
+    margin:0px auto 6px auto;
+    border-collapse:collapse;    
+    text-align:left;
+}
+div.stat_page > div.sub_tab > table.sublist tr.head{
+    height:64px;
+    font-size:20px;
+}
+div.stat_page > div.sub_tab > table.sublist tr.item{
+    height:32px;
+    display:none;
+}
+div.stat_page > div.sub_tab > table.sublist tr:hover.item{
+    background-color:rgba(255,255,255,0.2);
+}
+div.stat_page > div.sub_tab > table.sublist th.subid,div.stat_page > div.sub_tab > table.sublist td.subid{
+    width:96px;
+}
+div.stat_page > div.sub_tab > table.sublist th.proid,div.stat_page > div.sub_tab > table.sublist td.proid{
+    width:96px;
+}
+div.stat_page > div.sub_tab > table.sublist th.nickname,div.stat_page > div.sub_tab > table.sublist td.nickname{
+    width:auto;
+}
+div.stat_page > div.sub_tab > table.sublist th.runtime,div.stat_page > div.sub_tab > table.sublist td.runtime{
+    width:96px;
+}
+div.stat_page > div.sub_tab > table.sublist th.memory,div.stat_page > div.sub_tab > table.sublist td.memory{
+    width:96px;
+}
+div.stat_page > div.sub_tab > table.sublist th.result,div.stat_page > div.sub_tab > table.sublist td.result{
+    width:64px;
+}
+div.stat_page > div.sub_tab > table.sublist th.score,div.stat_page > div.sub_tab > table.sublist td.score{
+    width:96px;
+}
+div.stat_page > div.sub_tab > table.sublist th.time,div.stat_page > div.sub_tab > table.sublist td.time{
+    width:256px;
+}
+div.stat_page > div.sub_tab > table.sublist th.lang,div.stat_page > div.sub_tab > table.sublist td.lang{
+    width:64px;
+}
+div.stat_page > div.sub_tab > table.sublist a.link{
+    color:#E9E9E9;
+    text-decoration:none;
+}
+div.stat_page > div.sub_tab > table.sublist a:hover.link{
+    color:#E9E9E9;
+    text-decoration:underline;
+}
+
+div.stat_mask > div.subinfo_mbox{
+    width:85%;
+}
