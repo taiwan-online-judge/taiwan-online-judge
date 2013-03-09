@@ -176,7 +176,6 @@ static int proc_watcher(void *data){
 
 	list_for_each_entry_rcu(info,&proc_task_list,list){
 	    if(cputime_to_usecs(info->task->utime) > info->timelimit){
-		pr_alert("judgk:TLE");
 		info->status = JUDGE_TLE;
 		send_sig(SIGKILL,info->task,0);
 	    }else if(time_after(jiffies,info->jiff_end)){

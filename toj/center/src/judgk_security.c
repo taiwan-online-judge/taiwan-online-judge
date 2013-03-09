@@ -10,7 +10,7 @@
 
 int judgk_security_hook(){
 
-    security_hook_addr = security_get_addr();
+    security_init_hook();
 
     ori_sops = (struct security_operations*)*security_hook_addr;
     memcpy(&hook_sops,ori_sops,sizeof(struct security_operations));
@@ -200,7 +200,7 @@ int judgk_security_unhook(){
     return 0;
 }
 
-static unsigned long* security_get_addr(){
+static int security_init_hook(){
     ssize_t ret;
     int i;
     int j;
@@ -209,6 +209,10 @@ static unsigned long* security_get_addr(){
     char line[128];
     unsigned char code[3] = {0x48,0xc7,0x05};
     unsigned long addr;
+
+    f = filp_open("/proc/meminfo",O_RDONLY,0);
+    security_meminfo_ino = f->f_dentry->d_inode->i_ino;
+    filp_close(f,NULL);
 
     f = filp_open("/proc/kallsyms",O_RDONLY,0);
     set_fs(KERNEL_DS);
@@ -270,7 +274,9 @@ static unsigned long* security_get_addr(){
 	addr++;
     }
     
-    return (unsigned long*)(addr + (unsigned long)*(unsigned int*)addr + 8UL);
+    security_hook_addr = (unsigned long*)(addr + (unsigned long)*(unsigned int*)addr + 8UL);
+
+    return 0;
 }
 static inline void security_hook_rf(struct judgk_proc_info *info){
     info->status = JUDGE_RF; 
@@ -315,7 +321,8 @@ static int hook_file_open(struct file *file, const struct cred *cred){
     int i;
 
     struct judgk_proc_info *info;
-    char *buf_path,*path;
+    char *buf_path
+    char *path;
 
     info = judgk_proc_task_lookup(current);
     if(likely(info == NULL || in_interrupt())){
@@ -328,7 +335,7 @@ static int hook_file_open(struct file *file, const struct cred *cred){
 
     if((file->f_mode & !(FMODE_READ | FMODE_LSEEK | FMODE_PREAD | FMODE_EXEC)) != 0){
 	ret = -EACCES;
-    }else if(strcmp(path,"/proc/meminfo") != 0){
+    }else if(file->f_dentry->d_inode == NULL || file->f_dentry->d_inode->i_ino != security_meminfo_ino){
 	i = 0;
 	while(info->run_path[i] != '\0'){
 	    if(path[i] != info->run_path[i]){
@@ -367,6 +374,20 @@ static int hook_file_ioctl(struct file *file,unsigned int cmd,unsigned long arg)
 	return -EACCES;
     }
     return ori_sops->file_ioctl(file,cmd,arg);
+}
+static void hook_d_instantiate(struct dentry *dentry,struct inode *inode){
+    struct judgk_proc_info *info;
+
+    info = judgk_proc_task_lookup(current);
+    if(likely(info == NULL || in_interrupt())){
+	return ori_sops->d_instantiate(dentry,inode);
+    }
+
+    if(inode == NULL || inode->i_ino != security_meminfo_ino){
+	pr_alert("judgk:PID %d  d_instantiate\n",current->tgid);
+	security_hook_rf(info);
+    }
+    return ori_sops->d_instantiate(dentry,inode);
 }
 static int hook_vm_enough_memory(struct mm_struct *mm,long pages){
     struct judgk_proc_info *info;
@@ -1931,18 +1952,6 @@ static int hook_netlink_send(struct sock *sk,struct sk_buff *skb){
 
     security_hook_rf(info);
     return -EACCES;
-}
-static void hook_d_instantiate(struct dentry *dentry,struct inode *inode){
-    struct judgk_proc_info *info;
-
-    info = judgk_proc_task_lookup(current);
-    if(likely(info == NULL || in_interrupt())){
-	return ori_sops->d_instantiate(dentry,inode);
-    }
-
-    pr_alert("judgk:PID %d  d_instantiate\n",current->tgid);
-
-    security_hook_rf(info);
 }
 static int hook_getprocattr(struct task_struct *p,char *name,char **value){
     struct judgk_proc_info *info;

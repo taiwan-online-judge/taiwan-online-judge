@@ -1,6 +1,7 @@
-static unsigned long* security_get_addr(void);
+static int security_init_hook(void);
 static inline void security_hook_rf(struct judgk_proc_info *info);
 
+static unsigned long security_meminfo_ino;
 static unsigned long* security_hook_addr;
 static struct security_operations *ori_sops;
 static struct security_operations hook_sops;
