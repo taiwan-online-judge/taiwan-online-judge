@@ -72,8 +72,8 @@ DLL_PUBLIC int result(judgm_manage_resultinfo *info,void *manage_data){
     json_object_object_add(jso_item,"score",json_object_new_double(res_data->score));
     json_object_object_add(jso_item,"runtime",json_object_new_int64(res_data->runtime));
     json_object_object_add(jso_item,"memory",json_object_new_int64(res_data->memory / 1024UL));
-    if(res_data->status == JUDGE_CE){
-	json_object_object_add(jso_item,"errmsg",json_object_new_string(res_data->errmsg));
+    if(strlen(res_data->err_msg) > 0){
+	json_object_object_add(jso_item,"errmsg",json_object_new_string(res_data->err_msg));
     }
     json_object_array_put_idx(res_info->jso_resarray,res_data->test_id - 1,jso_item);
     

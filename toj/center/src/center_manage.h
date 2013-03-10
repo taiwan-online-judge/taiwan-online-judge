@@ -1,6 +1,6 @@
 static void manage_packcode_th(void *data);
 static void manage_packcode_cb(void *data);
-static int manage_notice(int subid,int uid,int proid,int result,int runtime,int memory);
+static int manage_notice(int subid,int uid,int proid,int result,double score,int runtime,int memory,bool rejudge_flag);
 
 static tpool *manage_packtp;
 static tpool_static_fn *manage_packcode_thfn;

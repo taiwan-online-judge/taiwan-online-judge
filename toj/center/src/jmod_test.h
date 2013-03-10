@@ -1,5 +1,7 @@
-typedef int (*check_init_fn)(int judgk_modfd,char *datapath,char *runpath);
-typedef int (*check_run_fn)(int &status);
+#define LINE_ERRMSG_MAXSIZE 4096
+
+typedef int (*check_init_fn)(int judgk_modfd,char *data_path,char *run_path);
+typedef int (*check_run_fn)(int &status,char *err_msg);
 typedef int (*check_stop_fn)();
 
 struct line_set_data{
@@ -11,5 +13,5 @@ struct line_result_data{
     double score;
     unsigned long runtime;
     unsigned long memory;
-    char errmsg[4096];
+    char err_msg[LINE_ERRMSG_MAXSIZE];
 };

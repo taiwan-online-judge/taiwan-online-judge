@@ -269,7 +269,7 @@ public:
     }
 };
 
-static int judgm_compile(int subid,char *code_path,char *exe_path,int lang,bool force_flag,char *errmsg,size_t errsize){
+static int judgm_compile(int subid,char *code_path,char *exe_path,int lang,bool force_flag,char *err_msg,size_t err_len){
     int ret;
     int i;
 
@@ -336,10 +336,10 @@ compile:
 
 	close(io[1]);
 	off = 0;
-	while((ret = read(io[0],errmsg + off,errsize - off - 1)) > 0){
+	while((ret = read(io[0],err_msg + off,err_len - off - 1)) > 0){
 	    off += ret;
 	}
-	errmsg[off] = '\0';
+	err_msg[off] = '\0';
 	close(io[0]);
 
 	waitpid(pid,&wstatus,0);

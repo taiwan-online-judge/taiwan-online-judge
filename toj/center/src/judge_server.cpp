@@ -536,7 +536,11 @@ static int server_judge(int subid,char *pro_path,char *code_path,char *run_path,
     fscanf(set_file,"%s",jmod_name);
     snprintf(line_path,sizeof(line_path),"%s/tmp/jmod/%s/%s_line.so",cwd_path,jmod_name,jmod_name);
     fscanf(set_file,"%s",check_name);
-    snprintf(check_path,sizeof(check_path),"%s/tmp/jmod/%s/%s.so",cwd_path,jmod_name,check_name);
+    if(check_name[0] == '/'){
+	snprintf(check_path,sizeof(check_path),"%s/%s/private%s.so",cwd_path,pro_path,check_name);
+    }else{
+	snprintf(check_path,sizeof(check_path),"%s/tmp/jmod/%s/%s.so",cwd_path,jmod_name,check_name);
+    }
 
     lchr = '\n';
     while((tchr = fgetc(set_file)) != EOF){
@@ -626,7 +630,7 @@ static server_conn* server_connect(){
     caddr.sin_family = AF_INET;
     caddr.sin_port = htons(SERVER_JUDGE_PORT);
     //caddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    caddr.sin_addr.s_addr = inet_addr("10.8.0.2");
+    caddr.sin_addr.s_addr = inet_addr("10.8.0.1");
 
     cinfo = new server_conn(cfd);
     server_addepev(cfd,EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET,SERVER_EPEV_JUDGECLIENT,cinfo);

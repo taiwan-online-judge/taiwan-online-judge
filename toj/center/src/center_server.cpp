@@ -118,7 +118,7 @@ int main(){
     saddr.sin_port = htons(SERVER_JUDGE_PORT);
     //saddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     //saddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    saddr.sin_addr.s_addr = inet_addr("10.8.0.2");
+    saddr.sin_addr.s_addr = inet_addr("10.8.0.1");
     setsockopt(judge_sfd,SOL_SOCKET,SO_REUSEADDR,&saddr,sizeof(saddr));
     bind(judge_sfd,(sockaddr*)&saddr,sizeof(saddr));
 

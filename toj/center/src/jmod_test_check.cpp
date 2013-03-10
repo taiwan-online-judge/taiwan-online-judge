@@ -38,7 +38,7 @@ DLL_PUBLIC int init(int judgk_modfd,char *datapath,char *runpath){
 
     return 0;
 }
-DLL_PUBLIC int run(int &status){
+DLL_PUBLIC int run(int &status,char *err_msg){
     int ret;
 
     char *inbuf;
@@ -64,8 +64,9 @@ DLL_PUBLIC int run(int &status){
     delete hyperio;*/
 
     close(p[1]);
+    int c_read=-1,pre_status=status;
     while((ret = read(p[0],inbuf,65536)) > 0){
-	if(read(ansfd,ansbuf,ret) != ret){
+	if((c_read=read(ansfd,ansbuf,ret)) != ret){
 	    status = JUDGE_WA;
 	    break;
 	}
@@ -74,7 +75,11 @@ DLL_PUBLIC int run(int &status){
 	    break;
 	}
     }
-    if(status == JUDGE_AC && read(ansfd,ansbuf,1) > 0){
+//    if(c_read - ret == 1 && ansbuf[c_read-1]=='\n'){
+//	status = pre_status;
+//    }
+	    
+    if(status == JUDGE_AC && ((c_read = read(ansfd,ansbuf,1)) > 1 || c_read == 1 && ansbuf[0]!='\n')){
 	status = JUDGE_WA;
     }
 

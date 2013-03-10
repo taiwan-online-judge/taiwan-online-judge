@@ -99,6 +99,8 @@ int center_manage_submit(int subid,char *param){
     int uid;
     int proid;
     int lang;
+    int result;
+    bool rejudge_flag;
     std::map<int,center_pro_info*>::iterator pro_it;
     center_pro_info *pro_info;
     center_jmod_info *jmod_info;
@@ -111,7 +113,7 @@ int center_manage_submit(int subid,char *param){
     snprintf(db_subid,sizeof(db_subid),"%d",subid);
     db_param[0] = db_subid;
     db_res = PQexecParams(db_conn,
-	    "SELECT \"uid\",\"proid\",\"lang\" FROM \"submit\" WHERE \"subid\"=$1;",
+	    "SELECT \"uid\",\"proid\",\"lang\",\"result\" FROM \"submit\" WHERE \"subid\"=$1;",
 	    1,
 	    NULL,
 	    db_param,
@@ -126,6 +128,7 @@ int center_manage_submit(int subid,char *param){
     sscanf(PQgetvalue(db_res,0,0),"%d",&uid);
     sscanf(PQgetvalue(db_res,0,1),"%d",&proid);
     sscanf(PQgetvalue(db_res,0,2),"%d",&lang);
+    sscanf(PQgetvalue(db_res,0,3),"%d",&result);
     PQclear(db_res);
     center_manage_closedb(db_conn);
 
@@ -139,7 +142,13 @@ int center_manage_submit(int subid,char *param){
     }
     jmod_info = pro_info->jmod_info;
 
-    sub_info = new center_submit_info(subid,uid,jmod_info,pro_info,lang,param);
+    if(result == JUDGE_WAIT){
+	rejudge_flag = false;
+    }else{
+	rejudge_flag = true;
+    }
+
+    sub_info = new center_submit_info(subid,uid,jmod_info,pro_info,lang,rejudge_flag,param);
     center_manage_submap.insert(std::pair<int,center_submit_info*>(sub_info->subid,sub_info));
     manage_packtp->add(manage_packcode_thfn,sub_info,manage_packcode_cbfn,sub_info);
     
@@ -208,7 +217,7 @@ static void manage_packcode_cb(void *data){
 
     fclose(set_file);
 }
-static int manage_notice(int subid,int uid,int proid,int result,int runtime,int memory){
+static int manage_notice(int subid,int uid,int proid,int result,double score,int runtime,int memory,bool rejudge_flag){
     char msg[4096];
     json_object *jso_msg;
     json_object *jso_arg;
@@ -218,14 +227,16 @@ static int manage_notice(int subid,int uid,int proid,int result,int runtime,int 
     json_object_object_add(jso_msg,"subid",json_object_new_int(subid));
     json_object_object_add(jso_msg,"proid",json_object_new_int(proid));
     json_object_object_add(jso_msg,"result",json_object_new_int(result));
+    json_object_object_add(jso_msg,"score",json_object_new_double(score));
     json_object_object_add(jso_msg,"runtime",json_object_new_int(runtime));
     json_object_object_add(jso_msg,"memory",json_object_new_int(memory / 1024UL));
+    json_object_object_add(jso_msg,"rejudge_flag",json_object_new_boolean(rejudge_flag));
 
     jso_arg = json_object_new_array();
     json_object_array_add(jso_arg,json_object_new_int(uid));
     json_object_array_add(jso_arg,jso_msg);
 
-    printf("%d %d %d\n",uid,proid,event_exec("pzreadtest.php","center_result_event",json_object_get_string(jso_arg)));
+    event_exec("pzreadtest.php","center_result_event",json_object_get_string(jso_arg));
     json_object_put(jso_arg);
 
     return 0;
@@ -273,7 +284,7 @@ int center_manage_result(int subid,char *res_data){
 	}
 
 	snprintf(db_result,sizeof(db_result),"%d",res_info.result);
-	snprintf(db_score,sizeof(db_score),"%d",(int)res_info.score);
+	snprintf(db_score,sizeof(db_score),"%lld",(int)res_info.score);
 	snprintf(db_runtime,sizeof(db_runtime),"%lu",res_info.runtime);
 	snprintf(db_memory,sizeof(db_memory),"%lu",res_info.memory / 1024UL);
 	snprintf(db_subid,sizeof(db_subid),"%d",subid);
@@ -293,7 +304,14 @@ int center_manage_result(int subid,char *res_data){
 	PQclear(db_res);
 	center_manage_closedb(db_conn);
 
-	manage_notice(subid,sub_info->uid,sub_info->pro_info->proid,res_info.result,res_info.runtime,res_info.memory);
+	manage_notice(subid,
+		sub_info->uid,
+		sub_info->pro_info->proid,
+		res_info.result,
+		res_info.score,
+		res_info.runtime,
+		res_info.memory,
+		sub_info->rejudge_flag);
 
 	delete sub_info;
     }else{

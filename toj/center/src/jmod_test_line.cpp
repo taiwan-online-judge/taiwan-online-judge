@@ -123,6 +123,7 @@ DLL_PUBLIC int run(judgm_line_info *info){
     res_data->score = 0;
     res_data->runtime = 0;
     res_data->memory = 0;
+    res_data->err_msg[0] = '\0';
 
     if(line_load_setfile(info->set_file,set_data->test_id,set_timelimit,set_memlimit,set_score)){
 	return -1;
@@ -130,7 +131,7 @@ DLL_PUBLIC int run(judgm_line_info *info){
 
     snprintf(main_path,sizeof(main_path),"%s/main.cpp",info->code_path);
     snprintf(exe_path,sizeof(exe_path),"%s/test",info->run_path);
-    if(judgm_compile(info->subid,main_path,exe_path,info->lang,false,res_data->errmsg,sizeof(res_data->errmsg))){
+    if(judgm_compile(info->subid,main_path,exe_path,info->lang,false,res_data->err_msg,LINE_ERRMSG_MAXSIZE)){
 	res_data->status = JUDGE_CE;
 	return -1;
     }
@@ -155,7 +156,7 @@ DLL_PUBLIC int run(judgm_line_info *info){
 	delete line_proc;
 	return -1;
     }
-    chk_run_fn(chk_status);
+    chk_run_fn(chk_status,res_data->err_msg);
     
     line_sig_block();
     if(line_proc->status == JUDGE_RUN){
