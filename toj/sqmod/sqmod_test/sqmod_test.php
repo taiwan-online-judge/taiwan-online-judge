@@ -8,7 +8,7 @@ require_once('team.inc.php');
 require_once('../../php/sqlib_scoreboard.inc.php');
 
 $sqlc = db_connect();
-$msqlc = db_connect('toj_mod2');
+$msqlc = db_connect('toj_mod');
 
 $action = $_POST['action'];
 $data = $_POST['data'];

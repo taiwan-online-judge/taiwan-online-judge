@@ -45,7 +45,7 @@ var notice = new function(){
 		    reto = JSON.parse(res);
 		    for(i = 0;i < reto.length;i++){
 			noticeo = JSON.parse(reto[i].txt);
-			j_item = notice.listnew(noticeo);
+			j_item = listnew(noticeo);
 			j_list.prepend(j_item);
 			j_a = j_item.find('a.item');
 			j_a.addClass('item_h');

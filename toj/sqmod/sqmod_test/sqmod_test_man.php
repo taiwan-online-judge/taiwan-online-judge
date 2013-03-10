@@ -69,7 +69,7 @@ function get_user_spent_time($sqlc, $sqid, $uid, $start_time = null, $end_time =
 }
 
 $sqlc = db_connect();
-$msqlc = db_connect('toj_mod2');
+$msqlc = db_connect('toj_mod');
 
 $sqid = intval($_GET['sqid']);
 if(!$sqid)
