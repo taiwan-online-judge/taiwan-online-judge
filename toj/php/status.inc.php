@@ -71,7 +71,7 @@ class status
 	}
 
 
-	$sqlstr = 'SELECT "submit".*, "user"."nickname" FROM ("submit" INNER JOIN "user" ON "submit"."uid"="user"."uid") INNER JOIN "problem" ON "submit"."proid"="problem"."proid" WHERE '.$condstr.' ORDER BY '.$ordstr.' LIMIT '.pg_escape_string($count).';';
+	$sqlstr = 'SELECT "submit".*, "user"."nickname", "problem"."proname" FROM ("submit" INNER JOIN "user" ON "submit"."uid"="user"."uid") INNER JOIN "problem" ON "submit"."proid"="problem"."proid" WHERE '.$condstr.' ORDER BY '.$ordstr.' LIMIT '.pg_escape_string($count).';';
 
 	//echo($sqlstr.'<br>'); 
 	$sqlr = pg_query($sqlc, $sqlstr);
@@ -112,6 +112,7 @@ class status
 	$ret->memory = intval($ret->memory);
 	$ret->score = intval($ret->score);
 	$ret->lang = intval($ret->lang);
+	$ret->nickname = user::get_nickname($sqlc, $ret->uid);
 
 	return $ret;
     }
@@ -127,6 +128,35 @@ class status
 	if(!$ret)
 	    return false;
 	return true;
+    }
+
+    public static function get_submit_data($subid)
+    {
+	//get submit data files
+	//if nothing return false
+	
+	$ret = array();
+	$path = '../center/submit/'.(floor($subid/1000)*1000).'/'.$subid.'/data';
+	$dir_it = new RecursiveDirectoryIterator($path);
+	$it = new RecursiveIteratorIterator($dir_it, RecursiveIteratorIterator::SELF_FIRST);
+
+	foreach($it as $file)
+	{
+	    if($file->isFile())
+	    {
+		$obj = new stdClass();
+		$obj->filename = $file->getPathname();
+		$obj->content = file_get_contents($obj->filename);
+		for($i = 0; $i < 6; $i++)
+		{
+		    $pos = strpos($obj->filename, '/');
+		    $obj->filename = substr($obj->filename, $pos+1);
+		}
+		array_push($ret, $obj);		
+	    }
+	}
+
+	return $ret;
     }
 }
 

@@ -8,7 +8,7 @@ require_once('team.inc.php');
 require_once('../../php/sqlib_scoreboard.inc.php');
 
 $sqlc = db_connect();
-$msqlc = db_connect('toj_mod');
+$msqlc = db_connect('toj_mod2');
 
 $action = $_POST['action'];
 $data = $_POST['data'];
@@ -24,7 +24,7 @@ if($action == 'get_prolist')
     if(!sec_is_login())
 	die('Enot_login');
     $uid = intval($_COOKIE['uid']);
-    if(square::get_user_relationship($sqlc, $uid, $sqid) != SQUARE_USER_ACTIVE)
+    if(square::get_user_relationship($sqlc, $uid, $sqid) < SQUARE_USER_ACTIVE)
 	die('Ecannot_view_sq');
     
     $list = square::get_pro_list($sqlc, $sqid);
@@ -44,7 +44,7 @@ if($action == 'get_user_stat')
     if(!sec_is_login())
 	die('Enot_login');
     $uid = intval($_COOKIE['uid']);
-    if(square::get_user_relationship($sqlc, $uid, $sqid) != SQUARE_USER_ACTIVE)
+    if(square::get_user_relationship($sqlc, $uid, $sqid) < SQUARE_USER_ACTIVE)
 	die('Ecannot_view_sq');
 
     $data = get_setting($sqid);

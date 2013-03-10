@@ -1,87 +1,182 @@
-var stat = {
-    init:function(){
-	stat.stat_page = new class_stat_page;
-    }
+var stat = new function(){
+    var that = this;
+    var stat_allsub_pbox = null;
+
+
+    var sub_node = null;
+    var subid_node = null;
+
+
+    var j_subres_mbox = null;
+    var subres_mbox = null;
+    var subfile_mbox = null;
+
+
+    that.sub_subid = null;
+
+    that.init = function(){
+	stat_allsub_pbox = new class_stat_sub_pbox('allsub');
+	subfile_mbox = new class_stat_subfile_mbox;
+	j_subres_mbox = $('#index_mask > div.stat_mask > div.subres_mbox');
+
+	that.stat_node = new vus.node('stat');
+	that.stat_node.url_chg = function(direct,url_upart,url_dpart){
+	    if(direct == 'in'){
+		index.title_set('TOJ-狀態');
+
+		index.tab_add('allsub','/toj/stat/allsub/','全部動態');
+		if(url_dpart[0] != 'allsub'){
+		    com.url_update('/toj/stat/allsub/');	
+		    return 'stop';
+		}
+	    }else if(direct == 'out'){
+		index.tab_empty();
+	    }
+
+	    return 'cont';
+	};
+	that.stat_node.child_set(stat_allsub_pbox.node);
+	com.vus_root.child_set(that.stat_node);	
+
+
+
+
+	sub_node = new vus.node('sub');
+	subid_node = new vus.node('');
+
+	sub_node.url_chg = function(direct,url_upart,url_dpart){
+	    var subid;
+
+	    if(direct == 'in' || direct == 'same'){
+		if((subid = url_dpart[0]) == ''){
+		    com.url_update('/toj/none/');
+		    return 'stop';
+		}
+		subid = parseInt(url_dpart[0]);
+		if(subid == that.sub_subid){
+		    return 'cont';
+		}
+
+		if(that.sub_subid != null){
+		    sub_node.child_del(subid_node);
+		}
+		that.sub_subid = subid;
+
+		subid_node.name = that.sub_subid.toString();
+		sub_node.child_set(subid_node);
+	    }else if(direct == 'out'){
+		if(that.sub_subid != null){
+		    sub_node.child_del(subid_node);
+		}
+		that.sub_subid = null;
+	    }
+
+	    return 'cont';
+	};
+	com.vus_mbox.child_set(sub_node);
+
+
+
+
+	subid_node.mbox_name = null;
+	subid_node.smodname = null;
+	subid_node.url_chg = function(direct,url_upart,url_dpart){
+	    var mbox_name;
+
+	    var _clean = function(){
+		if(subres_mbox != null){
+		    subid_node.child_del(subres_mbox.node);
+
+		    j_subres_mbox.empty();
+		    j_subres_mbox.removeClass(subid_node.smodname);
+
+		    subres_mbox = null;
+		    subid_node.smodname = null;
+		}
+	    };
+
+	    if(direct == 'in' || direct == 'same'){
+		mbox_name = url_dpart[0];
+		if(mbox_name == subid_node.mbox_name){
+		    return 'cont';
+		}
+
+		_clean();
+
+		subid_node.mbox_name = mbox_name;
+		if(mbox_name == 'res'){
+		    subid_node.child_delayset('res');
+		    
+		    $.post('/toj/php/status.php',{'action':'get_by_subid','data':JSON.stringify({'subid':that.sub_subid})},function(res){
+			var reto;
+
+			if(res[0] != 'E'){
+			    reto = JSON.parse(res);
+			    subid_node.smodname = reto.smodname;
+			    reto.submit_time = com.get_date(reto.submit_time);
+			    delete reto.smodname;
+
+
+			    css = $('<link rel="stylesheet" type="text/css" href="/toj/smod/' + subid_node.smodname + '/' + subid_node.smodname + '.css">');
+			    $('head').append(css);
+			    css.ready(function(){
+				j_subres_mbox.addClass(subid_node.smodname);
+
+				$.get('/toj/smod/' + subid_node.smodname + '/' + subid_node.smodname + '.html',{},function(res){
+				    var j_h;
+				    var j_button;
+
+				    j_subres_mbox.html(res);
+
+				    j_h = $('<h2 style="padding:6px 0px 0px 82px;"></h2>');
+				    j_h.text('SubID: ' + that.sub_subid);
+				    j_subres_mbox.prepend(j_h);
+
+				    if(reto.uid == user.uid || user.level == -1){
+					j_button = $('<button style="margin:6px 0px 0px 0px; float:right;">檔案</button>');
+					j_button.on('click',function(e){
+					    com.url_update('/toj/m/sub/' + that.sub_subid + '/file/');
+					});
+					j_subres_mbox.prepend(j_button);
+				    }
+				    
+				    $.getScript('/toj/smod/' + subid_node.smodname + '/' + subid_node.smodname + '.js',function(script,stat,res){
+					subres_mbox = new class_stat_subres_mbox(that.sub_subid,reto);
+					eval('new ' + subid_node.smodname + '(subres_mbox,j_subres_mbox)');
+					subid_node.child_set(subres_mbox.node);
+				    });
+				});
+			    });
+			}else{
+			    com.url_update('/toj/node/');
+			}
+		    });
+		}   
+	    }else if(direct == 'out'){
+		_clean();
+		subid_node.mbox_name = null;
+	    }
+
+	    return 'cont';
+	};
+	subid_node.child_set(subfile_mbox.node);
+    };
 };
 
-class_stat_page = function(){
+var class_stat_sub_pbox = function(pbox_name){
     var that = this;
-    var j_page = $('#index_page > [page="stat"]');
-    var j_blank = $('#index_page > [page="stat"] > div.blank');
-    var allsub_tab = new class_stat_allsub_tab(that);
-
-    that.subinfo_mbox = new class_stat_subinfo_mbox(that);
-
-    that.__super();
-
-    that.urlchange = function(direct){
-	var _in = function(){
-	    that.fadein(j_page);
-
-	    index.settitle('TOJ-狀態');
-
-	    that.addtab('allsub',allsub_tab);
-	    index.addtab('allsub','/toj/stat/allsub/','全部動態');
-
-	    _change();
-	};
-	var _out = function(){
-	    that.fadeout(j_page);
-	    index.emptytab();
-	    that.tab_urlchange(null);
-	};
-	var _change = function(){
-	    var tabname;
-
-	    tabname = common.geturlpart()[1];
-	    if(!(tabname in that.tab_list)){
-		tabname = 'allsub';
-		common.replaceurl('/toj/stat/allsub/');
-	    }
-	    that.tab_urlchange(tabname);
-	}
-	
-	if(direct == 'in'){
-	    _in();
-	}else if(direct == 'out'){
-	    _out();
-	}else if(direct == 'same'){
-	    _change();
-	}
-    };
-
-    common.addpage('stat',that);
-}; __extend(class_stat_page,class_common_page);
-
-var class_stat_allsub_tab = function(paobj){
-    var that = this;
-    var j_tab = $('#index_page > [page="stat"] > [tab="allsub"]');
-    var j_table = j_tab.find('table.sublist');
+    var j_pbox = $('#index_page > div.stat_page > div.' + pbox_name + '_pbox');
+    var j_table = j_pbox.find('table.sublist');
     
     var refresh_flag = false;
     var j_ajax = null;
     var ssubid = 0;
     var esubid = 2147483647;
-    var lastupdate = null;
-    var topflag = true;
-    var topqueue = new Array;
-    var downblock = false;
-    var subid_curr = null;
+    var last_update = null;
+    var top_flag = true;
+    var top_queue = new Array;
+    var down_block = false;
 
-    var subinfo_switch = function(subid){
-	if(subid == undefined){
-	    subid = common.geturlpart()[2];
-	}
-	if(subid != '' && subid != subid_curr){
-	    subid_curr = parseInt(subid);
-	    common.replaceurl('/toj/stat/allsub/' + subid_curr + '/');
-	    that.paobj.subinfo_mbox.init(subid_curr);
-	    common.showmbox(that.paobj.subinfo_mbox).always(function(){
-		subid_curr = null;
-		//common.prevurl();
-	    });
-	}
-    };
     var sub_listset = function(j_item,subo){
 	var j_a;
 
@@ -89,11 +184,11 @@ var class_stat_allsub_tab = function(paobj){
 
 	j_item.find('td.subid').text(subo.subid);
 	
-	j_a = j_item.find('td.proid > a.link');
+	j_a = j_item.find('td.proid > a');
 	j_a.attr('href','/toj/pro/' + subo.proid+ '/');
 	j_a.text(subo.proid);
 
-	j_a = j_item.find('td.nickname > a.link');
+	j_a = j_item.find('td.nickname > a');
 	j_a.attr('href','/toj/user/' + subo.uid+ '/');
 	j_a.text(subo.nickname);
 	
@@ -101,19 +196,19 @@ var class_stat_allsub_tab = function(paobj){
 	j_item.find('td.memory').text(subo.memory);
 	j_item.find('td.result').text(RESULTMAP[subo.result]);
 	j_item.find('td.score').text(subo.score);
-	j_item.find('td.time').text(common.getdatestring(subo.submit_time,true));
-	j_item.find('td.lang').text(common.getlang(subo.lang)[0]);
+	j_item.find('td.time').text(com.get_datestring(subo.submit_time,true));
+	j_item.find('td.lang').text(com.get_lang(subo.lang)[0]);
 
 	j_item.off('click').on('click',function(e){
 	    if(e.target.tagName != 'A'){
-		subinfo_switch(subo.subid);
+		com.url_push('/toj/m/sub/' + subo.subid + '/res/');
 	    }
 	});
     };
     var sub_listnew = function(subo){
 	var j_item;
 
-	j_item = $('<tr class="item"><td class="subid"></td><td class="proid"><a class="link"></a></td><td class="nickname"><a class="link"></a></td><td class="runtime"></td><td class="memory"></td><td class="result"></td><td class="score"></td><td class="time"></td><td class="lang"></td></tr>');
+	j_item = $('<tr class="item"><td class="subid"></td><td class="proid"><a></a></td><td class="nickname"><a></a></td><td class="runtime"></td><td class="memory"></td><td class="result"></td><td class="score"></td><td class="time"></td><td class="lang"></td></tr>');
 	sub_listset(j_item,subo);
 
 	return j_item;
@@ -131,26 +226,27 @@ var class_stat_allsub_tab = function(paobj){
 		'sort':{'score':null,'runtime':null,'memory':null,'subid':[1,0]},
 		'wait':10,
 		'count':100,
-		'last_update':lastupdate
+		'last_update':last_update
 	    })}
 	    ,function(res){
 		var i;
+
 		var reto;
 		var j_item;
-		var maxsubid;
+		var masubid;
 
 		if(res[0] != 'E'){
 		    reto = JSON.parse(res);
 
-		    maxsubid = ssubid;
+		    masubid = ssubid;
 		    for(i = 0;i < reto.length;i++){
-			reto[i].submit_time = common.getdate(reto[i].submit_time);
+			reto[i].submit_time = com.get_date(reto[i].submit_time);
 
 			j_item = j_table.find('[subid="' + reto[i].subid + '"]')
 			if(j_item.length > 0){
 			    sub_listset(j_item,reto[i]);
 			}else if(reto[i].subid > ssubid){
-			    if(topflag == true){
+			    if(top_flag == true){
 				j_item = sub_listnew(reto[i]);
 				j_item.insertAfter(j_table.find('tr.head')); 
 				j_item.css('opacity',0).slideDown('fast').fadeTo(100,1);
@@ -161,14 +257,14 @@ var class_stat_allsub_tab = function(paobj){
 			    }
 			}
 
-			if(reto[i].subid > maxsubid){
-			    maxsubid = reto[i].subid;
+			if(reto[i].subid > masubid){
+			    masubid = reto[i].subid;
 			}
-			if(reto[i].last_update > lastupdate){
-			    lastupdate = reto[i].last_update;
+			if(reto[i].last_update > last_update){
+			    last_update = reto[i].last_update;
 			}
 		    }
-		    ssubid = maxsubid;
+		    ssubid = masubid;
 		}
 
 		j_ajax = null;
@@ -178,11 +274,11 @@ var class_stat_allsub_tab = function(paobj){
     };
     var sub_update = function(type){
 	if(type == 0){
-	    while(topqueue.length > 0){
-		j_table.find('[subid="' + topqueue.pop() + '"]').css('opacity',0).slideDown('fast').fadeTo(100,1);
+	    while(top_queue.length > 0){
+		j_table.find('[subid="' + top_queue.pop() + '"]').css('opacity',0).slideDown('fast').fadeTo(100,1);
 	    }
-	}else if(type == 1 && downblock == false){
-	    downblock = true;
+	}else if(type == 1 && down_block == false){
+	    down_block = true;
 	    $.post('/toj/php/status.php',{'action':'get_submit',
 		'data':JSON.stringify({
 		    'filter':{'uid':null,'result':null,'proid':null,'lang':null},
@@ -197,70 +293,76 @@ var class_stat_allsub_tab = function(paobj){
 
 		    if(res[0] == 'E'){
 			if(res != 'Eno_result'){
-			    downblock = false;
+			    down_block = false;
 			}
 		    }else{
 			reto = JSON.parse(res);
 			for(i = 0;i < reto.length;i++){
-			    reto[i].submit_time = common.getdate(reto[i].submit_time);
+			    reto[i].submit_time = com.get_date(reto[i].submit_time);
 
 			    j_item = sub_listnew(reto[i]);
 			    j_table.append(j_item); 
 			    j_item.css('opacity',0).slideDown('fast').fadeTo(100,1);
 			}
 
-			if(lastupdate == null){
+			if(last_update == null){
 			    for(i = 0;i < reto.length;i++){
 				if(ssubid < reto[i].subid){
 				    ssubid = reto[i].subid;
 				}
 			    }
 
-			    lastupdate = reto[0].last_update;
+			    last_update = reto[0].last_update;
 			    for(i = 1;i < reto.length;i++){
-				if(lastupdate < reto[i].last_update){
-				    lastupdate = reto[i].last_update;
+				if(last_update < reto[i].last_update){
+				    last_update = reto[i].last_update;
 				}
 			    }
 
 			    sub_refresh();
 
-			    j_tab.on('scroll',function(e){
-				if(Math.floor(j_tab.scrollTop() / 32) < 10){
-				    if(topflag == false){
-					topflag = true;
+			    $(window).off('scroll').on('scroll',function(e){
+				var j_window;
+
+				j_window = $(window);
+				if(Math.floor(j_window.scrollTop() / 32) < 10){
+				    if(top_flag == false){
+					top_flag = true;
 					sub_update(0);
 				    }
 				}else{
-				    topflag = false;
+				    top_flag = false;
 				}
 
-				if(Math.floor((j_table.height() - j_tab.scrollTop()) / 32) < 50){
+				if(Math.floor((j_table.height() - j_window.scrollTop()) / 32) < 50){
 				    sub_update(1);
 				}
 			    });
 			}
 
 			esubid = reto[reto.length - 1].subid;
-			downblock = false;
+			down_block = false;
 		    }
 		}
 	    );
 	}
     };
 
-    that.__super(paobj);
+    that.node = new vus.node(pbox_name);
 
-    that.urlchange = function(direct){
+    that.__super();
+
+    that.node.url_chg = function(direct){
 	if(direct == 'in'){
-	    that.fadein(j_tab);
+	    index.tab_hl(pbox_name);
+	    that.fadein(j_pbox);
 	    refresh_flag = true;
 
 	    sub_update(1);
-	    subinfo_switch();
 	}else if(direct == 'out'){
-	    that.fadeout(j_tab);
-	    j_tab.off('scorll');
+	    index.tab_ll(pbox_name);
+	    that.fadeout(j_pbox);
+	    $(window).off('scorll');
 	    j_table.find('tr.item').remove();
 	    
 	    if(j_ajax != null){
@@ -271,94 +373,91 @@ var class_stat_allsub_tab = function(paobj){
 	    refresh_flag = false;
 	    j_ajax = null;
 	    esubid = 2147483647;
-	    lastupdate = null;
-	    topflag = true;
-	    topqueue = new Array;
-	    downblock = false;
+	    last_update = null;
+	    top_flag = true;
+	    top_queue = new Array;
+	    down_block = false;
 	    subid_curr = null;
-	}else if(direct == 'same'){
-	    subinfo_switch();
 	}
+
+	return 'cont';
     };
 
     j_table.on('mousedown',function(e){
 	return false;
     });
-}; __extend(class_stat_allsub_tab,class_common_tab);
+}; __extend(class_stat_sub_pbox,class_com_pbox);
 
-var class_stat_subinfo_mbox = function(paobj){
+var class_stat_subres_mbox = function(subid,subo){
     var that = this;
-    var ori_prop = new Object;
-    var j_mbox = $('#index_mask > div.stat_mask > div.subinfo_mbox');
-    var subid = null;
 
-    that.subid = null;
-    that.smodname = null;
-    that.subo = null;
+    that.subid = subid;
+    that.subo = subo;
+    that.node = new vus.node('res');
     
-    that.__super(paobj);
+    that.__super();
+}; __extend(class_stat_subres_mbox,class_com_mbox);
+var class_stat_subfile_mbox = function(){
+    var that = this;
+    var j_mbox = $('#index_mask > div.stat_mask > div.subfile_mbox');
 
-    that.init = function(id){
-	subid = id;
-    };
-    that.switchchange = function(direct){
+    var filebox_add = function(filename,content){
+	var j_name;
+	var j_box;
+	var filebox;
+
+	j_name = $('<label></label>');
+	j_name.text(filename);
+	j_box = $('<div class="filebox"></div>');
+	filebox = CodeMirror(j_box[0],{
+	    mode:'text/x-c++src',
+	    theme:'lesser-dark',
+	    lineNumbers:true,
+	    matchBrackets:true,
+	    indentUnit:4,
+	    readOnly:true
+	});
+	filebox.getWrapperElement().style.width = '100%';
+	filebox.getWrapperElement().style.height = '100%';
+	filebox.getScrollerElement().style.width = '100%';
+	filebox.getScrollerElement().style.height = '100%';
+	filebox.setValue(content);
+
+	j_mbox.append(j_name);
+	j_mbox.append(j_box);
+	filebox.refresh();
+    }
+
+    that.node = new vus.node('file');
+    
+    that.__super();
+
+    that.node.url_chg = function(direct,url_upart,url_dpart){
 	if(direct == 'in'){
-	    $.post('/toj/php/status.php',{'action':'get_by_subid','data':JSON.stringify({'subid':subid})},function(res){
+	    that.fadein(j_mbox);
+	    j_mbox.find('h2.subid').text('SubID:' + stat.sub_subid);
+
+	    $.post('/toj/php/status.php',{'action':'get_submit_data','data':JSON.stringify({'subid':stat.sub_subid})},function(res){
+		var i;
 		var reto;
 
 		if(res[0] != 'E'){
-		    that.subid = subid;
 		    reto = JSON.parse(res);
-		    that.smodname = reto.smodname;
-		    that.subo = reto;
-		    delete that.subo.smodname;
-
-		    j_mbox.addClass(that.smodname);
-
-		    css = $('<link rel="stylesheet" type="text/css" href="/toj/smod/' + that.smodname + '/' + that.smodname + '.css">');
-		    $('head').append(css);
-		    css.ready(function(){
-			$.get('/toj/smod/' + that.smodname + '/' + that.smodname + '.html',{},function(res){
-			    var j_h;
-			    var j_button;
-
-			    j_mbox.html(res);
-
-			    j_h = $('<h2 style="padding:6px 0px 0px 0px;"></h2>');
-			    j_h.text('SubID:' + that.subo.subid);
-			    j_button = $('<button style="margin:6px 0px 0px 0px; float:right;">關閉</button>');
-			    j_button.on('click',function(e){
-				common.hidembox('false');
-			    });
-			    j_mbox.prepend(j_h);
-			    j_mbox.prepend(j_button);
-
-			    $.getScript('/toj/smod/' + that.smodname + '/' + that.smodname + '.js',function(script,stat,res){
-				eval(that.smodname + '.init(that,j_mbox)');
-				that.export_switchchange('in');
-			    });
-			});
-		    });
+		    for(i = 0;i < reto.length;i++){
+			filebox_add(reto[i].filename,reto[i].content);
+		    }
 		}
 	    });
 	}else if(direct == 'out'){
-	    that.export_switchchange('out');
-
-	    for(key in that){
-		if(!(key in ori_prop)){
-		    delete that[key];
-		}
-	    }
-
-	    j_mbox.empty();
-	    j_mbox.removeClass(that.smodname);
-	    that.subid = null;
-	    that.smodname = null;
-	    that.subo = null;
+	    that.fadeout(j_mbox);
+	    j_mbox.find('label').remove();
+	    j_mbox.find('div.filebox').remove();
 	}
+
+	return 'cont';
     };
 
-    for(key in that){
-	ori_prop[key] = true;
-    }
-}; __extend(class_stat_subinfo_mbox,class_common_mbox);
+    j_mbox.find('button.result').on('click',function(e){
+	com.url_update('/toj/m/sub/' + stat.sub_subid + '/res/');
+    });
+}; __extend(class_stat_subfile_mbox,class_com_mbox);

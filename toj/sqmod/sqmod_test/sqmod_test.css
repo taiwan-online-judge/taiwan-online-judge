@@ -1,54 +1,47 @@
-div.sqmod_test > div.pro_tab > table.prolist{
-    width:62%;
-    margin:0px 0px 6px 257px;
+div.sqmod_test > div.pro_pbox > table.prolist{
+    width:1060px;
+    margin:0px 0px 6px 164px;
     border-collapse:collapse;    
     text-align:left;
 }
-div.sqmod_test > div.pro_tab > table.prolist tr.head{
+div.sqmod_test > div.pro_pbox > table.prolist tr.head{
     height:64px;
-    font-size:20px;
 }
-div.sqmod_test > div.pro_tab > table.prolist tr.item{
+div.sqmod_test > div.pro_pbox > table.prolist tr.item{
     height:32px;
     border-left:2px solid;
     border-color:#1C1C1C;
 }
-div.sqmod_test > div.pro_tab > table.prolist tr:hover.item{
+div.sqmod_test > div.pro_pbox > table.prolist tr:hover.item{
     background-color:rgba(255,255,255,0.2);
 }
-div.sqmod_test > div.pro_tab > table.prolist th.no,div.sqmod_test > div.pro_tab > table.prolist td.no{
-    width:96px;
+div.sqmod_test > div.pro_pbox > table.prolist th,div.sqmod_test > div.pro_pbox > table.prolist td{
     padding:0px 0px 0px 6px;
 }
-div.sqmod_test > div.pro_tab > table.prolist th.name,div.sqmod_test > div.pro_tab > table.prolist td.name{
+div.sqmod_test > div.pro_pbox > table.prolist th.no,div.sqmod_test > div.pro_pbox > table.prolist td.no{
+    width:76px;
+}
+div.sqmod_test > div.pro_pbox > table.prolist th.name,div.sqmod_test > div.pro_pbox > table.prolist td.name{
     width:auto;
+    padding:0px 0px 0px 0px;
 }
-div.sqmod_test > div.pro_tab > table.prolist th.bscore,div.sqmod_test > div.pro_tab > table.prolist td.bscore{
-    width:128px;
+div.sqmod_test > div.pro_pbox > table.prolist th.bscore,div.sqmod_test > div.pro_pbox > table.prolist td.bscore{
+    width:76px;
 }
-div.sqmod_test > div.pro_tab > table.prolist th.team,div.sqmod_test > div.pro_tab > table.prolist td.team{
-    width:64px;
-    display:none;
-}
-div.sqmod_test > div.pro_tab > table.prolist a.link{
-    color:#E9E9E9;
-    text-decoration:none;
-}
-div.sqmod_test > div.pro_tab > table.prolist a:hover.link{
-    color:#E0E0E0;
-    text-decoration:underline;
+div.sqmod_test > div.pro_pbox > table.prolist th.team,div.sqmod_test > div.pro_pbox > table.prolist td.team{
+    width:76px;
 }
 
-div.sqmod_test > div.pro_tab > table.stat{
-    margin:32px 0px 6px 256px;
+div.sqmod_test > div.pro_pbox > table.stat{
+    margin:32px 0px 6px 164px;
     border-collapse:collapse;    
     text-align:left;
 }
-div.sqmod_test > div.pro_tab > table.stat tr{
+div.sqmod_test > div.pro_pbox > table.stat tr{
     height:32px;
 }
-div.sqmod_test > div.pro_tab div.prog_box{
-    width:512px;
+div.sqmod_test > div.pro_pbox div.prog_box{
+    width:486px;
     height:16px;
     background-color:rgba(255,255,255,0.2);
     color:#1C1C1C;
@@ -58,7 +51,7 @@ div.sqmod_test > div.pro_tab div.prog_box{
     text-align:right;
     position:relative;
 }
-div.sqmod_test > div.pro_tab div.prog_box > div.pass{
+div.sqmod_test > div.pro_pbox div.prog_box > div.pass{
     width:0%;
     height:16px;
     border-right:rgba(0,255,0,0.8) 2px solid;
@@ -67,7 +60,7 @@ div.sqmod_test > div.pro_tab div.prog_box > div.pass{
     left:0%;
     overflow:hidden;
 }
-div.sqmod_test > div.pro_tab div.prog_box > div.good{
+div.sqmod_test > div.pro_pbox div.prog_box > div.good{
     width:0%;
     height:16px;
     border-right:rgba(255,255,0,0.8) 2px solid;
@@ -76,7 +69,7 @@ div.sqmod_test > div.pro_tab div.prog_box > div.good{
     left:0%;
     overflow:hidden;
 }
-div.sqmod_test > div.pro_tab div.prog_box > div.total{
+div.sqmod_test > div.pro_pbox div.prog_box > div.total{
     width:0%;
     height:16px;
     border-right:rgba(255,255,255,0.8) 2px solid;
@@ -85,7 +78,7 @@ div.sqmod_test > div.pro_tab div.prog_box > div.total{
     left:0%;
     overflow:hidden;
 }
-div.sqmod_test > div.pro_tab div.prog_box > div.prog{
+div.sqmod_test > div.pro_pbox div.prog_box > div.prog{
     width:0%;
     height:16px;
     background-color:rgba(0,0,0,0);

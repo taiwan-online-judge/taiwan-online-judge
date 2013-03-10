@@ -1,46 +1,12 @@
-var pmod_multisub = {
-    that:null,
-    j_page:null,
-
-    init:function(that,j_page){
-	pmod_multisub.that = that;
-	pmod_multisub.j_page = j_page;
-
-	that.export_urlchange = function(direct){
-	    if(direct == 'in'){
-		that.fadein(j_page);
-		
-		$.post('/toj/pmod/pmod_multisub/pmod_multisub.php',{'proid':JSON.stringify(that.proid)},function(res){
-		    var i;
-		    var reto;
-
-		    reto = JSON.parse(res);
-		    if(reto.redirect != undefined){
-			common.pushurl('/toj/pro/' + reto.redirect + '/');
-		    }else{
-			j_page.find('div.main_content').text(reto.main_content);
-			index.setcontent($('<span>' + reto.proname + '</span>'));
-			
-			for(i = 0;i < reto.pro.length;i++){
-			    pmod_multisub.probox_add(reto.pro[i]);
-			}
-		    }
-		});
-	    }else if(direct == 'out'){
-		that.fadeout(j_page);
-	    }else if(direct == 'same'){
-
-	    }
-	};
-    },
-    probox_add:function(proo){
+var pmod_multisub = function(that,j_pbox){
+    var probox_add = function(proo){
 	var i;
 
 	var j_probox;
 	var j_table;
 	var j_item;
     
-	j_probox = pmod_multisub.j_page.find('table.ori_probox').clone();
+	j_probox = j_pbox.find('table.ori_probox').clone();
 	j_probox.removeClass('ori_probox');
 
 	j_probox.find('td.info > h2.partname').text(proo.partname + ' (' + proo.score + '%)');
@@ -89,10 +55,39 @@ var pmod_multisub = {
 	}
 
 	j_probox.find('td.info > button.submit').on('click',function(e){
-	    pmod_multisub.that.submit(proo.proid);
+	    that.submit(proo.proid);
 	});
 
 	j_probox.show();
-	pmod_multisub.j_page.append(j_probox);
+	j_pbox.append(j_probox);
     }
+
+    that.node.url_chg = function(direct,url_upart,url_dpart){
+	if(direct == 'in'){
+	    that.fadein(j_pbox);
+	    
+	    $.post('/toj/pmod/pmod_multisub/pmod_multisub.php',{'proid':JSON.stringify(that.proid)},function(res){
+		var i;
+		var reto;
+
+		reto = JSON.parse(res);
+		if(reto.redirect != undefined){
+		    com.url_push('/toj/pro/' + reto.redirect + '/');
+		}else{
+		    j_pbox.find('div.main_content').html(reto.main_content);
+		    index.content_set($('<span>' + reto.proname + '</span>'));
+		    
+		    for(i = 0;i < reto.pro.length;i++){
+			probox_add(reto.pro[i]);
+		    }
+
+		    MathJax.Hub.Queue(["Typeset",MathJax.Hub,j_pbox[0]]);
+		}
+	    });
+	}else if(direct == 'out'){
+	    that.fadeout(j_pbox);
+	}
+    };
+
+
 };

@@ -1,100 +1,88 @@
-var sq = {
-    init:function(){
-	sq.sq_page = new class_sq_page;
-    }
-};
-
-var class_sq_page = function(){
+var sq = new function(){
     var that = this;
-    var ori_prop = new Object;
-    var j_page = $('#index_page > [page="sq"]');
+    var j_page = null;
+    var sq_page = null;
+    var sq_sqid = null;
+    var sq_sqmodname = null;
 
-    that.sqid = null;
-    that.sqname = null;
-    that.sqmodname = null;
+    that.init = function(){
+	j_page = $('#index_page > div.sq_page');	
+	
+	that.node = new vus.node('sq');		
+	that.node.url_chg = function(direct,url_upart,url_dpart){
+	    var sqid;
 
-    that.__super();
+	    var _clean = function(){
+		if(sq_page != null){
+		    that.node.child_del(sq_page.node);
+		}
 
-    that.urlchange = function(direct){
-	var sqid;
+		j_page.empty();
+		j_page.removeClass(sq_sqmodname);
+		index.content_empty();
+		index.tab_empty();
 
-	var _check = function(){
-	    sqid = common.geturlpart()[1];
-	    if(sqid == ''){
-		return false;
-	    }
-	    sqid = parseInt(sqid);
-	    return true;
-	};
-	var _in = function(){
-	    $.post('/toj/php/square.php',{'action':'get_sq','data':JSON.stringify({'sqid':sqid})},function(res){
-		var css;
-		var reto;
+		sq_page = null;
+		sq_sqid = null;
+		sq_sqmodname = null;
+	    };
+	    
+	    if(direct == 'in' || direct == 'same'){
+		sqid = url_dpart[0];
+		if(sqid == ''){
+		    com.url_update('/toj/none/'); 
+		    return 'stop';
+		}
+		sqid = parseInt(sqid);
+		if(sqid == sq_sqid){
+		    return 'cont';
+		}
 
-		if(res[0] != 'E'){
-		    that.sqid = sqid;
-		    reto = JSON.parse(res);
-		    that.sqname = reto.sqname;
-		    that.sqmodname = reto.sqmodname;
-		    j_page.addClass(that.sqmodname);
-		    index.settitle('TOJ-' + that.sqname);
+		_clean();
+		that.node.child_delayset(sqid.toString());
 
-		    css = $('<link rel="stylesheet" type="text/css" href="/toj/sqmod/' + that.sqmodname + '/' + that.sqmodname + '.css">');
-		    $('head').append(css);
-		    css.ready(function(){
-			$.get('/toj/sqmod/' + that.sqmodname + '/' + that.sqmodname + '.html',{},function(res){
-			    j_page.html(res);
-			    $.getScript('/toj/sqmod/' + that.sqmodname + '/' + that.sqmodname + '.js',function(script,stat,res){
-				eval(that.sqmodname + '.init(that,j_page)');
-				that.export_urlchange('in');
+		$.post('/toj/php/square.php',{'action':'get_sq','data':JSON.stringify({'sqid':sqid})},function(res){
+		    var css;
+		    var reto;
+
+		    if(res[0] != 'E'){
+			sq_sqid = sqid;
+			reto = JSON.parse(res);
+			sq_sqmodname = reto.sqmodname;
+
+			css = $('<link rel="stylesheet" type="text/css" href="/toj/sqmod/' + sq_sqmodname + '/' + sq_sqmodname + '.css">');
+			$('head').append(css);
+			css.ready(function(){
+			    j_page.addClass(sq_sqmodname);
+
+			    $.get('/toj/sqmod/' + sq_sqmodname + '/' + sq_sqmodname + '.html',{},function(res){
+				j_page.html(res);
+				$.getScript('/toj/sqmod/' + sq_sqmodname + '/' + sq_sqmodname + '.js',function(script,stat,res){
+				    sq_page = new class_sq_page(sq_sqid,reto.sqname);
+				    eval('new ' + sq_sqmodname + '(sq_page,j_page)');
+				    that.node.child_set(sq_page.node);
+				});
 			    });
 			});
-		    });
-		}
-	    });
+		    }else{
+			com.url_update('/toj/none/');
+		    }
+		});
+
+	    }else if(direct == 'out'){
+		_clean();
+	    }
+
+	    return 'cont';
 	};
-	var _out = function(){
-	    that.export_urlchange('out');
+	com.vus_root.child_set(that.node);
+    };
+};
 
-	    for(key in that){
-		if(!(key in ori_prop)){
-		    delete that[key];
-		}else{
-		    that[key] = ori_prop[key];
-		}
-	    }
+var class_sq_page = function(sqid,sqname){
+    var that = this;
 
-	    j_page.empty();
-	    j_page.removeClass(that.sqmodname);
-	    index.emptycontent();
-	    index.emptytab();
-	    that.sqid = null;
-	    that.sqname = null;
-	    that.sqmodname = null;
-	};
-
-	if(direct == 'in'){
-	    if(_check()){
-		_in();
-	    }
-	}else if(direct == 'out'){
-	    _out();
-	}else if(direct == 'same'){
-	    if(_check()){
-		if(sqid != that.sqid){
-		    _out();
-		    _in();
-		}else{
-		    that.export_urlchange('same');
-		}
-	    }
-	}
-    }
-
-    for(key in that){
-	ori_prop[key] = that[key];
-    }
-
-    common.addpage('sq',that);
-}; __extend(class_sq_page,class_common_page);
-
+    that.sqid = sqid;
+    that.sqname = sqname;
+    that.node = new vus.node(sqid.toString());
+};

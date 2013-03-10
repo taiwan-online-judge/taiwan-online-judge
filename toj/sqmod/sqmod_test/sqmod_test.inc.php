@@ -8,6 +8,37 @@ const SQMODNAME = 'sqmod_test';
 
 const SCOREBOARD_ID_PROBSTAT = 1;
 
+function score_func($sqid, $proid, $best_score, $best_time, $is_ac, $ac_time, $tries_before_ac, $last_score, $last_status, $tries)
+{
+    $data = get_setting($sqid);
+    $fscore = 0;
+
+    foreach($data->pro as $pro)
+    {
+	if($pro->proid == $proid && $pro->method == 'normal')
+	{
+	    $fscore = $pro->score;
+	    break;
+	}
+	if($pro->method == 'max')
+	{
+	    foreach($pro->config as $cf)
+	    {
+		foreach($cf as $sp)
+		{
+		    if($sp[0] == $proid)
+		    {
+			$fscore = $sp[1];
+			break;
+		    }
+		}		    
+	    }	
+	}	
+    }
+
+    $rscore = $best_score * $fscore / 100;
+    return $rscore;
+}
 
 function get_pro_stat_uid($sqlc, $msqlc, $sqid, $sboard_id, $uid)
 {
@@ -15,7 +46,7 @@ function get_pro_stat_uid($sqlc, $msqlc, $sqid, $sboard_id, $uid)
     $sq = square::get($sqlc, $sqid);
     if(!$sq)die('Eno_such_sq');
     
-    $data = sqlib_scoreboard::get_scoreboard_uid($sqlc, $msqlc, $sqid, $sboard_id, null, $sq->start_time, $sq->end_time, $uid);
+    $data = sqlib_scoreboard::get_scoreboard_uid($sqlc, $msqlc, $sqid, $sboard_id, 'score_func', $sq->start_time, $sq->end_time, $uid);
 
     return $data[0];
 }

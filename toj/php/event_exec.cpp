@@ -1,7 +1,7 @@
 #include "event_exec.h"
 
 #define EVENT_BUFLEN 1005
-#define EVENT_URL "http://10.8.0.2/toj/php/event.php"
+#define EVENT_URL "http://localhost/toj/php/event.php"
 
 struct event_handle
 {

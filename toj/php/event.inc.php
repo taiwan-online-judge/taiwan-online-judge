@@ -5,7 +5,7 @@ class event
 
     private static function init()
     {
-	event::$white_list = array('10.8.0.2');
+	event::$white_list = array('127.0.0.1');
     }
 
     // execute function $name in file $fname

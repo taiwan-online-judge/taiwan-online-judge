@@ -255,6 +255,7 @@ if($action == 'get_available_sq')
 
     $list = square::get_available_sq($sqlc, $uid, $pub);
     
+    $ret = new stdClass;
     $ret->list = $list;
     $ret->timestamp = date('Y-m-d H:i:s');
 
@@ -277,6 +278,7 @@ if($action == 'get_entered_sq')
 
     $list = square::get_entered_sq($sqlc, $uid);
     
+    $ret = new stdClass;
     $ret->list = $list;
     $ret->timestamp = date('Y-m-d H:i:s');
 

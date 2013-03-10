@@ -131,6 +131,7 @@ class problem
 	mkdir($pardir.$subid, 0755) or die('Ecannot_mkdir');	
 	mkdir($pardir.$subid.'/data', 0755) or die('Ecannot_mkdir');
 	mkdir($pardir.$subid.'/result', 0755) or die('Ecannot_mkdir');
+	chmod($pardir.$subid.'/result', 0775) or die('Ecannot_chmod');
 
 	//$file = fopen($pardir.$subid.'/data/'.$subid.'.'.$ext,'w');
 	//20130205 tmp change
@@ -245,6 +246,33 @@ class problem
 	}
 
 	return $ret;
+    }
+
+    public static function rejudge_pro($sqlc, $proid)
+    {
+	$sqlstr = 'SELECT "subid" FROM "submit" WHERE "proid"=$1 ORDER BY "subid";';
+	$sqlarr = array($proid);
+	$res = pg_query_params($sqlc, $sqlstr, $sqlarr);
+	$ok = true;
+	$sublist = pg_fetch_all_columns($res, 0);
+	if(!$sublist)return false;
+	foreach($sublist as $sub)
+	{
+	    $subid = intval($sub);
+	    if(!problem::send_socket($subid, $proid))$ok = false;
+	}
+	return $ok;
+    }
+
+    public static function rejudge_sub($sqlc, $subid)
+    {
+	$sqlstr = 'SELECT "proid" FROM "submit" WHERE "subid"=$1;';
+	$sqlarr = array($subid);
+	$res = pg_query_params($sqlc, $sqlstr, $sqlarr);
+	$proid = intval(pg_fetch_result($res, 0));
+	if(!$proid)return false;
+
+	return problem::send_socket($subid, $proid);
     }
 }
 

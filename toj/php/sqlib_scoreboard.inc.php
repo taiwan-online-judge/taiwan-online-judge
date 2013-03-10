@@ -51,8 +51,16 @@
 	    if($new)
 	    {
 		$sqlstr = 'INSERT INTO "sqlib_scoreboard_last_update" ("sqid", "sboard_id", "last_update") VALUES ($1, $2, $3);';
+		sqlib_scoreboard::clear_scoreboard($msqlc, $sqid, $sboard_id);
 	    }
 	    $sqlarr = array($sqid, $sboard_id, $now);
+	    $res = pg_query_params($msqlc, $sqlstr, $sqlarr);
+	}
+
+	public static function clear_scoreboard($msqlc, $sqid, $sboard_id)
+	{
+	    $sqlstr = 'DELETE FROM "sqlib_scoreboard_main" WHERE "sqid"=$1 AND "sboard_id"=$2;';
+	    $sqlarr = array($sqid, $sboard_id);
 	    $res = pg_query_params($msqlc, $sqlstr, $sqlarr);
 	}
 
@@ -83,7 +91,7 @@
 		$obj->rank = intval($item['rank']);
 		$obj->problem = array();
 
-		$sqlstr = 'SELECT "proid", "best_score", "best_time", "is_ac", "ac_time", "tries_before_ac", "last_score", "last_status", "last_time", "tries", "rank_score" FROM "sqlib_scoreboard_pro" WHERE "sqid"=$1 AND "sboard_id"=$2 AND "uid"=$3;';
+		$sqlstr = 'SELECT "proid", "best_score", "best_time", "is_ac", "ac_time", "tries_before_ac", "last_score", "last_status", "last_time", "tries", "rank_score" FROM "sqlib_scoreboard_pro" WHERE "sqid"=$1 AND "sboard_id"=$2 AND "uid"=$3 ORDER BY "proid";';
 		$sqlarr = array($sqid, $sboard_id, $obj->uid);
 		$res = pg_query_params($msqlc, $sqlstr, $sqlarr);
 		$data = pg_fetch_all($res);

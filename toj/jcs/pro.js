@@ -1,113 +1,105 @@
-var pro = {
-    init:function(){
-	pro.pro_page = new class_pro_page;
-    }
+var pro = new function(){
+    var that = this;
+    var j_pbox = null;
+    var pro_pbox = null;
+    var pro_proid = null;
+    var pro_pmodname = null;
+
+    that.init = function(){
+	j_pbox = $('#index_page > div.pro_pbox');
+
+	that.sub_mbox = new class_pro_sub_mbox();
+
+	that.node = new vus.node('pro');
+	that.node.url_chg = function(direct,url_upart,url_dpart){
+	    var proid;
+
+	    var _clean = function(){
+		if(pro_pbox != null){
+		    that.node.child_del(pro_pbox.node);
+		}
+		j_pbox.empty();
+		j_pbox.removeClass(pro_pmodname);
+		index.content_empty();
+
+		pro_pbox = null;
+		pro_proid = null;
+		pro_pmodname = null;
+	    };
+
+	    if(direct == 'in' || direct == 'same'){
+		index.title_set('TOJ-題目');
+
+		proid = url_dpart[0];
+		if(proid == ''){
+		    com.url_update('/toj/none/');
+		    return 'stop';
+		}
+		proid = parseInt(proid);
+		if(proid == pro_proid){
+		    return 'cont';
+		}
+
+		_clean();	
+		that.node.child_delayset(proid.toString());
+
+		$.post('/toj/php/problem.php',{'action':'get_pro','data':JSON.stringify({'proid':proid})},function(res){
+		    var css;
+		    var reto;
+
+		    if(res[0] != 'E'){
+			pro_proid = proid;
+			reto = JSON.parse(res);
+			pro_pmodname = reto.pmodname;
+
+			css = $('<link rel="stylesheet" type="text/css" href="/toj/pmod/' + pro_pmodname + '/' + pro_pmodname + '.css">');
+			$('head').append(css);
+			css.ready(function(){
+			    j_pbox.addClass(pro_pmodname);
+
+			    $.get('/toj/pmod/' + pro_pmodname + '/' + pro_pmodname + '.html',{},function(res){
+				j_pbox.html(res);
+				$.getScript('/toj/pmod/' + pro_pmodname + '/' + pro_pmodname + '.js',function(script,stat,res){
+				    pro_pbox = new class_pro_pbox(pro_proid,reto.proname);
+				    eval('new ' + pro_pmodname + '(pro_pbox,j_pbox)');
+				    that.node.child_set(pro_pbox.node);
+				});
+			    });
+			});
+		    }else{
+			com.url_update('/toj/none/');
+		    }
+		});
+	    }else if(direct == 'out'){
+		_clean();	
+	    }
+
+	    return 'cont';
+	};
+	com.vus_root.child_set(that.node);
+    };
 };
 
-var class_pro_page = function(){
+var class_pro_pbox = function(proid,proname){
     var that  = this; 
-    var ori_prop = new Object;
-    var j_page = $('#index_page > [page="pro"]');
-    var sub_mbox = new class_pro_sub_mbox(that);
+    var j_pbox = $('#index_page > div.pro_pbox');
 
-    that.proid = null;
-    that.proname = null;
-    that.pmodname = null;
+    that.proid = proid;
+    that.proname = proname;
+    that.node = new vus.node(proid.toString());
 
     that.__super();
 
-    that.urlchange = function(direct){
-	var proid;
-
-	var _check = function(){
-	    proid = common.geturlpart()[1];
-	    if(proid == ''){
-		return false;
-	    }
-	    proid = parseInt(proid);
-	    return true;
-	};
-	var _in = function(){
-	    index.settitle('TOJ-題目');
-
-	    $.post('/toj/php/problem.php',{'action':'get_pro','data':JSON.stringify({'proid':proid})},function(res){
-		var css;
-		var reto;
-
-		if(res[0] != 'E'){
-		    that.proid = proid;
-		    reto = JSON.parse(res);
-		    that.proname = reto.proname;
-		    that.pmodname = reto.pmodname;
-		    j_page.addClass(that.pmodname);
-
-		    css = $('<link rel="stylesheet" type="text/css" href="/toj/pmod/' + that.pmodname + '/' + that.pmodname + '.css">');
-		    $('head').append(css);
-		    css.ready(function(){
-			$.get('/toj/pmod/' + that.pmodname + '/' + that.pmodname + '.html',{},function(res){
-			    j_page.html(res);
-			    $.getScript('/toj/pmod/' + that.pmodname + '/' + that.pmodname + '.js',function(script,stat,res){
-				eval(that.pmodname + '.init(that,j_page)');
-				that.export_urlchange('in');
-			    });
-			});
-		    });
-		}
-	    });
-	};
-	var _out = function(){
-	    that.export_urlchange('out');
-
-	    for(key in that){
-		if(!(key in ori_prop)){
-		    delete that[key];
-		}else{
-		    that[key] = ori_prop[key];
-		}
-	    }
-
-	    j_page.empty();
-	    j_page.removeClass(that.pmodname);
-	    index.emptycontent();
-	    index.emptytab();
-	    that.proid = null;
-	    that.proname = null;
-	    that.pmodname = null;
-	};
-
-	if(direct == 'in'){
-	    if(_check()){
-		_in();
-	    }
-	}else if(direct == 'out'){
-	    _out();
-	}else if(direct == 'same'){
-	    if(_check()){
-		if(proid != that.proid){
-		    _out();
-		    _in();
-		}else{
-		    that.export_urlchange('same');
-		}
-	    }
-	}
-    };
     that.submit = function(proid){
 	if(proid == undefined){
 	    proid = that.proid
 	}
-	sub_mbox.init(proid);
-	common.showmbox(sub_mbox);
+	pro.sub_mbox.init(proid);
+	com.url_push('/toj/m/pro_sub/');
     };
+}; __extend(class_pro_pbox,class_com_pbox);
 
-    for(key in that){
-	ori_prop[key] = that[key];
-    }
-
-    common.addpage('pro',that);
-}; __extend(class_pro_page,class_common_page);
-
-var class_pro_sub_mbox = function(paobj){
+var class_pro_sub_mbox = function(){
     var that = this;
     var j_mbox = $('#index_mask > div.pro_mask > div.sub_mbox');
     var j_error = j_mbox.find('div.head > div.error');
@@ -118,27 +110,36 @@ var class_pro_sub_mbox = function(paobj){
 	matchBrackets:true,
 	indentUnit:4
     });
+    var proid = null;
 
-    that.__super(paobj);
+    that.node = new vus.node('pro_sub');
 
-    that.init = function(proid){
-	that.proid = proid;
-	j_mbox.find('div.head > div.title').text('上傳ProID:' + that.proid);
+    that.__super();
+
+    that.init = function(id){
+	proid = id;
+	j_mbox.find('div.head > div.title').text('上傳ProID:' + proid);
 	j_error.text('');
 	$(j_mbox.find('[name="lang"] > option')[0]).attr('selected',true);
 	codebox.setValue('');
+
+	com.vus_mbox.child_set(that.node);
     };
-    that.switchchange = function(direct){
+    that.node.url_chg = function(direct,url_upart,url_dpart){
 	if(direct == 'in'){
 	    that.fadein(j_mbox);
 	    codebox.refresh();
 	}else if(direct == 'out'){
 	    that.fadeout(j_mbox);
+	    proid = null;
+	    com.vus_mbox.child_del(that.node);
 	}
+
+	return 'cont';
     };
 
     j_mbox.find('div.head > div.oper > button.submit').on('click',function(e){
-	$.post('/toj/php/problem.php',{'action':'submit_code','data':JSON.stringify({'proid':that.proid,'lang':1,'code':codebox.getValue()})},function(res){
+	$.post('/toj/php/problem.php',{'action':'submit_code','data':JSON.stringify({'proid':proid,'lang':1,'code':codebox.getValue()})},function(res){
 	    if(res[0] == 'E'){
 		if(res == 'Enot_login'){
 		    j_error.text('未登入');
@@ -150,16 +151,13 @@ var class_pro_sub_mbox = function(paobj){
 		    j_error.text('其他錯誤');
 		}
 	    }else{
-		common.hidembox(j_mbox); 
+		com.url_pull();
 	    }
 	});
-    });
-    j_mbox.find('div.head > div.oper > button.cancel').on('click',function(e){
-	common.hidembox(j_mbox); 
     });
 
     codebox.getWrapperElement().style.width = '100%';
     codebox.getWrapperElement().style.height = '100%';
     codebox.getScrollerElement().style.width = '100%';
     codebox.getScrollerElement().style.height = '100%';
-}; __extend(class_pro_sub_mbox,class_common_mbox);
+}; __extend(class_pro_sub_mbox,class_com_mbox);

@@ -1,18 +1,13 @@
-div.common_page{
-    height:100%;
+div.com_pbox{
+    width:1224px;
+    margin:0px auto 0px auto;
     position:relative;
-    overflow:auto;
     display:none;
 }
-div.common_tab{
-    height:100%;
-    position:relative;
-    overflow:auto;
-    display:none;
-}
-div.common_mask_box{
-    margin:32px auto;
-    padding:0px 32px 0px 32px;
+div.com_mbox{
+    width:978px;
+    margin:32px auto 32px auto;
+    padding:0px 6px 0px 6px;
     background-color:#373C38;
     position:relative;
     display:none;

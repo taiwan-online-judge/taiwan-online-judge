@@ -14,18 +14,99 @@ var __extend = function(child,parent){
     child.prototype.__super = parent;
 };
 
-var common = {
-    page_list:new Array(),
-    url_prev:null,
-    url_curr:null,
-    mbox_curr:null,
-    mbox_defer:null,
+var vus = new function(){
+    var that = this;
+    
+    that.node = function(name){
+	var that = this;
+	that.name = name;
+	that.parent = null;
+	that.child = new Object;
+	that.delay_child = new Object;
 
-    init:function(){
+	that.url_chg = function(direct,url_upart,url_dpart){
+	    return 'cont';
+	};
+	that.child_set = function(node){
+	    var delay_obj;
+
+	    node.parent = that;
+	    that.child[node.name] = node;
+
+	    if(node.name in that.delay_child){
+		delay_obj = that.delay_child[node.name];
+		delete that.delay_child[node.name];	
+		delay_obj.defer.resolve();
+	    }
+	};
+	that.child_delayset = function(name){
+	    that.delay_child[name] = {
+		'defer':$.Deferred()
+	    };
+	};
+	that.child_del = function(node){
+	    node.parent = null;
+	    delete that.child[node.name];
+	};
+	that.lookup = function(url,close_flag){
+	    var i;
+	    var url_part;
+	    var node_curr;
+	    var node_prev;
+
+	    url_part = url.match(/\/toj\/(.*)/)[1].split('/');
+	    url_part.pop();
+	    node_prev = null;
+	    node_curr = that;
+	    for(i = 0;i < url_part.length;i++){
+		node_prev = node_curr;
+		if((node_curr = node_curr.child[url_part[i]]) == undefined){
+		    if(close_flag == true){
+			return node_prev;
+		    }else{
+			return null;
+		    }
+		}
+	    }
+	    return node_curr;
+	}
+    };
+};
+var com = new function(){
+    var that = this;
+
+    var check_mbox_url = function(url){
+	if(url.search(/toj\/m\/.*/) != -1){
+	    return true;
+	}else{
+	    return false;
+	}
+    }
+
+    that.url_curr = null;
+    that.url_prev = null;
+    that.url_back = null;
+    that.pbox_exist = false;
+
+    that.init = function(){
 	var i;
 	var url;
 	var urlpart;
 	
+	that.vus_root = new vus.node(null);
+	that.vus_mbox = new vus.node('m');
+
+	that.vus_mbox.url_chg = function(direct,url_upart,url_dpart){
+	    if(direct == 'in'){
+		index.mask_show();
+	    }else if(direct == 'out'){
+		index.mask_hide();
+	    }
+
+	    return 'cont';
+	};
+	that.vus_root.child_set(that.vus_mbox);
+
 	urlpart = location.href.split('?');
 	if(urlpart[0].search(/\/$/) == -1){
 	    url = urlpart[0] + '/';
@@ -38,20 +119,155 @@ var common = {
 	    window.history.replaceState(null,document.title,url);
 	}
 
-	common.url_curr = location.href;
-
 	$(document).on('click','a',function(e){
-	    common.pushurl($(this).attr('href'));   
+	    that.url_push($(this).attr('href'));   
 	    return false;
 	});
-	$(document).on('keyup',function(e){
-	    if(e.which == 27){
-		common.hidembox(false);
-	    }
-	});
-    },
+    };
 
-    exheight:function(){
+    that.url_push = function(url){
+	that.url_prev = location.href;
+	that.url_back = that.url_prev;
+	window.history.pushState(null,document.title,url);   
+	com.url_chg();
+    };
+    that.url_push_back = function(block_regexp){
+	if(that.url_back == null || that.url_back.search(block_regexp) != -1){
+	    that.url_push('/toj/home/');
+	}else{
+	    that.url_push(that.url_back);
+	}
+    };
+    that.url_update = function(url){
+	that.url_prev = location.href;
+	window.history.replaceState(null,document.title,url);   
+	com.url_chg();
+    };
+    that.url_pull = function(){
+	window.history.back();
+    };
+    that.url_chg = function(){
+	var i;
+	var j;
+	var ret;
+	var len;
+
+	var url_old;
+	var url_new;
+	var url_cpart;	
+	var url_ppart;
+
+	var url_upart;
+	var url_dpart;
+	var node_curr;
+	var node_parent;
+
+	var _chg_in = function(url_cpart,idx,node_curr,url_upart,url_dpart){
+	    var delay_obj;
+
+	    for(;idx < url_cpart.length;idx++){
+		console.log(node_curr.child[url_cpart[idx]]);
+
+		node_parent = node_curr;
+		if((node_curr = node_parent.child[url_cpart[idx]]) == undefined){
+		    if((delay_obj = node_parent.delay_child[url_cpart[idx]]) == undefined){
+			com.url_update('/toj/none/');
+		    }else{
+			delay_obj.url_curr = that.url_curr; 
+			delay_obj.defer.done(function(){
+			    if(that.url_curr == delay_obj.url_curr){
+				_chg_in(url_cpart,idx,node_parent,url_upart,url_dpart);
+			    }
+			});
+		    }
+		    break;
+		}
+		url_upart.push(url_dpart.shift());
+
+		ret = node_curr.url_chg('in',url_upart,url_dpart);
+		if(ret == 'stop'){
+		    break;
+		}
+	    }
+	};
+
+	that.url_curr = location.href;
+	console.log(that.url_curr);
+
+	if(arguments.callee.reentrant == true){
+	    arguments.callee.hasnext = true;
+	    return;
+	}else{
+	    arguments.callee.reentrant = true;
+	    arguments.callee.hasnext = true;
+	}
+
+	while(arguments.callee.hasnext){
+	    arguments.callee.hasnext = false;
+
+	    url_old = that.url_prev;
+	    url_new = that.url_new;
+
+	    url_cpart = that.url_curr.match(/toj\/(.*)/)[1].split('/');
+	    url_cpart.pop();
+
+	    if(that.url_prev == null || (!check_mbox_url(that.url_prev) && check_mbox_url(that.url_curr))){
+		node_curr = that.vus_root;
+		url_upart = new Array;
+		url_dpart = url_cpart.slice(0);
+		j = 0;
+	    }else{
+		url_ppart = that.url_prev.match(/toj\/(.*)/)[1].split('/');
+		url_ppart.pop();
+		    
+		len = Math.min(url_ppart.length,url_cpart.length);    
+		for(i = 0;i < len;i++){
+		    if(url_ppart[i] != url_cpart[i]){
+			break;
+		    }
+		}
+
+		if((node_curr = that.vus_root.lookup(that.url_prev,true)) != undefined){
+		    url_upart = url_ppart.slice(0);
+		    url_dpart = new Array;
+		    for(j = url_ppart.length - 1;j >=i;j--){
+			node_parent = node_curr.parent;
+			node_curr.url_chg('out',url_upart,url_dpart);
+			url_dpart = url_dpart.splice(0,0,url_upart.pop());
+			node_curr = node_parent;
+		    }
+		}
+
+		node_curr = that.vus_root;
+		url_upart = new Array;
+		url_dpart = url_cpart.slice(0);
+		for(j = 0;j < i;j++){
+		    if((node_curr = node_curr.child[url_cpart[j]]) == undefined){
+			break;
+		    }
+		    url_upart.push(url_dpart.shift());
+
+		    ret = node_curr.url_chg('same',url_upart,url_dpart);
+		    if(ret == 'stop'){
+			break;
+		    }
+		}
+	    }
+
+	    if(that.url_prev == null || that.pbox_exist == false || !(check_mbox_url(that.url_prev) && !check_mbox_url(that.url_curr))){
+		_chg_in(url_cpart,j,node_curr,url_upart,url_dpart);	
+	    }
+
+	    if(that.pbox_exist == false && !check_mbox_url(that.url_curr)){
+		that.pbox_exist = true; 
+		$('#index_mask').removeClass('index_mask_nopbox');
+		$('#index_mask').addClass('index_mask');
+	    }
+	}
+	arguments.callee.reentrant = false;
+    };
+
+    that.exheight = function(){
 	var i;
 	var es;
 	var extop;
@@ -73,8 +289,8 @@ var common = {
 
 	    j_e.css('height',($(window).height() - (extop + exbottom) + 'px'));
 	}
-    },
-    getcookie:function(){
+    };
+    that.get_cookie = function(){
 	var ret;
 	var i;
 	var part;
@@ -89,13 +305,13 @@ var common = {
 	}
 
 	return ret;
-    },
-    getdate:function(str){
+    };
+    that.get_date = function(str){
 	var part;
 	part = str.match(/(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)/);
 	return new Date(part[1],parseInt(part[2]) - 1,part[3],part[4],part[5],part[6],0);
-    },
-    getdatestring:function(date,secflag){
+    };
+    that.get_datestring = function(date,secflag){
 	var month;
 	var day;
 	var hr;
@@ -128,8 +344,8 @@ var common = {
 	}else{
 	    return date.getFullYear() + '-' + month + '-' + day + ' ' + hr + ':' + min;
 	}
-    },
-    getlang:function(value){
+    };
+    that.get_lang = function(value){
 	var i;
 	var ret;
 	var langlist = ['C++','JAVA','Pascal'];
@@ -144,174 +360,12 @@ var common = {
 	}
 
 	return ret;
-    },
-
-    geturlpart:function(url){
-	if(url == undefined){
-	    return location.href.match(/toj\/(.*)/)[1].split('/');
-	}else{
-	    return url.match(/toj\/(.*)/)[1].split('/');
-	}
-    },
-    pushurl:function(url){
-	common.url_prev = location.href;
-	window.history.pushState(null,document.title,url);   
-	common.url_curr = location.href;
-	common.page_urlchange();
-    },
-    replaceurl:function(url){
-	window.history.replaceState(null,document.title,url);   
-	common.url_curr = location.href;
-    },
-    prevurl:function(notpagename){
-	if(common.url_prev == null || common.geturlpart(common.url_prev)[0] == notpagename){
-	    common.pushurl('/toj/home/');
-	}else{
-	    common.pushurl(common.url_prev);
-	}
-    },
-    page_urlchange:function(){
-	var urlpart;
-	var pagename;
-	var pagename_prev;
-
-	if(arguments.callee.reentrant == true){
-	    arguments.callee.hasnext = true;
-	    return;
-	}else{
-	    arguments.callee.reentrant = true;
-	    arguments.callee.hasnext = true;
-	}
-
-	while(arguments.callee.hasnext){
-	    arguments.callee.hasnext = false;
-
-	    if(common.mbox_curr != null){
-		common.hidembox(false);
-	    }
-
-	    urlpart = common.geturlpart();
-	    pagename = urlpart[0];
-	    if(pagename == ''){
-		common.replaceurl('/toj/home/');
-		common.page_urlchange();
-		continue;
-	    }else if(!(pagename in common.page_list)){
-		common.replaceurl('/toj/none/');
-		common.page_urlchange();
-		continue;
-	    }
-
-	    if(common.url_prev != null){
-		pagename_prev = common.geturlpart(common.url_prev)[0];
-		if(pagename == pagename_prev){
-		    common.page_list[pagename].urlchange('same');
-		}else{
-		    if(pagename_prev in common.page_list){
-			common.page_list[pagename_prev].urlchange('out');
-		    }
-		    common.page_list[pagename].urlchange('in');
-		}
-	    }else{
-		common.page_list[pagename].urlchange('in');
-	    }
-	}
-	arguments.callee.reentrant = false;
-    },
-    addpage:function(pagename,pageobj){
-	common.page_list[pagename] = pageobj;
-    },
-    removepage:function(pagename){
-	delete common.page_list[pagename];
-    },
-
-    showmbox:function(mboxobj){
-	common.mbox_curr = mboxobj;
-	mboxobj.switchchange('in');
-	common.mbox_defer = $.Deferred();
-	return common.mbox_defer.promise();
-    },
-    hidembox:function(done){
-	if(common.mbox_curr != null){
-	    common.mbox_curr.switchchange('out');
-	    common.mbox_curr = null;
-	    if(done == true){
-		common.mbox_defer.resolve();
-	    }else{
-		common.mbox_defer.reject();
-	    }
-	}
-    }
-};
-
-var class_common_page = function(){
-    var that = this;
-    that.tab_list = Array();
-    that.tabname_curr = null;
-
-    that.urlchange = function(direct){};
-    that.fadein = function(j_e){
-	j_e.stop().fadeIn('fast');
-    };
-    that.fadeout = function(j_e){
-	j_e.stop().hide();
-    };
-
-    that.tab_urlchange = function(tabname){
-	if(arguments.callee.reentrant == true){
-	    arguments.callee.hasnext = true;
-	    return;
-	}else{
-	    arguments.callee.reentrant = true;
-	    arguments.callee.hasnext = true;
-	}
-
-	while(arguments.callee.hasnext){
-	    arguments.callee.hasnext = false;
-
-	    if(tabname == null){
-		if(that.tabname_curr in that.tab_list){
-		    index.lltab(that.tabname_curr);
-		    that.tab_list[that.tabname_curr].urlchange('out');
-		}
-		that.tab_list = new Array();
-		that.tabname_curr = null;
-		continue;
-	    }
-
-	    if(!(tabname in that.tab_list)){
-		common.replaceurl('/toj/none/');
-		common.page_urlchange();
-		return;
-	    }
-
-	    if(tabname == that.tabname_curr){
-		that.tab_list[tabname].urlchange('same');
-	    }else{
-		if(that.tabname_curr in that.tab_list){
-		    index.lltab(that.tabname_curr);
-		    that.tab_list[that.tabname_curr].urlchange('out');
-		}
-		that.tabname_curr = tabname;
-		index.hltab(tabname);
-		that.tab_list[tabname].urlchange('in');
-	    }
-	}
-	arguments.callee.reentrant = false;
-    };
-    that.addtab = function(tabname,tabobj){
-	that.tab_list[tabname] = tabobj;
-    };
-    that.removetab = function(tabname){
-	delete that.tab_list[tabname];
     };
 };
 
-var class_common_tab = function(paobj){
+var class_com_pbox = function(){
     var that = this;
-    that.paobj = paobj;
 
-    that.urlchange = function(direct){};
     that.fadein = function(j_e){
 	j_e.stop().fadeIn('fast');
     };
@@ -319,18 +373,13 @@ var class_common_tab = function(paobj){
 	j_e.stop().hide();
     };
 };
-
-var class_common_mbox = function(paobj){
+var class_com_mbox = function(){
     var that = this;
-    that.paobj = paobj;
 
-    that.switchchange = function(direct){};
     that.fadein = function(j_e){
 	j_e.stop().show();
-	index.showmask();
     };
     that.fadeout = function(j_e){
-	index.hidemask();
 	j_e.stop().hide();
     };
-}
+};

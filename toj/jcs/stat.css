@@ -1,56 +1,59 @@
-div.stat_page > div.sub_tab > table.sublist{
-    width:85%;
-    margin:0px auto 6px auto;
+div.stat_page > div.sub_pbox > table.sublist{
+    width:978px;
+    margin:0px 0px 6px 164px;
     border-collapse:collapse;    
     text-align:left;
 }
-div.stat_page > div.sub_tab > table.sublist tr.head{
+div.stat_page > div.sub_pbox > table.sublist tr.head{
     height:64px;
-    font-size:20px;
 }
-div.stat_page > div.sub_tab > table.sublist tr.item{
+div.stat_page > div.sub_pbox > table.sublist tr.item{
     height:32px;
     display:none;
 }
-div.stat_page > div.sub_tab > table.sublist tr:hover.item{
+div.stat_page > div.sub_pbox > table.sublist tr:hover.item{
     background-color:rgba(255,255,255,0.2);
 }
-div.stat_page > div.sub_tab > table.sublist th.subid,div.stat_page > div.sub_tab > table.sublist td.subid{
-    width:96px;
+div.stat_page > div.sub_pbox > table.sublist th,div.stat_page > div.sub_pbox > table.sublist td{
+    padding:0px 0px 0px 6px;
 }
-div.stat_page > div.sub_tab > table.sublist th.proid,div.stat_page > div.sub_tab > table.sublist td.proid{
-    width:96px;
+div.stat_page > div.sub_pbox > table.sublist th.subid,div.stat_page > div.sub_pbox > table.sublist td.subid{
+    width:76px;
 }
-div.stat_page > div.sub_tab > table.sublist th.nickname,div.stat_page > div.sub_tab > table.sublist td.nickname{
+div.stat_page > div.sub_pbox > table.sublist th.proid,div.stat_page > div.sub_pbox > table.sublist td.proid{
+    width:76px;
+}
+div.stat_page > div.sub_pbox > table.sublist th.nickname,div.stat_page > div.sub_pbox > table.sublist td.nickname{
     width:auto;
 }
-div.stat_page > div.sub_tab > table.sublist th.runtime,div.stat_page > div.sub_tab > table.sublist td.runtime{
-    width:96px;
+div.stat_page > div.sub_pbox > table.sublist th.runtime,div.stat_page > div.sub_pbox > table.sublist td.runtime{
+    width:76px;
 }
-div.stat_page > div.sub_tab > table.sublist th.memory,div.stat_page > div.sub_tab > table.sublist td.memory{
-    width:96px;
+div.stat_page > div.sub_pbox > table.sublist th.memory,div.stat_page > div.sub_pbox > table.sublist td.memory{
+    width:76px;
 }
-div.stat_page > div.sub_tab > table.sublist th.result,div.stat_page > div.sub_tab > table.sublist td.result{
-    width:64px;
+div.stat_page > div.sub_pbox > table.sublist th.result,div.stat_page > div.sub_pbox > table.sublist td.result{
+    width:76px;
 }
-div.stat_page > div.sub_tab > table.sublist th.score,div.stat_page > div.sub_tab > table.sublist td.score{
-    width:96px;
+div.stat_page > div.sub_pbox > table.sublist th.score,div.stat_page > div.sub_pbox > table.sublist td.score{
+    width:76px;
 }
-div.stat_page > div.sub_tab > table.sublist th.time,div.stat_page > div.sub_tab > table.sublist td.time{
-    width:256px;
+div.stat_page > div.sub_pbox > table.sublist th.time,div.stat_page > div.sub_pbox > table.sublist td.time{
+    width:237px;
 }
-div.stat_page > div.sub_tab > table.sublist th.lang,div.stat_page > div.sub_tab > table.sublist td.lang{
-    width:64px;
-}
-div.stat_page > div.sub_tab > table.sublist a.link{
-    color:#E9E9E9;
-    text-decoration:none;
-}
-div.stat_page > div.sub_tab > table.sublist a:hover.link{
-    color:#E9E9E9;
-    text-decoration:underline;
+div.stat_page > div.sub_pbox > table.sublist th.lang,div.stat_page > div.sub_pbox > table.sublist td.lang{
+    width:76px;
 }
 
-div.stat_mask > div.subinfo_mbox{
-    width:85%;
+div.stat_mask > div.subfile_mbox > h2.subid{
+    width:50%;
+    padding:6px 0px 0px 82px;
+}
+div.stat_mask > div.subfile_mbox > label{
+    padding:6px 0px 32px 82px;
+}
+div.stat_mask > div.subfile_mbox > div.filebox{
+    width:814px;
+    height:384px;
+    padding:6px 0px 32px 82px;
 }

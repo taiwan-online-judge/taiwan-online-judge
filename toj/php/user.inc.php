@@ -157,7 +157,7 @@ class user
 	    else $c = chr(97 + $v - 36);
 	    $newpass = $newpass.$c;
 	}
-	echo($newpass.'<br>');
+	//echo($newpass.'<br>');
 
 	//email
 
@@ -180,12 +180,11 @@ class user
 	$cmail->Body = 'Hi '.$user->nickname.' ('.$user->username.') , your new password is '.$newpass.' .';
 	if(!$cmail->Send())
 	{
-	    echo($cmail->ErrorInfo.'<br>');
+	    //echo($cmail->ErrorInfo.'<br>');
 	    return false;
 	}
 
 
-	return true;
 
 	$user->password = hash('sha512', $newpass);
 	$nuser = user::update($sqlc, $user);

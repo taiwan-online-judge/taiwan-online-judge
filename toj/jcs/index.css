@@ -1,28 +1,34 @@
-div.index_head{
+div.index_head_box{
     width:100%;
     height:32px;
-    font-size:20px;
+    font-size:16px;
     line-height:32px;
     background-color:#1C1C1C;
-    position:absolute;
-    left:0px;
+    color:#E9E9E9;
+    position:fixed;
     top:0px;
+    left:0px;
     z-index:1;
 }
+div.index_head{
+    width:1224px;
+    height:100%;
+    margin:0px auto 0px auto;
+}
 div.index_head > div.title{
-    width:250px;
+    width:240px;
+    height:100%;
+    float:left;
+}
+div.index_head > div.tab_box{
     height:100%;
     margin:0px 0px 0px 6px;
     float:left;
 }
-div.index_head > div.tab_box{
-    width:auto;
-    height:100%;
-    float:left;
-}
 div.index_head > div.tab_box > div.button{
     height:100%;
-    margin:0px 0px;
+    width:117px;
+    margin:0px 6px 0px 0px;
     float:left;
 }
 div.index_head > div.tab_box > div.button_s{
@@ -43,52 +49,59 @@ div.index_head > div.content_box{
     height:100%;
     float:left;
 }
-div.index_head > div.panel{
+div.index_head_box > div.panel{
     width:96px;
     height:100%;
     text-align:center;
     cursor:pointer;
-    float:right;
+    position:absolute;
+    top:0px;
+    right:0px;
 }
-div.index_head > div.panel_m{
+div.index_head_box > div.panel_m{
     color:#FFFFFF;
 }
-div.index_head > div.notice{
+div.index_head_box > div.notice{
     width:96px;
     height:100%;
     text-align:center;
-    font-family:monospace;
+    font-family:Droid Sans Mono;
+    font-weight:400;
     cursor:pointer;
-    float:right;
+    position:absolute;
+    top:0px;
+    right:96px;
 }
-div.index_head > div:hover.notice{
+div.index_head_box > div:hover.notice{
     color:#FFFFFF;
 }
-div.index_head > div.notice_s{
+div.index_head_box > div.notice_s{
     color:#FFFFFF;
 }
-div.index_head > div.notice_h{
+div.index_head_box > div.notice_h{
     background-color:#E83015;
     color:#FFFFFF;
 }
-div.index_head > div.nickname{
+div.index_head_box > div.nickname{
     height:100%;
     padding:0px 16px 0px 16px;
-    float:right;
+    position:absolute;
+    top:0px;
+    right:192px;
 }
-div.index_head > div.nickname > a.nickname{
+div.index_head_box > div.nickname > a.nickname{
     height:100%;
     color:#E9E9E9;
     text-align:center;
     text-decoration:none;
 }
-div.index_head > div.nickname > a:hover.nickname{
+div.index_head_box > div.nickname > a:hover.nickname{
     color:#FFFFFF;
 }
 
 div.index_panel_box{
     width:0px;
-    position:absolute;
+    position:fixed;
     left:auto;
     right:0px;
     top:32px;
@@ -96,7 +109,7 @@ div.index_panel_box{
     z-index:110;
 }
 ul.index_panel{
-    width:256px;
+    width:240px;
     height:100%;
     margin:0px 0px;
     padding:0px 0px;
@@ -104,7 +117,7 @@ ul.index_panel{
     opacity:0;
     position:absolute;
     left:auto;
-    right:-256px;
+    right:-240px;
     top:0px;
     z-index:2;
     overflow-x:hidden;
@@ -114,7 +127,7 @@ ul.index_panel{
 ul.index_panel > li.button{
     width:auto;
     height:64px;
-    padding:0px 0px 0px 32px;
+    padding:0px 0px 0px 38px;
     font-size:20px;
     line-height:64px;
 }
@@ -166,12 +179,34 @@ div.index_page{
 
 div.index_mask{
     width:100%;
-    height:100%;
+    min-height:100%;
     background-color:rgba(0,0,0,0.9);
     position:absolute;
     top:0px;
     left:0px;
     z-index:3;
     display:none;
-    overflow:auto;
+}
+div.index_mask_nopbox{
+    width:100%;
+    position:absolute;
+    top:32px;
+    left:0px;
+    z-index:0;
+    display:none;
+}
+div.index_mask > button.close{
+    height:32px;
+    line-height:32px;
+    position:absolute;
+    top:0px;
+    right:96px;
+}
+div.index_mask_nopbox > button.close{
+    height:32px;
+    line-height:32px;
+    position:absolute;
+    top:0px;
+    right:96px;
+    display:none;
 }

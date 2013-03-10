@@ -130,7 +130,7 @@ if($action == 'get_pro_stat')
     $ret = problem::get_pro_stat($sqlc, $proid, $uid);
     if(!$ret)
 	die('Eerror_get_pro_stat');
-    
+
     echo(json_encode($ret));
 }
 

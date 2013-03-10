@@ -1,6 +1,6 @@
 div.notice_list_box{
     width:0px;
-    position:absolute;
+    position:fixed;
     left:auto;
     right:0px;
     top:32px;
@@ -8,7 +8,7 @@ div.notice_list_box{
     z-index:100;
 }
 ul.notice_list{
-    width:256px;
+    width:322px;
     height:100%;
     margin:0px 0px;
     padding:0px 0px;
@@ -16,7 +16,7 @@ ul.notice_list{
     opacity:0;
     position:absolute;
     left:auto;
-    right:-256px;
+    right:-322px;
     top:0px;
     z-index:2;
     overflow-x:hidden;
@@ -26,7 +26,7 @@ ul.notice_list{
 ul.notice_list > li.item{
     width:auto;
     height:96px;
-    padding:0px 0px 0px 6px;
+    padding:0px 0px 0px 38px;
 }
 ul.notice_list > li:hover.item{
     color:#FFFFFF;

@@ -1,28 +1,33 @@
-var home = {
-    init:function(){
-	home.home_page = new class_home_page;
-	home.none_page = new class_none_page;
+var home = new function(){
+    var that = this;
+	
+    that.init = function(){
+	home.home_pbox = new class_home_pbox;
+	home.none_pbox = new class_none_pbox;
     }
 };
 
-var class_home_page = function(){
+var class_home_pbox = function(){
     var that = this;
-    var j_page = $($('#index_page > [page="home"]')[0]);
+    var j_pbox = $('#index_page > div.home_pbox');
 
+    that.node = new vus.node('home');
+	
     that.__super();
 
-    that.urlchange = function(direct){
+    that.node.url_chg = function(direct,url_upart,url_dpart){
 	if(direct == 'in'){
-	    that.fadein(j_page);
-	    index.settitle('Taiwan Online Judge');
+	    that.fadein(j_pbox);
+	    index.title_set('Taiwan Online Judge');
 	    tmp();
 	}else if(direct == 'out'){
-	    that.fadeout(j_page);
+	    that.fadeout(j_pbox);
 	    tmp_stop = true;
 	}
-    }
-    common.addpage('home',that);
 
+	return 'cont';
+    }
+    com.vus_root.child_set(that.node);
 
     var tmp_stop = true;
     var tmp_first = true;
@@ -182,15 +187,17 @@ var class_home_page = function(){
 	    ctx.lineWidth = 8;
 	    drawCircle(ctx,700,500,330,bd * 60,bd * ((prog * 3) % 360 + 260));
 
-	    ctx.lineWidth = 4;
-	    drawCircle(ctx,700,500,300,bd * 360,0);
-	    ctx.lineWidth = 16;
-	    drawCircle(ctx,700,500,295,bd * 80,-bd * ((prog * 4) % 360 + 90));
-
+	    if(prog % 6 < 4 || prog < 456 || prog > 912){
+		ctx.lineWidth = 4;
+		drawCircle(ctx,700,500,300,bd * 360,0);
+		ctx.lineWidth = 16;
+		drawCircle(ctx,700,500,295,bd * 80,-bd * ((prog * 4) % 360 + 90));
+	    }
+	    
 	    ctx.lineWidth = 8;
-	    drawCircle(ctx,700,500,260,bd * 90,bd * ((prog * 4) % 360));
-	    drawCircle(ctx,700,500,230,bd * 120,-bd * ((prog * 5) % 360 + 120));
+	    drawCircle(ctx,700,500,260,bd * 90,bd * ((prog * 6) % 360 + 120));
 	    drawCircle(ctx,700,500,210,bd * 160,bd * ((prog * 3) % 360 + 270));
+	    drawCircle(ctx,700,500,230,bd * 120,-bd * ((prog * 5) % 360 + 120));
 
 	    ctx.strokeStyle = 'rgba(128,128,128,' + (1 - (prog % 24)/24) + ')';
 	    ctx.lineWidth = 8;
@@ -199,7 +206,7 @@ var class_home_page = function(){
 	    drawCircle(ctx,700,500,70 + (prog % 24) * 4,bd * 360,0);
 
 	    ctx.font = 'bold 16px tahoma';
-	    drawTextAlongArc(ctx,"Hello TOJ [FORCORO]",700,500,460,bd * 60,bd * (prog % 360 + 115) * 2);
+	    drawTextAlongArc(ctx,"Hello TOJ",700,500,460,bd * 60,bd * (prog % 360 + 115) * 2);
 	    drawTextAlongArc(ctx,"Are You Happy?",700,500,460,bd * 50,bd * (prog % 360 + 30) * 2);
 
 	    if(prog < 456 || prog > 912){
@@ -227,13 +234,13 @@ var class_home_page = function(){
 
 		ctx.strokeStyle = 'rgba(255,255,255,1)';
 		ctx.lineWidth = 6;
-		drawCircle(ctx,700,500,60,bd * 60,-bd * ((prog * 15) % 360));
-		drawCircle(ctx,700,500,60,bd * 60,-bd * ((prog * 15) % 360 + 180));
+		drawCircle(ctx,700,500,40,bd * 60,-bd * ((prog * 15) % 360));
+		drawCircle(ctx,700,500,40,bd * 60,-bd * ((prog * 15) % 360 + 180));
 	    }
 
 	    v = prog % 96;
 	    if((v >= 24 && v < 26)|| (v >= 28 && v < 30)){
-		ctx.shadowBlur = 5;
+		ctx.shadowBlur = 8;
 	    }else{
 		ctx.shadowBlur = 0;
 	    }
@@ -250,7 +257,7 @@ var class_home_page = function(){
 	    u += ctx.measureText('aiwan').width;
 
 	    if((v >= 32 && v < 34)|| (v >= 36 && v < 38)){
-		ctx.shadowBlur = 5;
+		ctx.shadowBlur = 8;
 	    }else{
 		ctx.shadowBlur = 0;
 	    }
@@ -265,7 +272,7 @@ var class_home_page = function(){
 	    u += ctx.measureText('nline').width;
 
 	    if((v >= 40 && v < 42)|| (v >= 44 && v < 46)){
-		ctx.shadowBlur = 5;
+		ctx.shadowBlur = 8;
 	    }else{
 		ctx.shadowBlur = 0;
 	    }
@@ -285,8 +292,8 @@ var class_home_page = function(){
 
 	    ctx.font = 'bold 50px 微軟正黑體';
 	    ctx.fillStyle = 'rgba(255,255,255,1)';
-	    ctx.fillText('Taiwan Online Judge へようこそ      システムテスト',1920 - (prog % 360) / 360 * 3000,980);
-	    ctx.fillText('Taiwan Online Judge へようこそ      システムテスト',1920 - ((prog + 180) % 360) / 360 * 3000,980);
+	    ctx.fillText('Taiwan Online Judge     システムテスト',1920 - (prog % 720) / 720 * 3000,980);
+	    ctx.fillText('Taiwan Online Judge     システムテスト',1920 - ((prog + 360) % 720) / 720 * 3000,980);
 
 	    ctx.font = 'bold 36px 微軟正黑體';
 	    u = ctx.measureText('Parallel Judge 使用可能').width + 64;
@@ -355,20 +362,50 @@ var class_home_page = function(){
 	    }
 
 	    ctx.fillStyle = 'rgba(8,8,8,1)';
-	    drawRect(ctx,0,0,1920,1080);
+	    drawRect(ctx,0,0,320,1080);
 	    
-	    v = ctx.measureText('TF∪CK ').width;
-	    ctx.fillStyle = 'rgba(128,0,0,' + u + ')';
-	    ctx.fillRect(960 - v / 2 - 10,380,v + 20,200);
+	    //v = ctx.measureText('TF ∪  CK').width;
+	    //ctx.fillStyle = 'rgba(128,0,0,' + u + ')';
+	    //ctx.fillRect(960 - v / 2 - 10,380,v + 20,200);
+	    
+	    //var canvas = document.createElement('xxxxx');
+	    //var context = canvas.getContext('2d');
+	    //var img = document.getElementById('myimg');
+	    //context.drawImage(img, 0, 0 );
+	    //var myData = context.getImageData(0, 0, img.width, img.height);
+	    //ctx.fillStyle = 'rgba(255,255,255,' + u + ')';
+	    //ctx.font = 'bold 36px tahoma';//v
+	    //ctx.fillText('TF ∪  CK',1560 - v / 2,850);
 
-	    ctx.fillStyle = 'rgba(255,255,255,' + u + ')';
-	    ctx.font = 'bold 192px tahoma';
-	    ctx.fillText('TF∪CK ',960 - v / 2,550);
+
+	    var imageObjSprout = new Image();
+	    imageObjSprout.src = '/toj/jcs/xxxxx.png';
+	    ctx.drawImage(imageObjSprout, 690,260,500,500);  
+	    //var imgdSprout = ctx.getImageData(0, 0, 300, 300);  
+	    //var Sproutpix_alpha = imgdSprout.data;  
+	    //for(var spj = 3, spn = Sproutpix_alpha.length; spj < spn; spj += 4) {  
+	    //    Sproutpix_alpha[spj] = Sproutpix_alpha[spj] * 0.2;  
+	    //}  
+	    //ctx.drawImage(Sproutpix_alpha, 2, 2);	    
+	    //ctx.putImageData(imgdSprout, 0, 0, 300, 300);
+	    var spu = 1.0-u;  
+	    //alert(pu);
+	    var spuint=parseInt(8);
+	    //if(spuint<1)spuint=1;
+	    ctx.fillStyle = 'rgba(' + spuint + ',' + spuint + ',' + spuint + ',' + spu + ')';
+	   			 
+	    ctx.fillRect(690-1+23,260-1+23,500+2-46+2,500+2-46+3);
+
+	    //ctx.fillStyle = 'rgba(255,255,255,' + u + ')';
+	    //ctx.font = 'bold 32px tahoma';//v
+	    //ctx.fillText('TF∪CK ',1560 - v / 2,850);
+	    
 
 	    prog++;
 	    if(prog == 400){
 		prog = 0;
 		st = 0;
+		document.getElementById('tmp_audio').volume = 0.5;
 		document.getElementById('tmp_audio').play();
 		ani();
 	    }else{
@@ -392,6 +429,7 @@ var class_home_page = function(){
 		setTimeout(waitaudio,100);	
 	    }else{
 		e_audio = document.getElementById('tmpload_audio');
+		e_audio.volume = 0.5;
 		e_audio.play();
 		loadani();
 	    }
@@ -411,23 +449,25 @@ var class_home_page = function(){
 
 	tmp_first = false;
     }
-}; __extend(class_home_page,class_common_page);
+}; __extend(class_home_pbox,class_com_pbox);
 
-var class_none_page = function(){
+var class_none_pbox = function(){
     var that = this;
-    var j_page = $($('#index_page > [page="none"]')[0]);
+    var j_pbox = $('#index_page > div.none_pbox');
+
+    that.node = new vus.node('none');
 
     that.__super();
 
-    that.urlchange = function(direct){
+    that.node.url_chg = function(direct,url_upart,url_dpart){
 	if(direct == 'in'){
-	    that.fadein(j_page);
-	    index.settitle('Taiwan Online Judge');
+	    that.fadein(j_pbox);
+	    index.title_set('Taiwan Online Judge');
 	}else if(direct == 'out'){
-	    that.fadeout(j_page);
+	    that.fadeout(j_pbox);
 	}
+
+	return 'cont';
     }   
-    common.addpage('none',that);
-}; __extend(class_none_page,class_common_page);
-
-
+    com.vus_root.child_set(that.node);
+}; __extend(class_none_pbox,class_com_pbox);

@@ -1,11 +1,6 @@
 div.pmod_test > div.info{
-    width:250px;
-    height:100%;
-    padding:0px 0px 0px 6px;
-    position:absolute;
-    top:0px;
-    left:0px;
-    overflow:auto;
+    width:240px;
+    float:left;
 }
 div.pmod_test > div.info > table.statlist{
     width:100%;
@@ -13,10 +8,11 @@ div.pmod_test > div.info > table.statlist{
     border-collapse:collapse;    
 }
 div.pmod_test > div.info > table.statlist td.name{
-    width:96px;
+    width:76px;
 }
 div.pmod_test > div.info > table.statlist td.value{
     width:auto;
+    padding:0px 0px 0px 6px;
 }
 div.pmod_test > div.info > table.limitlist{
     width:100%;
@@ -24,30 +20,29 @@ div.pmod_test > div.info > table.limitlist{
     border-collapse:collapse;    
 }
 div.pmod_test > div.info > table.limitlist td.name{
-    width:96px
+    width:76px;
 }
 div.pmod_test > div.info > table.limitlist td.value{
     width:auto;
+    padding:0px 0px 0px 6px;
 }
 div.pmod_test > div.info > table.scorelist{
     width:100%;
     text-align:left;
     border-collapse:collapse;    
 }
-div.pmod_test > div.info > table.scorelist tr.item{
-    font-size:16;
-}
 div.pmod_test > div.info > table.scorelist th.no,div.pmod_test > div.info > table.scorelist td.no{
-    width:64px;
+    width:76px;
 }
 div.pmod_test > div.info > table.scorelist th.score,div.pmod_test > div.info > table.scorelist td.score{
     width:auto;
+    padding:0px 0px 0px 6px;
 }
 div.pmod_test > div.content{
-    height:100%;
-    padding:0px 6px 0px 0px;
-    position:absolute;
-    top:0px;
-    left:256px;
-    overflow:auto;
+    width:978px;
+    margin:0px 0px 0px 6px;
+    float:left;
+}
+div.pmod_test p{
+    text-indent:32px;
 }

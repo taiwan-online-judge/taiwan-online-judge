@@ -22,6 +22,12 @@
 <script src="/jquery.easing.1.3.js"></script>
 <script type="text/javascript" src="/codemirror.js"></script>
 <script type="text/javascript" src="/clike.js"></script>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+	tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]}
+    });
+</script>
 
 <script src="/toj/jcs/common.js"></script>
 <script src="/toj/jcs/index.js"></script>
@@ -32,19 +38,39 @@
 <script src="/toj/jcs/sq.js"></script>
 <script src="/toj/jcs/pro.js"></script>
 
+<link href='http://fonts.googleapis.com/css?family=Roboto:400,700' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono' rel='stylesheet' type='text/css'>
 <style type="text/css">
+/*@font-face{
+    font-family:Droid Sans Mono;
+    src:url('/DroidSansMono.ttf');
+}*/
+
+/*::-webkit-scrollbar{
+    width:12px;
+}
+::-webkit-scrollbar-track{
+    background-color:#E9E9E9;
+}
+::-webkit-scrollbar-thumb {
+    background-color:rgba(0,0,0,0.4);
+}
+::-webkit-scrollbar-thumb:window-inactive {
+    background-color:rgba(0,0,0,0.1); 
+}*/
+
 body{
     color:#E9E9E9;
     background-color:#373C38;
-    font-family:\5FAE\8EDF\6B63\9ED1\9AD4,\65B0\7D30\660E\9AD4;
-    overflow-y:hidden;
+    font-family:'Roboto','LiHei Pro','微軟正黑體';
+    overflow-y:scroll;
 }
 button{
     height:32px;
     margin:0px 0px;
     padding:0px 16px 0px 16px;
     font-size:16px;
-    font-family:\5FAE\8EDF\6B63\9ED1\9AD4,\65B0\7D30\660E\9AD4;
+    font-family:'Roboto','LiHei Pro','微軟正黑體';
     color:#E9E9E9;
     background-color:#00896C;
     border:none;
@@ -53,10 +79,23 @@ button{
 button:hover{
     background-color:#24936E;
 }
+a{
+    color:#E9E9E9;
+    text-decoration:none;
+}
+a:hover{
+    color:#E9E9E9;
+    text-decoration:underline;
+}
+input,select{
+    font-size:16px;
+    font-family:'Roboto','LiHei Pro','微軟正黑體';
+}
+
 </style>
 <script type="text/javascript">
     $(document).ready(function(){
-	common.init();
+	com.init();
 	user.init();
 	index.init();
 	notice.init();
@@ -65,48 +104,50 @@ button:hover{
 	sq.init();
 	pro.init();
 
-	common.exheight();
-	$(window).resize(function(e){common.exheight();});
+	com.exheight();
+	$(window).resize(function(e){com.exheight();});
 	$(window).on('popstate',function(e){
-	    if(location.href != common.url_curr){
-		common.url_prev = common.url_curr;
-		common.url_curr = location.href;
-		common.page_urlchange();
+	    if(location.href != com.url_curr){
+		com.url_prev = com.url_curr;
+		com.url_curr = location.href;
+		com.url_chg();
 	    }
 	});
 	
-	common.page_urlchange();
+	com.url_chg();
     });
 </script>
 </head>
 <body>
 
-<div id="index_head" class="index_head">
-    <div class="title">Taiwan Online Judge</div>
-    <div class="tab_box"></div>
-    <div class="content_box"></div>
+<div class="index_head_box">
+    <div id="index_head" class="index_head">
+	<div class="title">Taiwan Online Judge</div>
+	<div class="tab_box"></div>
+	<div class="content_box"></div>
+    </div>
     <div id="index_head_panel" class="panel">開始</div>
     <div id="index_head_notice" class="notice" style="display:none">[0]</div>
     <div id="index_head_nickname" class="nickname"><a class="nickname"></a></div>
 </div>
 
 <div id="index_panel_box" exheight=true class="index_panel_box"><ul id="index_panel" class="index_panel">
-    <li page="home" class="button"><a href="/toj/home/" class="button">首頁</a></li>
-    <li page="stat" class="button"><a href="/toj/stat/" class="button">狀態</a></li>
-    <li page="user" class="button" style="display:none;"><a class="button">個人</a></li>
-    <li page="square" class="button"><a class="button">方塊</a></li>
+    <li class="button home"><a href="/toj/home/" class="button">首頁</a></li>
+    <li class="button stat"><a href="/toj/stat/allsub/" class="button">狀態</a></li>
+    <li class="button user" style="display:none;"><a class="button">個人</a></li>
+    <li class="button square"><a class="button">方塊</a></li>
     <ul class="square_box"></ul>
 
-    <li page="login" class="button" style="margin:64px 0px 0px 0px; display:none;"><a href="/toj/login/" class="button">登入</a></li>
-    <li page="register" class="button" style="display:none;"><a href="/toj/register/" class="button">註冊</a></li>
-    <li page="logout" class="button" style="margin:64px 0px 0px 0px; display:none;"><a href="/toj/logout/" class="button">登出</a></li>
+    <li class="button login" style="margin:64px 0px 0px 0px; display:none;"><a href="/toj/login/" class="button">登入</a></li>
+    <li class="button register" style="display:none;"><a href="/toj/register/" class="button">註冊</a></li>
+    <li class="button logout" style="margin:64px 0px 0px 0px; display:none;"><a href="/toj/logout/" class="button">登出</a></li>
 </ul></div>
 
 <div id="notice_list_box" exheight=true class="notice_list_box"><ul id="notice_list" class="notice_list"></ul></div>
 
-<div id="index_page" exheight=true class="index_page">
+<div id="index_page" class="index_page">
 
-    <div page="home" class="common_page home_page">
+    <div exheight=true extop=32 class="com_pbox home_pbox">
 	<audio id="tmpload_audio" src="/tmpload.ogg" preload></audio>
 	<audio id="tmp_audio" src="/tmp.ogg" preload></audio>
 	<div id="tmpani" style="width:100%; height:100%; background-color:#0C0C0C;">
@@ -114,15 +155,15 @@ button:hover{
 	</div>
     </div>
     
-    <div page="none" class="common_page none_page">
-	<div style="margin:192px 0px 0px 256px;">
+    <div class="com_pbox none_pbox">
+	<div style="margin:192px 0px 0px 246px;">
 	    <h1>Oops! 此頁不存在</h1>
 	    <a href="/toj/home/" style="margin-left:6px; color:#E9E9E9;">回首頁</a>
 	</div>
     </div>
 
-    <div page="stat" class="common_page stat_page">
-	<div tab="allsub" class="common_tab sub_tab">
+    <div class="stat_page">
+	<div class="com_pbox sub_pbox allsub_pbox">
 	    <table class="sublist">
 		<tr class="head">
 		    <th class="subid">SubID</th>
@@ -139,14 +180,14 @@ button:hover{
 	</div>
     </div>
 
-    <div page="user" class="common_page user_page">
-	<div tab="main" class="common_tab main_tab">
+    <div class="user_page">
+	<div class="com_pbox main_pbox">
 	    <div class="info_box">
 		<img class="avatar"></img>
 		<div class="aboutme"></div>
 	    </div>
 	</div>
-	<div tab="edit" class="common_tab edit_tab">
+	<div class="com_pbox edit_pbox">
 	    <div class="edit_box">
 		<h1>個人資料</h1>
 		<label>暱稱</label>
@@ -172,7 +213,7 @@ button:hover{
 		<button class="cancel">取消</button>
 	    </div>
 	</div>
-	<div tab="mgsq" class="common_tab mgsq_tab">
+	<div class="com_pbox mgsq_pbox">
 	    <div class="in_box">
 		<h1>已加入方塊</h1>
 		<h2>等待中</h2>
@@ -192,7 +233,7 @@ button:hover{
 		<div class="past"></div>
 	    </div>
 	</div>
-	<div tab="mg" class="common_tab mg_tab">
+	<div class="com_pbox mg_pbox">
 	    <div class="left_box">
 		<h1>方塊</h1>
 		<button class="newsq">建立方塊</button>
@@ -200,10 +241,11 @@ button:hover{
 	</div>
     </div>
 
-    <div page="sq" class="common_page sq_page"></div>
-    <div page="pro" class="common_page pro_page"></div>
+    <div class="sq_page"></div>
+
+    <div class="com_pbox pro_pbox"></div>
     
-    <div page="login" class="common_page login_page">
+    <div class="com_pbox login_pbox">
 	<div class="info_box">
 	    <h1>登入TOJ, 開始你的解題</h1>
 	    <strong>沒有帳號?</strong><a href="/toj/register/" style="margin-left:6px; color:#E9E9E9;">註冊</a>
@@ -217,7 +259,7 @@ button:hover{
 	</div>
     </div>
 
-    <div page="register" class="common_page register_page">
+    <div class="com_pbox register_pbox">
 	<div class="info_box">
 	    <h1>註冊TOJ, 開始你的解題</h1>
 	    <strong>有帳號?</strong><a href="/toj/login/" style="margin-left:6px; color:#E9E9E9;">登入</a>
@@ -236,9 +278,11 @@ button:hover{
 
 </div>
 
-<div id="index_mask" class="index_mask">
+<div id="index_mask" class="index_mask_nopbox">
+    <button class="close">關閉</button>
+
     <div class="user_mask">
-	<div class="common_mask_box editsq_mbox">
+	<div class="com_mbox editsq_mbox">
 	    <div class="edit_box">
 		<h1>基本資料</h1>
 		<label>方塊名稱</label>
@@ -269,17 +313,17 @@ button:hover{
 		    <input name="e_day" type="textbox" size="1" placeholder="1" style="display:inline-block">
 		    <input name="e_hr" type="textbox" size="1" placeholder="18" style="margin:0px 0px 0px 6px; display:inline-block">
 		    <input name="e_min" type="textbox" size="1" placeholder="30" style="display:inline-block">
-		</div><br>
-		<button class="delete" style="display:none;">刪除</button><br><br>
+		</div>
 
 		<div class="error"></div>
 		<button class="submit">確定</button>
 		<button class="cancel">取消</button>
+		<button class="delete" style="display:none;">刪除</button>
 	    </div>
 	</div>
     </div>
     <div class="pro_mask">
-	<div exheight=true extop=32 exbottom=32 class="common_mask_box sub_mbox">
+	<div exheight=true extop=32 exbottom=32 class="com_mbox sub_mbox">
 	    <div class="head">
 		<div class="title"></div>
 		<div class="error"></div>
@@ -288,14 +332,17 @@ button:hover{
 			<option value="1">C++</option>
 		    </select>
 		    <button class="submit">確定</button>
-		    <button class="cancel">取消</button>
 		</div>
 	    </div>
 	    <div exheight=true extop=76 exbottom=38 class="codebox"></div>
 	</div>
     </div>
     <div class="stat_mask">
-	<div class="common_mask_box subinfo_mbox"></div>
+	<div class="com_mbox subres_mbox"></div>
+	<div class="com_mbox subfile_mbox">
+	    <button class="result" style="margin:6px 0px 0px 0px; float:right;">結果</button>
+	    <h2 class="subid"></h2>
+	</div>
     </div>
 </div>
 
