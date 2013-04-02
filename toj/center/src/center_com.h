@@ -23,11 +23,10 @@ struct center_com_setid{
 struct center_com_setinfo{
     int avail;
 }__attribute__((packed));
-struct center_com_submit{
+struct center_com_submit{ //judt submit header
     int subid;
     int proid;
     int lang;
-    char set_data[JUDGE_SET_DATAMAX];
 }__attribute__((packed));
 struct center_com_result{ //just result header
     int subid;
@@ -40,6 +39,7 @@ struct center_com_setpro{
 }__attribute__((packed));
 struct center_com_reqpro{
     int proid;
+    int cacheid;
 }__attribute__((packed));
 struct center_com_sendpro{
     int proid;

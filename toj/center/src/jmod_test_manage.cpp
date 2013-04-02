@@ -29,42 +29,40 @@ static int manage_load_setfile(FILE *set_file,int &count){
     return 0;
 }
 
-DLL_PUBLIC int submit(judgm_manage_submitinfo *info,void **manage_data){
+DLL_PUBLIC int submit(judgm_manage_info *info,FILE *set_file){
     int i;
 
     int count;
     manage_result_info *res_info;
     line_set_data set_data;
 
-    manage_load_setfile(info->set_file,count);
+    manage_load_setfile(set_file,count);
 
     res_info = new manage_result_info(count);
-    *manage_data = res_info;
+    info->private_data = res_info;
 
     for(i = 0;i < count;i++){
-	set_data.test_id = i + 1;
+	set_data.id = i + 1;
 	manage_queuesubmit_fn(info->subid,info->proid,info->lang,(char*)&set_data,sizeof(line_set_data));
     }
 
     return 0;
 }
-DLL_PUBLIC int result(judgm_manage_resultinfo *info,void *manage_data){
+DLL_PUBLIC int result(judgm_manage_info *info,line_result_data *res_data){
     manage_result_info *res_info;
-    line_result_data *res_data;
     json_object *jso_item;
     char tpath[PATH_MAX + 1];
 
-    res_info = (manage_result_info*)manage_data;
-    res_info->test_count++;
+    res_info = (manage_result_info*)info->private_data;
+    res_info->count++;
 
-    res_data = (line_result_data*)info->res_data;
-    if(res_data->status > res_info->test_result){
-	res_info->test_result = res_data->status;
+    if(res_data->status > res_info->result){
+	res_info->result = res_data->status;
     }
-    res_info->test_totalscore += res_data->score;
-    res_info->test_totalruntime += res_data->runtime;
-    if(res_data->memory > res_info->test_maxmemory){
-	res_info->test_maxmemory = res_data->memory;
+    res_info->totalscore += res_data->score;
+    res_info->totalruntime += res_data->runtime;
+    if(res_data->memory > res_info->maxmemory){
+	res_info->maxmemory = res_data->memory;
     }
 
     jso_item = json_object_new_object();
@@ -73,22 +71,22 @@ DLL_PUBLIC int result(judgm_manage_resultinfo *info,void *manage_data){
     json_object_object_add(jso_item,"runtime",json_object_new_int64(res_data->runtime));
     json_object_object_add(jso_item,"memory",json_object_new_int64(res_data->memory / 1024UL));
     if(strlen(res_data->err_msg) > 0){
+	printf("  strlen %d\n",strlen(res_data->err_msg));
 	json_object_object_add(jso_item,"errmsg",json_object_new_string(res_data->err_msg));
     }
-    json_object_array_put_idx(res_info->jso_resarray,res_data->test_id - 1,jso_item);
+    json_object_array_put_idx(res_info->jso_resarray,res_data->id - 1,jso_item);
     
-    printf("jmod count %d %d\n",res_info->test_count,res_info->test_allcount);
-    if(res_info->test_count == res_info->test_allcount){
+    printf("jmod count %d %d\n",res_info->count,res_info->allcount);
+
+    if(res_info->count == res_info->allcount){
 	snprintf(tpath,sizeof(tpath),"%s/result",info->res_path);
 	json_object_to_file_ext(tpath,res_info->jso_res,JSON_C_TO_STRING_PLAIN);
 
-	info->result = res_info->test_result;
-	info->score = res_info->test_totalscore;
-	info->runtime = res_info->test_totalruntime;
-	info->memory = res_info->test_maxmemory;
+	info->result = res_info->result;
+	info->score = res_info->totalscore;
+	info->runtime = res_info->totalruntime;
+	info->memory = res_info->maxmemory;
 	
-	printf("finish result\n");
-
 	delete res_info;
 	return 1;
     }

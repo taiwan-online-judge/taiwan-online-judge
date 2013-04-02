@@ -18,7 +18,7 @@ var class_home_pbox = function(){
     that.node.url_chg = function(direct,url_upart,url_dpart){
 	if(direct == 'in'){
 	    that.fadein(j_pbox);
-	    index.title_set('Taiwan Online Judge');
+	    index.title_set('Taiwan Online Judge (for sprout)');
 	    tmp();
 	}else if(direct == 'out'){
 	    that.fadeout(j_pbox);
@@ -206,7 +206,7 @@ var class_home_pbox = function(){
 	    drawCircle(ctx,700,500,70 + (prog % 24) * 4,bd * 360,0);
 
 	    ctx.font = 'bold 16px tahoma';
-	    drawTextAlongArc(ctx,"Hello TOJ",700,500,460,bd * 60,bd * (prog % 360 + 115) * 2);
+	    drawTextAlongArc(ctx,"Hello TOJ [sprout]",700,500,460,bd * 60,bd * (prog % 360 + 115) * 2);
 	    drawTextAlongArc(ctx,"Are You Happy?",700,500,460,bd * 50,bd * (prog % 360 + 30) * 2);
 
 	    if(prog < 456 || prog > 912){
@@ -292,8 +292,8 @@ var class_home_pbox = function(){
 
 	    ctx.font = 'bold 50px 微軟正黑體';
 	    ctx.fillStyle = 'rgba(255,255,255,1)';
-	    ctx.fillText('Taiwan Online Judge     システムテスト',1920 - (prog % 720) / 720 * 3000,980);
-	    ctx.fillText('Taiwan Online Judge     システムテスト',1920 - ((prog + 360) % 720) / 720 * 3000,980);
+	    ctx.fillText('Taiwan Online Judge (for sprout)     システムテスト',1920 - (prog % 720) / 720 * 3000,980);
+	    ctx.fillText('Taiwan Online Judge (for sprout)     システムテスト',1920 - ((prog + 360) % 720) / 720 * 3000,980);
 
 	    ctx.font = 'bold 36px 微軟正黑體';
 	    u = ctx.measureText('Parallel Judge 使用可能').width + 64;
@@ -368,7 +368,7 @@ var class_home_pbox = function(){
 	    //ctx.fillStyle = 'rgba(128,0,0,' + u + ')';
 	    //ctx.fillRect(960 - v / 2 - 10,380,v + 20,200);
 	    
-	    //var canvas = document.createElement('xxxxx');
+	    //var canvas = document.createElement('sproutcanvas');
 	    //var context = canvas.getContext('2d');
 	    //var img = document.getElementById('myimg');
 	    //context.drawImage(img, 0, 0 );
@@ -379,7 +379,7 @@ var class_home_pbox = function(){
 
 
 	    var imageObjSprout = new Image();
-	    imageObjSprout.src = '/toj/jcs/xxxxx.png';
+	    imageObjSprout.src = '/toj/jcs/sprout2.png';
 	    ctx.drawImage(imageObjSprout, 690,260,500,500);  
 	    //var imgdSprout = ctx.getImageData(0, 0, 300, 300);  
 	    //var Sproutpix_alpha = imgdSprout.data;  

@@ -180,7 +180,6 @@ int judgk_security_hook(){
     hook_sops.secmark_refcount_dec = hook_secmark_refcount_dec;
     hook_sops.req_classify_flow = hook_req_classify_flow;
     hook_sops.tun_dev_create = hook_tun_dev_create;
-    hook_sops.tun_dev_post_create = hook_tun_dev_post_create;
     hook_sops.tun_dev_attach = hook_tun_dev_attach;
     hook_sops.key_alloc = hook_key_alloc;
     hook_sops.key_free = hook_key_free;
@@ -321,8 +320,7 @@ static int hook_file_open(struct file *file, const struct cred *cred){
     int i;
 
     struct judgk_proc_info *info;
-    char *buf_path
-    char *path;
+    char *buf_path,*path;
 
     info = judgk_proc_task_lookup(current);
     if(likely(info == NULL || in_interrupt())){
@@ -2450,24 +2448,12 @@ static int hook_tun_dev_create(){
     security_hook_rf(info);
     return -EACCES;
 }
-static void hook_tun_dev_post_create(struct sock *sk){
+static int hook_tun_dev_attach(struct sock *sk,void *security){
     struct judgk_proc_info *info;
 
     info = judgk_proc_task_lookup(current);
     if(likely(info == NULL || in_interrupt())){
-	return ori_sops->tun_dev_post_create(sk);
-    }
-
-    pr_alert("judgk:PID %d  tun_dev_post_create\n",current->tgid);
-
-    security_hook_rf(info);
-}
-static int hook_tun_dev_attach(struct sock *sk){
-    struct judgk_proc_info *info;
-
-    info = judgk_proc_task_lookup(current);
-    if(likely(info == NULL || in_interrupt())){
-	return ori_sops->tun_dev_attach(sk);
+	return ori_sops->tun_dev_attach(sk,security);
     }
 
     pr_alert("judgk:PID %d  tun_dev_attach\n",current->tgid);

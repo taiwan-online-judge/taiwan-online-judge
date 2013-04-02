@@ -11,7 +11,7 @@
 #include"jmod_test.h"
 #include"jmod_test_line.h"
 
-static int line_load_setfile(FILE *set_file,int test_id,int &timelimit,int &memlimit,double &score){
+static int line_load_setfile(FILE *set_file,int id,int &timelimit,int &memlimit,double &score){
     int ret;
 
     json_object *jso;
@@ -22,7 +22,7 @@ static int line_load_setfile(FILE *set_file,int test_id,int &timelimit,int &meml
 
     timelimit = json_object_get_int(json_object_object_get(jso,"timelimit"));
     memlimit = json_object_get_int(json_object_object_get(jso,"memlimit"));
-    score = json_object_get_double(json_object_array_get_idx(json_object_object_get(jso,"score"),test_id - 1));
+    score = json_object_get_double(json_object_array_get_idx(json_object_object_get(jso,"score"),id - 1));
 
     json_object_put(jso);
     return 0;
@@ -118,14 +118,14 @@ DLL_PUBLIC int run(judgm_line_info *info){
     res_data = (line_result_data*)info->res_data;
     info->res_len = sizeof(line_result_data);
 
-    res_data->test_id = set_data->test_id;
+    res_data->id = set_data->id;
     res_data->status = JUDGE_ERR;
     res_data->score = 0;
     res_data->runtime = 0;
     res_data->memory = 0;
     res_data->err_msg[0] = '\0';
 
-    if(line_load_setfile(info->set_file,set_data->test_id,set_timelimit,set_memlimit,set_score)){
+    if(line_load_setfile(info->set_file,set_data->id,set_timelimit,set_memlimit,set_score)){
 	return -1;
     }
 
@@ -142,7 +142,7 @@ DLL_PUBLIC int run(judgm_line_info *info){
     line_chk_stop_fn = (check_stop_fn)dlsym(info->check_dll,"stop"); 
     line_proc = new judgm_proc(info->judgk_modfd,info->run_path,exe_path,set_timelimit,(set_timelimit * 10 + 5000),set_memlimit,chk_proc_fn);
 
-    snprintf(data_path,sizeof(data_path),"%s/private/%d",info->pro_path,set_data->test_id);
+    snprintf(data_path,sizeof(data_path),"%s/private/%d",info->pro_path,set_data->id);
     if(chk_init_fn(info->judgk_modfd,data_path,info->run_path)){
 	delete line_proc;
 	return -1;

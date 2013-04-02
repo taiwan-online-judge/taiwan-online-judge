@@ -133,8 +133,6 @@ class problem
 	mkdir($pardir.$subid.'/result', 0755) or die('Ecannot_mkdir');
 	chmod($pardir.$subid.'/result', 0775) or die('Ecannot_chmod');
 
-	//$file = fopen($pardir.$subid.'/data/'.$subid.'.'.$ext,'w');
-	//20130205 tmp change
 	$file = fopen($pardir.$subid.'/data/main.'.$ext,'w');
 	if(!$file)
 	    die('Ewrite_file_failed');
@@ -148,9 +146,15 @@ class problem
     {
 	//Add a new problem $pro into problem table.
 	//Return the inserted object. False if failed.
+	
+	if($pro->hidden == true){
+	    $hidden = 't';
+	}else{
+	    $hidden = 'f';
+	}
 
 	$sqlstr = 'INSERT INTO "problem" ("modid", "proname", "hidden", "admin_uid") VALUES ($1, $2, $3, $4) RETURNING *;';
-	$sqlarr = array($pro->modid, $pro->proname, $pro->hidden, $pro->admin_uid);
+	$sqlarr = array($pro->modid, $pro->proname, $hidden, $pro->admin_uid);
 	$sqlr = pg_query_params($sqlstr, $sqlarr);
 	if(!$sqlr)
 	    return false;
@@ -161,7 +165,36 @@ class problem
 
 	$obj->proid = intval($obj->proid);
 	$obj->modid = intval($obj->modid);
+	$obj->cacheid = intval($obj->cacheid);
 	$obj->admin_uid = intval($obj->admin_uid);
+	$obj->hidden = ($obj->hidden=='t');
+
+	return $obj;
+    }
+
+    public static function edit($sqlc, $pro)
+    {
+	if($pro->hidden == true){
+	    $hidden = 't';
+	}else{
+	    $hidden = 'f';
+	}
+
+	$sqlstr = 'UPDATE "problem" SET "modid"=$1, "proname"=$2, "hidden"=$3, "admin_uid"=$4 WHERE "proid"=$5 RETURNING *;';
+	$sqlarr = array($pro->modid, $pro->proname, $hidden, $pro->admin_uid,$pro->proid);
+	$sqlr = pg_query_params($sqlstr, $sqlarr);
+	if(!$sqlr)
+	    return false;
+	$obj = pg_fetch_object($sqlr, null, 'problem');
+	pg_free_result($sqlr);
+	if(!$obj)
+	    return false;
+
+	$obj->proid = intval($obj->proid);
+	$obj->modid = intval($obj->modid);
+	$obj->cacheid = intval($obj->cacheid);
+	$obj->admin_uid = intval($obj->admin_uid);
+	$obj->hidden = ($obj->hidden=='t');
 
 	return $obj;
     }
@@ -194,7 +227,7 @@ class problem
 	return intval($ret);
     }    
 
-    public static function send_socket($subid, $proid)
+    public static function send_socket($subid)
     {
 	///send socket to center.
 	//Return true if success, false if failed.
@@ -248,6 +281,36 @@ class problem
 	return $ret;
     }
 
+    public static function get_pro_list($sqlc){
+	$sqlstr = 'SELECT * FROM "problem" ORDER BY "proid" ASC;';
+	$sqlr = pg_query($sqlc,$sqlstr);
+
+	$ret = array();
+	while($obj = pg_fetch_object($sqlr))
+	{
+	    $obj->proid = intval($obj->proid);
+	    $obj->modid = intval($obj->modid);
+	    $obj->cacheid = intval($obj->cacheid);
+	    $obj->admin_uid = intval($obj->admin_uid);
+	    $obj->hidden = ($obj->hidden=='t');
+	    array_push($ret, $obj);
+	}
+
+	pg_free_result($sqlr);
+	return $ret;
+    }
+
+    public static function update_pro_cache($sqlc,$proid){
+	$sqlstr = 'UPDATE "problem" SET "cacheid"="cacheid" + 1 WHERE "proid"=$1;';
+	$sqlarr = array($proid);
+	$sqlr = pg_query_params($sqlc, $sqlstr, $sqlarr);
+	if(!$sqlr)return false;
+	pg_free_result($sqlr);
+
+	if(!problem::send_socket(-1))return false;
+	else return true;
+    }
+
     public static function rejudge_pro($sqlc, $proid)
     {
 	$sqlstr = 'SELECT "subid" FROM "submit" WHERE "proid"=$1 ORDER BY "subid";';
@@ -259,7 +322,7 @@ class problem
 	foreach($sublist as $sub)
 	{
 	    $subid = intval($sub);
-	    if(!problem::send_socket($subid, $proid))$ok = false;
+	    if(!problem::send_socket($subid))$ok = false;
 	}
 	return $ok;
     }
@@ -272,7 +335,7 @@ class problem
 	$proid = intval(pg_fetch_result($res, 0));
 	if(!$proid)return false;
 
-	return problem::send_socket($subid, $proid);
+	return problem::send_socket($subid);
     }
 }
 

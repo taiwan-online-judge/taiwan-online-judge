@@ -131,7 +131,7 @@ input,select{
     <div id="index_head_nickname" class="nickname"><a class="nickname"></a></div>
 </div>
 
-<div id="index_panel_box" exheight=true class="index_panel_box"><ul id="index_panel" class="index_panel">
+<div id="index_panel_box" exminheight=true class="index_panel_box"><ul id="index_panel" class="index_panel">
     <li class="button home"><a href="/toj/home/" class="button">首頁</a></li>
     <li class="button stat"><a href="/toj/stat/allsub/" class="button">狀態</a></li>
     <li class="button user" style="display:none;"><a class="button">個人</a></li>
@@ -143,7 +143,7 @@ input,select{
     <li class="button logout" style="margin:64px 0px 0px 0px; display:none;"><a href="/toj/logout/" class="button">登出</a></li>
 </ul></div>
 
-<div id="notice_list_box" exheight=true class="notice_list_box"><ul id="notice_list" class="notice_list"></ul></div>
+<div id="notice_list_box" exminheight=true class="notice_list_box"><ul id="notice_list" class="notice_list"></ul></div>
 
 <div id="index_page" class="index_page">
 
@@ -237,6 +237,16 @@ input,select{
 	    <div class="left_box">
 		<h1>方塊</h1>
 		<button class="newsq">建立方塊</button>
+		<h1>題目</h1>
+		<button class="newpro">建立題目</button>
+		<table class="prolist">
+		    <tr class="head">
+			<th class="proid">ProID</th>
+			<th class="name">題目名稱</th>
+			<th class="cacheid">CacheID</th>
+			<th></th>
+		    </tr>
+		</table>
 	    </div>
 	</div>
     </div>
@@ -319,6 +329,30 @@ input,select{
 		<button class="submit">確定</button>
 		<button class="cancel">取消</button>
 		<button class="delete" style="display:none;">刪除</button>
+	    </div>
+	</div>
+	<div class="com_mbox editpro_mbox">
+	    <div class="edit_box">
+		<h1>基本資料</h1>
+		<label>題目名稱</label>
+		<input name="name" type="textbox" size="16" placeholder="foo">
+		<label>模組ID</label>
+		<input name="modid" type="textbox" size="16" placeholder="1">
+		<label>隱私</label>
+		<select name="hidden">
+		    <option value=1>公開</option>
+		    <option value=2>隱藏</option>
+		</select>
+		<div class="update" style="display:none;">
+		    <h1>更新題目</h1>
+		    <span class="cacheid"></span><br><br>
+		    <button class="update">更新</button>
+		</div>
+
+		<div class="error"></div>
+		<button class="submit">確定</button>
+		<button class="cancel">取消</button>
+		<button class="delete" style="">刪除</button>
 	    </div>
 	</div>
     </div>

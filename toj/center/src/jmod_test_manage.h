@@ -1,21 +1,21 @@
 class manage_result_info{
 public:
-    int test_allcount;
-    int test_count;
-    int test_result;
-    double test_totalscore;
-    unsigned long test_totalruntime;
-    unsigned long test_maxmemory;
+    int allcount;
+    int count;
+    int result;
+    double totalscore;
+    unsigned long totalruntime;
+    unsigned long maxmemory;
     json_object *jso_res;
     json_object *jso_resarray;
 
     manage_result_info(int allcount){
-	this->test_allcount = allcount;
-	this->test_count = 0;
-	this->test_result = JUDGE_AC;
-	this->test_totalscore = 0;
-	this->test_totalruntime = 0;
-	this->test_maxmemory = 0;
+	this->allcount = allcount;
+	this->count = 0;
+	this->result = JUDGE_AC;
+	this->totalscore = 0;
+	this->totalruntime = 0;
+	this->maxmemory = 0;
 
 	this->jso_res = json_object_new_object();
 	this->jso_resarray = json_object_new_array();
@@ -26,8 +26,8 @@ public:
     }
 };
 
-DLL_PUBLIC int submit(judgm_manage_submitinfo *info,void **manage_data);
-DLL_PUBLIC int result(judgm_manage_resultinfo *info,void *manage_data);
+DLL_PUBLIC int submit(judgm_manage_info *info,FILE *set_file);
+DLL_PUBLIC int result(judgm_manage_info *info,line_result_data *res_data);
 
 static void __attribute__ ((constructor)) manage_init();
 static int manage_load_setfile(FILE *setfile,int &count);

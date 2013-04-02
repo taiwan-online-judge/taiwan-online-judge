@@ -63,7 +63,14 @@ int server_web_conn::readio(){
 	param = buf + strlen(buf) + 1;
 	printf("%d %s\n",subid,param);
 
-	center_manage_submit(subid,param);
+	//test
+	if(subid == -1){
+	    center_manage_updatedata();
+	}else{
+	    center_manage_submit(subid,param);
+	}
+
+	//test
 
 	write(fd,"S",2);
     }
@@ -112,13 +119,12 @@ int main(){
     server_addepev(tpinfo->fd,EPOLLIN | EPOLLET,SERVER_EPEV_TPOOL,tpinfo);
     center_judge_init();
 
-
     judge_sfd = socket(AF_INET,SOCK_STREAM | SOCK_NONBLOCK,6);
     saddr.sin_family = AF_INET;
     saddr.sin_port = htons(SERVER_JUDGE_PORT);
     //saddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     //saddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    saddr.sin_addr.s_addr = inet_addr("10.8.0.1");
+    saddr.sin_addr.s_addr = inet_addr("10.8.0.2");
     setsockopt(judge_sfd,SOL_SOCKET,SO_REUSEADDR,&saddr,sizeof(saddr));
     bind(judge_sfd,(sockaddr*)&saddr,sizeof(saddr));
 

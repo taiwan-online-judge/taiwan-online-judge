@@ -16,6 +16,7 @@
 #include<map>
 #include<utility>
 
+#include"judge.h"
 #include"judgk_com.h"
 
 typedef int (*judgm_proc_check_fn)();
@@ -64,6 +65,10 @@ private:
 	limit.rlim_cur = 8L;
 	limit.rlim_max = limit.rlim_cur;
 	prlimit(pid,RLIMIT_NOFILE,&limit,NULL);
+
+	limit.rlim_cur = 70368744177664L;
+	limit.rlim_max = limit.rlim_cur;
+	prlimit(pid,RLIMIT_STACK,&limit,NULL);
 
 	com_proc_add.run_path[0] = '\0';
 	strncat(com_proc_add.run_path,run_path,sizeof(com_proc_add.run_path));
@@ -273,6 +278,7 @@ static int judgm_compile(int subid,char *code_path,char *exe_path,int lang,bool 
     int ret;
     int i;
 
+    char log_path[PATH_MAX + 1];
     char main_path[PATH_MAX + 1];
     char sem_path[PATH_MAX + 1];
     struct stat st;
@@ -283,9 +289,15 @@ static int judgm_compile(int subid,char *code_path,char *exe_path,int lang,bool 
     int io[2];
     int pid;
     int wstatus;
-    off_t off;
+    char buf[64];
+    off_t err_off;
+    FILE *f_log;
     
-    if(force_flag == false){
+    if(force_flag == true){
+	force_flag = true;
+	out_path = exe_path;
+    }else{
+	snprintf(log_path,sizeof(log_path),"tmp/exe/%d/log",subid);
 	snprintf(main_path,sizeof(main_path),"tmp/exe/%d/main",subid);
 	snprintf(sem_path,sizeof(sem_path),"/judgm_compile_wait_%d",subid);
 	if((wait_sem = sem_open(sem_path,0)) == SEM_FAILED){
@@ -307,13 +319,18 @@ static int judgm_compile(int subid,char *code_path,char *exe_path,int lang,bool 
 	    sem_close(wait_sem);
 	}
 
-	if(!link(main_path,exe_path)){
-	    return 0;
+	if((f_log = fopen(log_path,"r")) != NULL){
+	    err_off = fread(err_msg,1,err_len - 1,f_log);
+	    fclose(f_log);
+	    err_msg[err_off] = '\0';
+
+	    if(!link(main_path,exe_path)){
+		return 0;
+	    }else{
+		return -1;
+	    }
 	}
     }
-
-    force_flag = true;
-    out_path = exe_path;
 
 compile:
 
@@ -322,12 +339,38 @@ compile:
 	mkdir(dir_path,0755);
     }
     ce_flag = false;
+    err_off = 0;
 
     if(lang == JUDGE_CPP){
 	pipe(io);
 	
 	if((pid = fork()) == 0){
-	    char *argv[] = {"g++","-static","-O2",code_path,"-std=c++0x","-o",out_path,NULL};
+	    char arg_compiler[16];
+	    char arg_static[16];
+	    char arg_o[16];
+	    char arg_std[16];
+	    char arg_output[16];
+	    char *argv[8];
+
+	    arg_compiler[0] = '\0';
+	    strncat(arg_compiler,"g++",sizeof(arg_compiler));
+	    arg_static[0] = '\0';
+	    strncat(arg_static,"-static",sizeof(arg_static));
+	    arg_o[0] = '\0';
+	    strncat(arg_o,"-O2",sizeof(arg_o));
+	    arg_std[0] = '\0';
+	    strncat(arg_std,"-std=c++0x",sizeof(arg_std));
+	    arg_output[0] = '\0';
+	    strncat(arg_output,"-o",sizeof(arg_output));
+
+	    argv[0] = arg_compiler;
+	    argv[1] = arg_static;
+	    argv[2] = arg_o;
+	    argv[3] = code_path;
+	    argv[4] = arg_std;
+	    argv[5] = arg_output;
+	    argv[6] = out_path;
+	    argv[7] = NULL;
 
 	    dup2(io[1],1);
 	    dup2(io[1],2);
@@ -335,12 +378,19 @@ compile:
 	}
 
 	close(io[1]);
-	off = 0;
-	while((ret = read(io[0],err_msg + off,err_len - off - 1)) > 0){
-	    off += ret;
+	while((ret = read(io[0],err_msg + err_off,err_len - err_off - 1)) > 0){
+	    err_off += ret;
 	}
-	err_msg[off] = '\0';
+	err_msg[err_off] = '\0';
+
+	while(read(io[0],buf,64) > 0);
 	close(io[0]);
+
+	if(err_off > (err_len - 4)){
+	    err_msg[err_len - 4] = '\0';
+	    strncat(err_msg + err_len - 4,"...",4);
+	    err_off = err_len - 1;
+	}
 
 	waitpid(pid,&wstatus,0);
 	if(wstatus != 0){
@@ -349,11 +399,11 @@ compile:
     }
 
     if(force_flag == false){
-	if(ce_flag == true){
-	    rmdir(dir_path);
-	}
+	f_log = fopen(log_path,"w");
+	fwrite(err_msg,err_off,1,f_log);
+	fclose(f_log);
 
-	for(i = 0;i < 8;i++){
+	for(i = 0;i < JUDGE_THREAD_MAX;i++){
 	    sem_post(wait_sem);
 	}
 	sem_close(wait_sem);

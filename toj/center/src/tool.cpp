@@ -1,13 +1,18 @@
-#include<stdio.h>
-#include<stdlib.h>
 #include<string.h>
+#include<dirent.h>
 #include<unistd.h>
 #include<fcntl.h>
+#include<limits.h>
+#include<ftw.h>
 #include<libtar.h>
 #include<bzlib.h>
+#include<sys/stat.h>
+#include<sys/sendfile.h>
 #include<map>
+#include<vector>
+#include<string>
 
-#include"pack.h"
+#include"tool.h"
 
 static int pack_copenfn(const char *pathname,int flags,...){
     int fd;
@@ -143,33 +148,147 @@ static ssize_t pack_xreadfn(long fd,void *buf,size_t count){
     return count - bzinfo->bzs.avail_out;
 }
 
-int pack_pack(char *packpath,char *dirpath){
-    tartype_t tartype;
+int tool_pack(char *pack_path,char *dir_path){
+    tartype_t tar_type;
     TAR *tarp;
+    char tpath[2] = {'.','\0'};
 
-    tartype.openfunc = pack_copenfn;
-    tartype.closefunc = pack_cclosefn;
-    tartype.readfunc = (readfunc_t)read;
-    tartype.writefunc = pack_cwritefn;
-    tar_open(&tarp,packpath,&tartype,O_WRONLY | O_CREAT,0644,TAR_GNU);
+    tar_type.openfunc = pack_copenfn;
+    tar_type.closefunc = pack_cclosefn;
+    tar_type.readfunc = (readfunc_t)read;
+    tar_type.writefunc = pack_cwritefn;
+    tar_open(&tarp,pack_path,&tar_type,O_WRONLY | O_CREAT,0644,TAR_GNU);
 
-    tar_append_tree(tarp,dirpath,".");
+    tar_append_tree(tarp,dir_path,tpath);
     tar_close(tarp);
 
     return 0;
 }
-int pack_unpack(char *packpath,char *dirpath){
-    tartype_t tartype;
+int tool_unpack(char *pack_path,char *dir_path){
+    tartype_t tar_type;
     TAR *tarp;
 
-    tartype.openfunc = pack_xopenfn;
-    tartype.closefunc = pack_xclosefn;
-    tartype.readfunc = pack_xreadfn;
-    tartype.writefunc = (writefunc_t)write;
-    tar_open(&tarp,packpath,&tartype,O_RDONLY,0644,TAR_GNU);
+    tool_cleardir(dir_path);
+    mkdir(dir_path,0775);
 
-    tar_extract_all(tarp,dirpath);
+    tar_type.openfunc = pack_xopenfn;
+    tar_type.closefunc = pack_xclosefn;
+    tar_type.readfunc = pack_xreadfn;
+    tar_type.writefunc = (writefunc_t)write;
+    tar_open(&tarp,pack_path,&tar_type,O_RDONLY,0644,TAR_GNU);
+
+    tar_extract_all(tarp,dir_path);
     tar_close(tarp);
 
+    return 0;
+}
+
+static int cleardir_callback(const char *path,const struct stat *st,int flag,struct FTW *ftw_buf){
+    if(ftw_buf->level == 0){
+	return 0;
+    }
+
+    if(S_ISDIR(st->st_mode)){
+	rmdir(path);
+    }else{
+	unlink(path);
+    }
+    return 0;
+}
+int tool_cleardir(char *path){
+    nftw(path,cleardir_callback,64,FTW_DEPTH | FTW_PHYS);
+    return 0;
+}
+static int copydir_travel(char *old_path,int old_len,char *new_path,int new_len){
+    int i;
+    int j;
+    int len;
+
+    DIR *dirp; 
+    char *buf;
+    dirent *entry;
+    std::vector<std::string> wait_list;
+    const char *tname;
+
+    int infd;
+    int outfd;
+    struct stat st;
+
+    if((dirp = opendir(old_path)) == NULL){
+	return -1;
+    }
+    buf = new char[sizeof(dirent) + NAME_MAX + 1];
+
+    while(true){
+	readdir_r(dirp,(dirent*)buf,&entry);
+	if(entry == NULL){
+	    break;
+	}
+	if(strcmp(entry->d_name,".") == 0 || strcmp(entry->d_name,"..") == 0){
+	    continue;
+	}
+
+	if(entry->d_type == DT_DIR){
+	    wait_list.push_back(entry->d_name);
+	}else{
+	    old_path[old_len] = '/';
+	    new_path[new_len] = '/';
+	    len = strlen(entry->d_name);
+	    for(i = 0;i <= len;i++){
+		old_path[old_len + i + 1] = entry->d_name[i];
+		new_path[new_len + i + 1] = entry->d_name[i];
+	    }
+
+	    infd = open(old_path,O_RDONLY);
+	    outfd = open(new_path,O_WRONLY | O_CREAT);
+	    fstat(infd,&st);
+	    sendfile(outfd,infd,NULL,st.st_size);
+	    close(infd);
+	    close(outfd);
+
+	    old_path[old_len] = '\0';
+	    new_path[new_len] = '\0';
+	}
+    }
+
+    delete buf;
+    closedir(dirp);
+
+    while(!wait_list.empty()){
+	tname = wait_list.back().c_str();
+	wait_list.pop_back();
+
+	old_path[old_len] = '/';
+	new_path[new_len] = '/';
+	len = strlen(tname);
+	for(i = 0;i <= len;i++){
+	    old_path[old_len + i + 1] = tname[i];
+	    new_path[new_len + i + 1] = tname[i];
+	}
+
+	mkdir(new_path,0775);
+
+	copydir_travel(old_path,old_len + len + 1,new_path,new_len + len + 1);
+
+	old_path[old_len] = '\0';
+	new_path[new_len] = '\0';
+    }
+
+    return 0;
+}
+int tool_copydir(char *old_path,char *new_path){
+    char old_buf[PATH_MAX + 1];
+    char new_buf[PATH_MAX + 1];
+
+    tool_cleardir(new_path);
+    mkdir(new_path,0775);
+
+    old_buf[0] = '\0';
+    strncat(old_buf,old_path,sizeof(old_buf));
+    new_buf[0] = '\0';
+    strncat(new_buf,new_path,sizeof(new_buf));
+
+    copydir_travel(old_buf,strlen(old_buf),new_buf,strlen(new_buf));
+    
     return 0;
 }

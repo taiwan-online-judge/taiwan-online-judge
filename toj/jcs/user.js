@@ -36,6 +36,7 @@ var user = new function(){
 	mgsq_pbox = new class_user_mgsq_pbox;
 	mg_pbox = new class_user_mg_pbox;
 	that.editsq_mbox = new class_user_editsq_mbox;
+	that.editpro_mbox = new class_user_editpro_mbox;
 
 	that.user_node = new vus.node('user');
 
@@ -679,6 +680,56 @@ var class_user_mg_pbox = function(){
     var that = this;
     var j_pbox = $('#index_page > div.user_page > div.mg_pbox');
 
+    var pro_listset = function(j_item,proo){
+	j_item.find('td.proid').text(proo.proid);
+	j_item.find('td.name').text(proo.proname);
+	j_item.find('td.cacheid').text(proo.cacheid);
+    };
+    var pro_listnew = function(proo){
+	var j_item;
+
+	j_item = $('<tr class="item"><td class="proid"></td><td class="name"></td><td class="cacheid"></td><td><button class="setting" style="display:none;">設置</button></td></tr>');
+	j_item.hover(
+	    function(){
+		$(this).find('button.setting').show();
+	    },
+	    function(){
+		$(this).find('button.setting').hide();
+	    }
+	);
+	j_item.find('button.setting').on('click',function(e){
+	    user.editpro_mbox.init('edit',proo).done(function(){
+		pro_update();	
+	    });
+	    com.url_push('/toj/m/user_editpro/');
+	});
+
+	pro_listset(j_item,proo);
+
+	return j_item;
+    };
+    var pro_update = function(){
+	$.post('/toj/php/problem.php',{'action':'get_pro_list','data':null},function(res){
+	    var i;
+
+	    var reto;
+	    var j_table;
+	    var j_item;
+
+	    if(res[0] == 'E'){
+		return;
+	    }
+
+	    reto = JSON.parse(res); 
+	    j_table = j_pbox.find('table.prolist');
+	    j_table.find('tr.item').remove();
+	    for(i = 0;i < reto.length;i++){
+		j_item = pro_listnew(reto[i]);
+		j_table.append(j_item);
+	    }
+	});
+    };
+
     that.node = new vus.node('mg');
 
     that.__super();
@@ -687,6 +738,8 @@ var class_user_mg_pbox = function(){
 	if(direct == 'in'){
 	    index.tab_hl('mg');
 	    that.fadein(j_pbox);
+
+	    pro_update();
 	}else if(direct == 'out'){
 	    index.tab_ll('mg');
 	    that.fadeout(j_pbox);
@@ -698,6 +751,12 @@ var class_user_mg_pbox = function(){
     j_pbox.find('button.newsq').on('click',function(e){
 	user.editsq_mbox.init('new');
 	com.url_push('/toj/m/user_editsq/');
+    });
+    j_pbox.find('button.newpro').on('click',function(e){
+	user.editpro_mbox.init('new').done(function(){
+	    pro_update();	
+	});
+	com.url_push('/toj/m/user_editpro/');
     });
 }; __extend(class_user_mg_pbox,class_com_pbox);
 
@@ -886,6 +945,142 @@ var class_user_editsq_mbox = function(){
 	com.url_pull();
     });
 }; __extend(class_user_editsq_mbox,class_com_mbox);
+var class_user_editpro_mbox = function(){
+    var that = this;
+    var j_mbox = $('#index_mask > div.user_mask > div.editpro_mbox');
+    var action;
+    var proid;
+    var defer;
+
+    that.node = new vus.node('user_editpro');
+
+    that.__super();
+
+    that.init = function(act,proo){
+	action = act;
+	if(action == 'edit'){
+	    proid = proo.proid;
+
+	    j_mbox.find('[name="proid"]').val(proo.proid);
+	    j_mbox.find('[name="name"]').val(proo.proname);
+	    j_mbox.find('[name="modid"]').val(proo.modid);
+	    j_mbox.find('span.cacheid').text('當前CacheID:' + proo.cacheid);
+	    if(proo.hidden == true){
+		j_mbox.find('[name="hidden"]').val(2);
+	    }else{
+		j_mbox.find('[name="hidden"]').val(1);
+	    }
+	    j_mbox.find('div.update').show();
+	    j_mbox.find('button.delete').show();
+	}
+
+	com.vus_mbox.child_set(that.node);
+
+	defer = $.Deferred();
+	return defer.promise();
+    };
+    that.node.url_chg = function(direct,url_dpart,url_upart){
+	if(direct == 'in'){
+	    that.fadein(j_mbox); 
+	}else if(direct == 'out'){
+	    that.fadeout(j_mbox); 
+
+	    j_mbox.find('input').val('');
+	    j_mbox.find('[name="hidden"]').val(1);
+	    j_mbox.find('div.update').hide();
+	    j_mbox.find('button.delete').hide();
+	    j_mbox.find('div.error').text('');
+
+	    if(defer.state() == 'pending'){
+		defer.reject();
+	    }
+
+	    com.vus_mbox.child_del(that.node);
+	}
+    };
+
+    j_mbox.find('button.update').on('click',function(e){
+	$.post('/toj/php/problem.php',{'action':'update_pro_cache','data':JSON.stringify({'proid':proid})},function(res){
+
+	    defer.resolve();
+	    com.url_pull();
+	});
+    });
+    j_mbox.find('button.submit').on('click',function(e){
+	var proname;
+	var modid; 
+	var hidden;
+	var j_error;
+
+	proname = j_mbox.find('[name="name"]').val(); 
+	modid = j_mbox.find('[name="modid"]').val();
+	if(parseInt(j_mbox.find('[name="hidden"]').val()) == 1){
+	    hidden = false;
+	}else{
+	    hidden = true;
+	}
+
+	j_error = j_mbox.find('div.error');
+	if(action == 'new'){
+	    $.post('/toj/php/problem.php',{'action':'add_pro','data':JSON.stringify({'proname':proname,'modid':modid,'hidden':hidden})},function(res){
+		if(res[0] == 'E'){
+		    switch(res){
+			case 'Eno_login':
+			    j_error.text('未登入');
+			case 'Epermission_denied':
+			    j_error.text('權限不足');
+			    break;
+			case 'Eproname_too_short':
+			    j_error.text('題目名稱太短');
+			    break;
+			case 'Eproname_too_long':
+			    j_error.text('題目名稱太長');
+			    break;
+			case 'Ewrong_modid':
+			    j_error.text('模組ID錯誤');
+			    break;
+			default:
+			    j_error.text('其他錯誤');
+			    break;
+		    }
+		}else{
+		    defer.resolve();
+		    com.url_pull();
+		}
+	    });
+	}else if(action == 'edit'){
+	    $.post('/toj/php/problem.php',{'action':'edit_pro','data':JSON.stringify({'proid':proid,'proname':proname,'modid':modid,'hidden':hidden})},function(res){
+		if(res[0] == 'E'){
+		    switch(res){
+			case 'Eno_login':
+			    j_error.text('未登入');
+			case 'Epermission_denied':
+			    j_error.text('權限不足');
+			    break;
+			case 'Eproname_too_short':
+			    j_error.text('題目名稱太短');
+			    break;
+			case 'Eproname_too_long':
+			    j_error.text('題目名稱太長');
+			    break;
+			case 'Ewrong_modid':
+			    j_error.text('模組ID錯誤');
+			    break;
+			default:
+			    j_error.text('其他錯誤');
+			    break;
+		    }
+		}else{
+		    defer.resolve();
+		    com.url_pull();
+		}
+	    });
+	}
+    });
+    j_mbox.find('button.cancel').on('click',function(e){
+	com.url_pull();
+    });
+}; __extend(class_user_editpro_mbox,class_com_mbox);
 
 var class_login_pbox = function(){
     var that = this;

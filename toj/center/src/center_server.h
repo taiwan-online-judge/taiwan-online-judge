@@ -34,12 +34,12 @@ static int server_delepev(server_epevdata *epevdata);
 static int server_epfd;
 
 extern int center_manage_init(tpool **tpinfo);
+extern int center_manage_updatedata();
 extern int center_manage_submit(int subid,char *param);
 
 extern int center_judge_init();
 extern void* center_judge_addconn(int fd);
 extern int center_judge_dispatch(int ev_flag,void *data);
-extern int center_judge_submit(int subid,int proid);
 
 extern int pack_pack(char *pack_path,char *dir_path);
 extern int pack_unpack(char *pack_path,char *target_path);

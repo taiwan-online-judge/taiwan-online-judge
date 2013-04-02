@@ -1,3 +1,9 @@
+#include<pthread.h>
+#include<semaphore.h>
+#include<sys/eventfd.h>
+#include<queue>
+#include<vector>
+
 class tpool_protofn{
 public:
     virtual void operator()(void *data) = 0;

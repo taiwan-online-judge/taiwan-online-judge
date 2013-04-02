@@ -34,13 +34,13 @@ div.user_page > div.edit_pbox > div.edit_box input{
     display:block;
 }
 div.user_page > div.mgsq_pbox > div.in_box{
-    width:480px;
+    width:486px;
     margin:0px 0px 0px 246px;
     padding:0px 0px 32px 0px;
     float:left;
 }
 div.user_page > div.mgsq_pbox > div.out_box{
-    width:480px;
+    width:486px;
     margin:0px 0px 0px 6px;
     padding:0px 0px 32px 0px;
     float:left;
@@ -65,7 +65,7 @@ div.user_page > div.mgsq_pbox div.item > div.info{
 div.user_page > div.mgsq_pbox div.item > div.info > span.time{
     width:237px;
     height:32px;
-    font-size:14px;
+    font-size:12px;
     line-height:32px;
     float:right;
 }
@@ -79,6 +79,27 @@ div.user_page > div.mg_pbox > div.left_box{
     margin:0px 0px 0px 246px;
     padding:0px 0px 32px 0px;
     float:left;
+}
+div.user_page > div.mg_pbox table.prolist{
+    width:486px;
+    border-collapse:collapse;    
+    text-align:left;
+}
+div.user_page > div.mg_pbox table.prolist tr.head{
+    height:64px;
+}
+div.user_page > div.mg_pbox table.prolist tr.item{
+    height:44px;
+}
+div.user_page > div.mg_pbox table.prolist tr:hover.item{
+    background-color:rgba(255,255,255,0.2);
+}
+div.user_page > div.mg_pbox table.prolist th,div.user_page > div.mg_pbox table.prolist td{
+    width:76px;
+    padding:0px 0px 0px 6px;
+}
+div.user_page > div.mg_pbox table.prolist th.name,div.user_page > div.mg_pbox table.prolist td.name{
+    width:auto;
 }
 
 div.user_mask > div.editsq_mbox > div.edit_box{
@@ -97,7 +118,34 @@ div.user_mask > div.editsq_mbox > div.edit_box input{
     border-width:0px;
     display:block;
 }
+div.user_mask > div.editsq_mbox > div.edit_box > div.time > input{
+    width:35px;
+}
 div.user_mask > div.editsq_mbox > div.edit_box select{
+    width:76px;
+    height:32px;
+    margin:0px 0px 16px 0px;
+    border-width:0px;
+    display:block;
+}
+
+div.user_mask > div.editpro_mbox > div.edit_box{
+    margin:0px 0px 0px 246px;
+    padding:6px 0px 32px 0px;
+}
+div.user_mask > div.editpro_mbox > div.edit_box > div.error{
+    margin:0px 0px 16px 0px;
+    color:#FFA0A0;
+}
+div.user_mask > div.editpro_mbox > div.edit_box input{
+    width:146px;
+    height:32px;
+    margin:0px 0px 16px 0px;
+    padding:0px 6px 0px 6px;
+    border-width:0px;
+    display:block;
+}
+div.user_mask > div.editpro_mbox > div.edit_box select{
     width:76px;
     height:32px;
     margin:0px 0px 16px 0px;

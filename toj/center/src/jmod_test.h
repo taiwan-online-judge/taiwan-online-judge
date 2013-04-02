@@ -5,10 +5,10 @@ typedef int (*check_run_fn)(int &status,char *err_msg);
 typedef int (*check_stop_fn)();
 
 struct line_set_data{
-    int test_id;
+    int id;
 };
 struct line_result_data{
-    int test_id;
+    int id;
     int status;
     double score;
     unsigned long runtime;

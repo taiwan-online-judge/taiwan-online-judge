@@ -16,6 +16,7 @@
 
 #include"netio.h"
 #include"judge_def.h"
+#include"judgm_manage.h"
 #include"center.h"
 #include"center_com.h"
 #include"center_judge.h"
@@ -68,7 +69,17 @@ int judge_info::result(int subid,char *res_data){
     printf("submitid:%d\n",subid);
     center_manage_result(subid,res_data);
 
-    judge_submit_waitqueue();
+    judge_run_waitqueue();
+    return 0;
+}
+int judge_info::updatepro(std::vector<std::pair<int,int> > &pro_list){
+    int i;
+    
+    for(i = 0;i < pro_list.size();i++){
+	pro_map.erase(pro_list[i].first);
+    }
+    conn_main->send_setpro(pro_list,0);
+
     return 0;
 }
 
@@ -81,6 +92,7 @@ judge_conn::judge_conn(int fd):netio(fd){
     this->recv_result_fn = new netio_iofn<judge_conn>(this,&judge_conn::recv_result);
     this->recv_setpro_fn = new netio_iofn<judge_conn>(this,&judge_conn::recv_setpro);
     this->recv_reqpro_fn = new netio_iofn<judge_conn>(this,&judge_conn::recv_reqpro);
+    this->done_sendpro_fn = new netio_iofn<judge_conn>(this,&judge_conn::done_sendpro);
     this->recv_setjmod_fn = new netio_iofn<judge_conn>(this,&judge_conn::recv_setjmod);
     this->recv_reqjmod_fn = new netio_iofn<judge_conn>(this,&judge_conn::recv_reqjmod);
     this->recv_reqcode_fn = new netio_iofn<judge_conn>(this,&judge_conn::recv_reqcode);
@@ -100,6 +112,7 @@ judge_conn::~judge_conn(){
     delete recv_result_fn;
     delete recv_setpro_fn;
     delete recv_reqpro_fn;
+    delete done_sendpro_fn;
     delete recv_setjmod_fn;
     delete recv_reqjmod_fn;
     delete recv_reqcode_fn;
@@ -133,29 +146,35 @@ int judge_conn::send_submit(judge_submit_info *sub_info){
     int write_len;
     center_com_submit *sub;
 
-    printf("  send submit %d\n",sub_info->subid);
+    if(sub_info->set_len > JUDGE_SET_DATAMAX){
+	delete sub_info;
+	return -1;
+    }
 
-    write_buf = create_combuf(CENTER_COMCODE_SUBMIT,sizeof(center_com_submit),write_len,(void**)&sub);
+    write_buf = create_combuf(CENTER_COMCODE_SUBMIT,sizeof(center_com_submit) + sub_info->set_len,write_len,(void**)&sub);
     sub->subid = sub_info->subid;
     sub->proid = sub_info->proid;
     sub->lang = sub_info->lang;
-    memcpy(sub->set_data,sub_info->set_data,sub_info->set_len);
+    memcpy((void*)(write_buf + sizeof(center_com_header) + sizeof(center_com_submit)),sub_info->set_data,sub_info->set_len);
     writebytes(write_buf,write_len,NULL,NULL);
 
     delete sub_info;
     return 0;
 }
-int judge_conn::send_setpro(int *proid,int *cacheid,int type,int count){
+int judge_conn::send_setpro(std::vector<std::pair<int,int> > &pro_list,int type){
     int i;
 
+    int count;
     char *write_buf;
     int write_len;
     center_com_setpro *setpro;
 
+    count = pro_list.size();
     write_buf = create_combuf(CENTER_COMCODE_SETPRO,sizeof(center_com_setpro) * count,write_len,(void**)&setpro);
+
     for(i = 0;i < count;i++){
-	setpro[i].proid = proid[i];
-	setpro[i].cacheid = cacheid[i];
+	setpro[i].proid = pro_list[i].first;
+	setpro[i].cacheid = pro_list[i].second;
 	setpro[i].type = type;
     }
     writebytes(write_buf,write_len,NULL,NULL);
@@ -251,7 +270,7 @@ void judge_conn::recv_setinfo(void *buf,size_t len,void *data){
     center_com_setinfo *setinfo;
     char **jmod_name;
     std::map<std::string,center_jmod_info*>::iterator jmod_it;
-    int *proid;
+    std::vector<std::pair<int,int> > pro_list;
     int *cacheid;
     std::map<int,center_pro_info*>::iterator pro_it;
 
@@ -272,17 +291,11 @@ void judge_conn::recv_setinfo(void *buf,size_t len,void *data){
     delete cacheid;
 
     count = center_manage_promap.size();
-    proid = new int[count];
-    cacheid = new int[count];
     pro_it = center_manage_promap.begin();
     for(i = 0;i < count;i++,pro_it++){
-	proid[i] = pro_it->second->proid;
-	cacheid[i] = pro_it->second->cacheid;
+	pro_list.push_back(std::make_pair(pro_it->second->proid,pro_it->second->cacheid));
     }
-    send_setpro(proid,cacheid,0,count);
-
-    delete proid;
-    delete cacheid;
+    send_setpro(pro_list,0);
 
     delete setinfo;
 }
@@ -302,26 +315,28 @@ void judge_conn::recv_setpro(void *buf,size_t len,void *data){
     int count;
 
     center_com_setpro *setpro;
+    center_pro_info *pro_info;
     std::map<int,center_pro_info*>::iterator pro_it;
 
     count = len / sizeof(center_com_setpro);
     setpro = (center_com_setpro*)buf;
     for(i = 0;i < count;i++){
 	if(setpro[i].type == 0){
-	    if((pro_it = center_manage_promap.find(setpro[i].proid)) == center_manage_promap.end()){
-		continue;
-	    }
-	    if(pro_it->second->cacheid != setpro[i].cacheid){
+	    if((pro_info = center_manage_getprobyid(setpro[i].proid)) == NULL){
 		continue;
 	    }
 
-	    info->pro_map.insert(std::pair<int,center_pro_info*>(pro_it->second->proid,pro_it->second));
+	    if(pro_info->cacheid == setpro[i].cacheid){
+		info->pro_map.insert(std::pair<int,int>(pro_info->proid,pro_info->cacheid));
+	    }
+	    center_manage_putpro(pro_info);
+
 	}else if(setpro[i].type == 1){
 	    info->pro_map.erase(setpro[i].proid);
 	}
     }
 
-    judge_submit_waitqueue();
+    judge_run_waitqueue();
     delete setpro;
 }
 void judge_conn::recv_reqpro(void *buf,size_t len,void *data){
@@ -338,28 +353,36 @@ void judge_conn::recv_reqpro(void *buf,size_t len,void *data){
     center_com_sendpro *sendpro;
 
     reqpro = (center_com_reqpro*)buf;
-    if((pro_it = center_manage_promap.find(reqpro->proid)) == center_manage_promap.end()){
-	//fix
-    }else{
-	pro_info = pro_it->second;
-
-	snprintf(tpath,sizeof(tpath),"tmp/propack/%d.tar.bz2",pro_info->proid);
+    try{
+	if((pro_info = center_manage_getprobyid(reqpro->proid)) == NULL){
+	    throw -1;    	
+	}
+	if(pro_info->cacheid != reqpro->cacheid){
+	    throw -1;
+	}
+	
+	snprintf(tpath,sizeof(tpath),"tmp/propack/%d_%d.tar.bz2",pro_info->proid,pro_info->cacheid);
 	fd = open(tpath,O_RDONLY);
-	if(fstat(fd,&st)){
-	    //fix
-	}else{
-	    write_buf = create_combuf(CENTER_COMCODE_SENDPRO,sizeof(center_com_sendpro),write_len,(void**)&sendpro);
-	    sendpro->proid = pro_info->proid;
-	    sendpro->cacheid = pro_info->cacheid;
-	    sendpro->filesize = st.st_size;
-	    printf("sendpro:%lu\n",sendpro->filesize);
+	fstat(fd,&st);
+	write_buf = create_combuf(CENTER_COMCODE_SENDPRO,sizeof(center_com_sendpro),write_len,(void**)&sendpro);
+	sendpro->proid = pro_info->proid;
+	sendpro->cacheid = pro_info->cacheid;
+	sendpro->filesize = st.st_size;
+	printf("sendpro:%lu\n",sendpro->filesize);
 
-	    writebytes(write_buf,write_len,NULL,NULL);
-	    writefile(fd,st.st_size,NULL,NULL);
+	writebytes(write_buf,write_len,NULL,NULL);
+	writefile(fd,st.st_size,done_sendpro_fn,pro_info);
+    }catch(int err){
+	if(pro_info != NULL){
+	    center_manage_putpro(pro_info);
 	}
     }
 
     delete reqpro;
+}
+void judge_conn::done_sendpro(void *buf,size_t len,void *data){
+    close((int)((long)buf));
+    center_manage_putpro((center_pro_info*)data);
 }
 void judge_conn::recv_setjmod(void *buf,size_t len,void *data){
     int i;
@@ -385,7 +408,7 @@ void judge_conn::recv_setjmod(void *buf,size_t len,void *data){
 	}
     }
 
-    judge_submit_waitqueue();
+    judge_run_waitqueue();
     delete setjmod;
 }
 void judge_conn::recv_reqjmod(void *buf,size_t len,void *data){
@@ -456,7 +479,7 @@ void judge_conn::recv_reqcode(void *buf,size_t len,void *data){
 }
 
 
-static int judge_submit_waitqueue(){
+static int judge_run_waitqueue(){
     int count;
     judge_submit_info *sub_info;
     bool wait_flag;
@@ -519,6 +542,18 @@ int center_judge_dispatch(int evflag,void *data){
 }
 int center_judge_submit(int subid,int proid,int lang,char *set_data,size_t set_len){
     judge_submitqueue.push(new judge_submit_info(subid,proid,lang,set_data,set_len));
-    judge_submit_waitqueue();
+    judge_run_waitqueue();
+    return 0;
+}
+int center_judge_updatepro(std::vector<std::pair<int,int> > &pro_list){
+    int i;
+    int j;
+    std::list<judge_info*>::iterator judge_it;
+    judge_info *info;
+
+    for(judge_it = judge_runlist.begin();judge_it != judge_runlist.end();judge_it++){
+	(*judge_it)->updatepro(pro_list);
+    }
+
     return 0;
 }

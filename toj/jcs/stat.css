@@ -15,28 +15,11 @@ div.stat_page > div.sub_pbox > table.sublist tr:hover.item{
     background-color:rgba(255,255,255,0.2);
 }
 div.stat_page > div.sub_pbox > table.sublist th,div.stat_page > div.sub_pbox > table.sublist td{
+    width:76px;
     padding:0px 0px 0px 6px;
-}
-div.stat_page > div.sub_pbox > table.sublist th.subid,div.stat_page > div.sub_pbox > table.sublist td.subid{
-    width:76px;
-}
-div.stat_page > div.sub_pbox > table.sublist th.proid,div.stat_page > div.sub_pbox > table.sublist td.proid{
-    width:76px;
 }
 div.stat_page > div.sub_pbox > table.sublist th.nickname,div.stat_page > div.sub_pbox > table.sublist td.nickname{
     width:auto;
-}
-div.stat_page > div.sub_pbox > table.sublist th.runtime,div.stat_page > div.sub_pbox > table.sublist td.runtime{
-    width:76px;
-}
-div.stat_page > div.sub_pbox > table.sublist th.memory,div.stat_page > div.sub_pbox > table.sublist td.memory{
-    width:76px;
-}
-div.stat_page > div.sub_pbox > table.sublist th.result,div.stat_page > div.sub_pbox > table.sublist td.result{
-    width:76px;
-}
-div.stat_page > div.sub_pbox > table.sublist th.score,div.stat_page > div.sub_pbox > table.sublist td.score{
-    width:76px;
 }
 div.stat_page > div.sub_pbox > table.sublist th.time,div.stat_page > div.sub_pbox > table.sublist td.time{
     width:237px;
