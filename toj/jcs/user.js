@@ -507,15 +507,16 @@ var class_user_mgsq_pbox = function(){
 	    var i;
 	    var j;
 
-	    var j_divs;
+	    var divs;
 	    var j_last;
 	    var j_item;
 	    var oldhash;
+	    var sqo;
 
-	    j_divs = j_list.children('div.item');
+	    divs = j_list.children('div.item');
 	    oldhash = new Array();
-	    for(i = 0;i < j_divs.length;i++){
-		oldhash[$(j_divs[i]).attr('sqid')] = i;
+	    for(i = 0;i < divs.length;i++){
+		oldhash[$(divs[i]).attr('sqid')] = i;
 	    }
 
 	    j = 0;
@@ -524,10 +525,10 @@ var class_user_mgsq_pbox = function(){
 		sqo = sqlist[i];
 		if(sqo.sqid in oldhash){
 		    for(;j < oldhash[sqo.sqid];j++){
-			j_item = $(j_divs[j]);
+			j_item = $(divs[j]);
 			j_item.stop().fadeTo(100,0).slideUp('fast',function(){$(this).remove();});
 		    }
-		    j_item = $(j_divs[j]);
+		    j_item = $(divs[j]);
 		    j++;
 
 		    sq_listset(j_item,sqo);
@@ -537,16 +538,15 @@ var class_user_mgsq_pbox = function(){
 		    j_item.hide();
 		    if(j_last == null){
 			j_list.prepend(j_item);
-			j_item.css('opacity',0).slideDown('fast').fadeTo(100,1);
 		    }else{
 			j_item.insertAfter(j_last);
-			j_item.css('opacity',0).slideDown('fast').fadeTo(100,1);
 		    }
+		    j_item.css('opacity',0).slideDown('fast').fadeTo(100,1);
 		    j_last = j_item;
 		}
 	    }
-	    for(;j < j_divs.length;j++){
-		j_item = $(j_divs[j]);
+	    for(;j < divs.length;j++){
+		j_item = $(divs[j]);
 		j_item.stop().fadeTo(100,0).slideUp('fast',function(){$(this).remove();});
 	    }
 	};
@@ -767,6 +767,132 @@ var class_user_editsq_mbox = function(){
     var sqid = null;
     var defer = null;
 
+    var pro_listset = function(j_item,proo,type){
+	j_item.attr('proid',proo.proid);
+	j_item.find('td.id').text(proo.proid);
+	j_item.find('td.name').text(proo.proname);
+
+	j_button = j_item.find('button.oper');
+	if(type == 'in'){
+	    j_button.text('移除');
+	    j_button.off('click').on('click',function(e){
+		$.post('/toj/php/square.php',{'action':'delete_pro_from_sq','data':JSON.stringify({'sqid':sqid,'proid':proo.proid})},function(res){
+		    if(res == 'S'){
+			pro_update();
+		    }
+		});
+	    });
+	}else{
+	    j_button.text('加入');
+	    j_button.off('click').on('click',function(e){
+		$.post('/toj/php/square.php',{'action':'add_pro_into_sq','data':JSON.stringify({'sqid':sqid,'proid':proo.proid})},function(res){
+		    if(res == 'S'){
+			pro_update();
+		    }
+		});
+	    });
+	}
+    };
+    var pro_listnew = function(proo,type){
+	var j_item;
+
+	j_item = $('<tr class="item"><td class="id"></td><td class="name"></td><td><button class="oper" style="display:none;"></button></td></tr>');
+	pro_listset(j_item,proo,type);
+
+	j_item.hover(
+	    function(){
+		$(this).find('button.oper').show();
+	    },
+	    function(){
+		$(this).find('button.oper').hide();
+	    }
+	);
+
+	return j_item;
+    };
+    var pro_update = function(){
+	_updatelist = function(j_table,prolist,type){
+	    var i;
+	    var j;
+
+	    var trs;
+	    var j_last;
+	    var j_item;
+	    var oldhash;
+	    var proo;
+
+	    trs = j_table.find('tr.item');
+	    oldhash = new Array();
+	    for(i = 0;i < trs.length;i++){
+		oldhash[$(trs[i]).attr('proid')] = i;
+	    }
+
+	    j = 0;
+	    j_last = null;
+	    for(i = 0;i < prolist.length;i++){
+		proo = prolist[i];
+		
+		if(proo.proid in oldhash){
+		    for(;j < oldhash[proo.proid];j++){
+			j_item = $(trs[j]);
+			j_item.stop().fadeTo(100,0).slideUp('fast',function(){$(this).remove()});
+		    }
+		    j_item = $(trs[j]);
+		    j++;
+
+		    pro_listset(j_item,proo,type);
+		    j_last = j_item;
+		}else{
+		    j_item = pro_listnew(proo,type);
+		    j_item.hide();
+
+		    if(j_last == null){
+			j_table.append(j_item);
+		    }else{
+			j_item.insertAfter(j_last);
+		    }
+		    j_item.css('opacity',0).slideDown('fast').fadeTo(100,1);
+		}
+	    }
+	    for(;j < trs.length;j++){
+		j_item = $(trs[j]);
+		j_item.stop().fadeTo(100,0).slideUp('fast',function(){$(this).remove()});
+	    }
+	};
+	
+	$.post('/toj/php/square.php',{'action':'get_sq_pro_list','data':JSON.stringify({'sqid':sqid})},function(res){
+	    var i;
+
+	    var inlist;
+
+	    if(res[0] != 'E'){
+		inlist = JSON.parse(res); 
+		_updatelist(j_mbox.find('table.prolist_in'),inlist,'in');
+	    }
+
+	    $.post('/toj/php/problem.php',{'action':'get_pro_list','data':null},function(res){
+		var i;
+		var j;
+
+		var reto;
+		var outlist;
+
+		if(res[0] != 'E'){
+		    reto = JSON.parse(res); 
+		    outlist = new Array();
+		    for(i = 0,j = 0;i < reto.length;i++){
+			if(j < inlist.length && reto[i].proid == inlist[j].proid){
+			    j++;
+			}else{
+			    outlist.push(reto[i]);
+			}
+		    }
+		    _updatelist(j_mbox.find('table.prolist_out'),outlist,'out');
+		}
+	    });
+	});
+    };
+
     that.node = new vus.node('user_editsq');
 
     that.__super();
@@ -806,6 +932,7 @@ var class_user_editsq_mbox = function(){
     that.node.url_chg = function(direct,url_upart,url_dpart){
 	if(direct == 'in'){
 	    that.fadein(j_mbox);
+	    pro_update();
 	}else if(direct == 'out'){
 	    that.fadeout(j_mbox);
 
@@ -817,6 +944,9 @@ var class_user_editsq_mbox = function(){
 	    j_mbox.find('div.time').hide();
 	    j_mbox.find('button.delete').hide();
 	    j_mbox.find('div.error').text('');
+
+	    j_mbox.find('table.prolist_in').empty();
+	    j_mbox.find('table.prolist_out').empty();
 
 	    if(defer.state() == 'pending'){
 		defer.reject();

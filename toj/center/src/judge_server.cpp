@@ -216,7 +216,7 @@ void server_conn::recv_submit(void *buf,size_t len,void *data){
     center_com_submit *sub;
 
     sub = (center_com_submit*)buf;
-    judge_manage_submit(sub->subid,sub->proid,sub->lang,(char*)((char*)buf + sizeof(center_com_submit))); 
+    judge_manage_submit(sub->subid,sub->proid,sub->lang,(char*)((char*)buf + sizeof(center_com_submit)),len - sizeof(center_com_submit)); 
 
     delete sub;
 }

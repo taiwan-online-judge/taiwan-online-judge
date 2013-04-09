@@ -82,6 +82,16 @@ int judge_info::updatepro(std::vector<std::pair<int,int> > &pro_list){
 
     return 0;
 }
+int judge_info::updatejmod(std::vector<std::pair<char*,int> > &jmod_list){
+    int i;
+
+    for(i = 0;i < jmod_list.size();i++){
+	jmod_map.erase(jmod_list[i].first); 
+    }
+    conn_main->send_setjmod(jmod_list,0);
+
+    return 0;
+}
 
 
 judge_conn::judge_conn(int fd):netio(fd){
@@ -181,18 +191,21 @@ int judge_conn::send_setpro(std::vector<std::pair<int,int> > &pro_list,int type)
 
     return 0;
 }
-int judge_conn::send_setjmod(char **jmod_name,int *cacheid,int type,int count){
+int judge_conn::send_setjmod(std::vector<std::pair<char*,int> > &jmod_list,int type){
     int i;
 
+    int count;
     char *write_buf;
     int write_len;
     center_com_setjmod *setjmod;
 
+    count = jmod_list.size();
     write_buf = create_combuf(CENTER_COMCODE_SETJMOD,sizeof(center_com_setjmod) * count,write_len,(void**)&setjmod);
+
     for(i = 0;i < count;i++){
 	setjmod[i].jmod_name[0] = '\0';
-	strncat(setjmod[i].jmod_name,jmod_name[i],sizeof(setjmod[i].jmod_name));
-	setjmod[i].cacheid = cacheid[i];
+	strncat(setjmod[i].jmod_name,jmod_list[i].first,sizeof(setjmod[i].jmod_name));
+	setjmod[i].cacheid = jmod_list[i].second;
 	setjmod[i].type = type;
     }
     writebytes(write_buf,write_len,NULL,NULL);
@@ -268,27 +281,20 @@ void judge_conn::recv_setinfo(void *buf,size_t len,void *data){
     int count;
 
     center_com_setinfo *setinfo;
-    char **jmod_name;
     std::map<std::string,center_jmod_info*>::iterator jmod_it;
-    std::vector<std::pair<int,int> > pro_list;
-    int *cacheid;
+    std::vector<std::pair<char*,int> > jmod_list;
     std::map<int,center_pro_info*>::iterator pro_it;
+    std::vector<std::pair<int,int> > pro_list;
 
     setinfo = (center_com_setinfo*)buf;
     info->setinfo(setinfo->avail);
 
     count = center_manage_jmodmap.size();
-    jmod_name = new char*[count];
-    cacheid = new int[count];
     jmod_it = center_manage_jmodmap.begin();
     for(i = 0;i < count;i++,jmod_it++){
-	jmod_name[i] = jmod_it->second->name;
-	cacheid[i] = jmod_it->second->cacheid;
+	jmod_list.push_back(std::make_pair(jmod_it->second->name,jmod_it->second->cacheid));
     }
-    send_setjmod(jmod_name,cacheid,0,count);
-    
-    delete jmod_name;
-    delete cacheid;
+    send_setjmod(jmod_list,0);
 
     count = center_manage_promap.size();
     pro_it = center_manage_promap.begin();
@@ -489,6 +495,7 @@ static int judge_run_waitqueue(){
     center_pro_info *pro_info;
 
     count = judge_submitqueue.size();
+    printf("  remain count %d\n",count);
     for(;count > 0;count--){
 	sub_info = judge_submitqueue.front();
 	judge_submitqueue.pop();
@@ -553,6 +560,18 @@ int center_judge_updatepro(std::vector<std::pair<int,int> > &pro_list){
 
     for(judge_it = judge_runlist.begin();judge_it != judge_runlist.end();judge_it++){
 	(*judge_it)->updatepro(pro_list);
+    }
+
+    return 0;
+}
+int center_judge_updatejmod(std::vector<std::pair<char*,int> > &jmod_list){
+    int i;
+    int j;
+    std::list<judge_info*>::iterator judge_it;
+    judge_info *info;
+
+    for(judge_it = judge_runlist.begin();judge_it != judge_runlist.end();judge_it++){
+	(*judge_it)->updatejmod(jmod_list);
     }
 
     return 0;

@@ -194,7 +194,7 @@ static void manage_updatepro_cb(void *data){
 }
 
 
-int judge_manage_submit(int subid,int proid,int lang,char *set_data){
+int judge_manage_submit(int subid,int proid,int lang,char *set_data,int set_len){
     judge_pro_info *pro_info;
     judge_submit_info *sub_info;
 
@@ -202,7 +202,7 @@ int judge_manage_submit(int subid,int proid,int lang,char *set_data){
     struct stat st;
 
     pro_info = judge_manage_getprobyid(proid); 
-    sub_info = new judge_submit_info(subid,pro_info,lang,set_data);
+    sub_info = new judge_submit_info(subid,pro_info,lang,set_data,set_len);
 
     if(manage_submap.find(subid) == manage_submap.end()){
 	snprintf(tpath,sizeof(tpath),"tmp/code/%d",subid);

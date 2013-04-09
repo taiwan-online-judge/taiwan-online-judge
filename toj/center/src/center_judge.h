@@ -22,6 +22,7 @@ public:
     int submit(judge_submit_info *submit_info);
     int result(int subid,char *res_data);
     int updatepro(std::vector<std::pair<int,int> > &pro_list);
+    int updatejmod(std::vector<std::pair<char*,int> > &jmod_list);
 };
 
 class judge_conn : public netio{
@@ -58,7 +59,7 @@ public:
     int send_setid(int judgeid);
     int send_submit(judge_submit_info* submit_info);
     int send_setpro(std::vector<std::pair<int,int> > &pro_list,int type);
-    int send_setjmod(char **jmod_name,int *cacheid,int type,int count);
+    int send_setjmod(std::vector<std::pair<char*,int> > &jmod_list,int type);
     virtual int readidle();
 };
 
@@ -70,13 +71,13 @@ public:
     char *set_data;
     size_t set_len;
 
-    judge_submit_info(int subid,int proid,int lang,char *setdata,size_t setlen){
+    judge_submit_info(int subid,int proid,int lang,char *set_data,size_t set_len){
 	this->subid = subid;
 	this->proid = proid;
 	this->lang = lang;
-	this->set_data = new char[setlen];
-	memcpy(this->set_data,setdata,setlen);
-	this->set_len = setlen;
+	this->set_data = new char[set_len];
+	memcpy(this->set_data,set_data,set_len);
+	this->set_len = set_len;
     }
     ~judge_submit_info(){
 	delete this->set_data;
@@ -92,8 +93,9 @@ static std::queue<judge_submit_info*> judge_submitqueue;
 int center_judge_init();
 void* center_judge_addconn(int fd);
 int center_judge_dispatch(int evflag,void *data);
-int center_judge_submit(int subid,int proid,int lang,char *setdata,size_t setlen);
+int center_judge_submit(int subid,int proid,int lang,char *set_data,size_t set_len);
 int center_judge_updatepro(std::vector<std::pair<int,int> > &pro_list);
+int center_judge_updatejmod(std::vector<std::pair<char*,int> > &jmod_list);
 
 extern int center_manage_result(int subid,char *res_data);
 extern center_pro_info* center_manage_getprobyid(int proid);

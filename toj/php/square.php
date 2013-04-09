@@ -284,6 +284,20 @@ if($action == 'get_entered_sq')
 
     echo(json_encode($ret));   
 }
+if($action == 'get_sq_pro_list')
+{
+    if(!sec_is_login())
+	die('Enot_login');
+    if(!sec_check_level($sqlc, USER_LEVEL_SUPERADMIN))
+	die('Epermission_denied');
+
+    $dt = json_decode($data);
+    if(!square::get($sqlc, $dt->sqid))
+	die('Ewrong_sqid');
+
+    $ret = square::get_pro_list($sqlc, $dt->sqid);
+    echo(json_encode($ret));
+}
 if($action == 'add_pro_into_sq')
 {
     if(!sec_is_login())

@@ -44,7 +44,7 @@ int judge_manage_getpro(judge_pro_info *pro_info);
 int judge_manage_putpro(judge_pro_info *pro_info);
 int judge_manage_updatepro(int proid,int cacheid,bool check_flag,judge_pro_info **update_pro_info);
 int judge_manage_done_updatepro(judge_pro_info *pro_info);
-int judge_manage_submit(int subid,int proid,int lang,char *set_data);
+int judge_manage_submit(int subid,int proid,int lang,char *set_data,int set_len);
 int judge_manage_done_code(int subid);
 
 std::map<int,judge_pro_info*> judge_manage_promap;

@@ -103,8 +103,10 @@ div.user_page > div.mg_pbox table.prolist th.name,div.user_page > div.mg_pbox ta
 }
 
 div.user_mask > div.editsq_mbox > div.edit_box{
-    margin:0px 0px 0px 246px;
+    width:322px;
+    margin:0px 0px 0px 164px;
     padding:6px 0px 32px 0px;
+    float:left;
 }
 div.user_mask > div.editsq_mbox > div.edit_box > div.error{
     margin:0px 0px 16px 0px;
@@ -127,6 +129,35 @@ div.user_mask > div.editsq_mbox > div.edit_box select{
     margin:0px 0px 16px 0px;
     border-width:0px;
     display:block;
+}
+div.user_mask > div.editsq_mbox > div.pro_box{
+    width:404px;
+    margin:0px 0px 0px 6px;
+    padding:6px 0px 32px 0px;
+    float:left;
+}
+div.user_mask > div.editsq_mbox > div.pro_box > div.prolist_box{
+    width:100%;
+    max-height:256px;
+    overflow-y:scroll;
+}
+div.user_mask > div.editsq_mbox > div.pro_box table.prolist{
+    width:100%;
+    border-collapse:collapse;    
+    text-align:left;
+}
+div.user_mask > div.editsq_mbox > div.pro_box table.prolist tr.item{
+    height:44px;
+}
+div.user_mask > div.editsq_mbox > div.pro_box table.prolist tr:hover.item{
+    background-color:rgba(255,255,255,0.2);
+}
+div.user_mask > div.editsq_mbox > div.pro_box table.prolist td{
+    width:76px;
+    padding:0px 0px 0px 6px;
+}
+div.user_mask > div.editsq_mbox > div.pro_box table.prolist td.name{
+    width:auto;
 }
 
 div.user_mask > div.editpro_mbox > div.edit_box{

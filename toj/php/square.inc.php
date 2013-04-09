@@ -143,6 +143,7 @@ class square
 	$ret = array();
 	while($row = pg_fetch_object($sqlr))
 	{
+	    $row->sqid = intval($row->sqid);
 	    array_push($ret, $row);
 	}
 	return $ret;
@@ -159,6 +160,7 @@ class square
 	$ret = array();
 	while($row = pg_fetch_object($sqlr))
 	{
+	    $row->sqid = intval($row->sqid);
 	    array_push($ret, $row);
 	}
 	return $ret;

@@ -228,38 +228,51 @@ static void manage_submit_cb(void *data){
     char lchr;
     char tchr;
 
-    sub_info = (manage_submit_info*)data;
-    jmod_info = sub_info->jmod_info;
-    pro_info = sub_info->pro_info;
+    try{
+	sub_info = (manage_submit_info*)data;
+	jmod_info = sub_info->jmod_info;
+	pro_info = sub_info->pro_info;
 
-    if(jmod_info->manage_dll == NULL){
-	getcwd(cwd_path,sizeof(cwd_path));
-	snprintf(tpath,sizeof(tpath),"%s/jmod/%s/%s_manage.so",cwd_path,jmod_info->name,jmod_info->name);
+	if(jmod_info->manage_dll == NULL){
+	    getcwd(cwd_path,sizeof(cwd_path));
+	    snprintf(tpath,sizeof(tpath),"%s/jmod/%s/%s_manage.so",cwd_path,jmod_info->name,jmod_info->name);
 
-	jmod_info->manage_dll = dlopen(tpath,RTLD_NOW);
-	jmod_info->manage_sub_fn = dlsym(jmod_info->manage_dll,"submit");
-	jmod_info->manage_res_fn = dlsym(jmod_info->manage_dll,"result");
-    }
-    mg_sub_fn = (judgm_manage_submit_fn)jmod_info->manage_sub_fn;
-
-    mg_info = sub_info->manage_info;
-    snprintf(mg_info->pro_path,sizeof(mg_info->pro_path),"pro/%d",pro_info->proid);
-    snprintf(mg_info->res_path,sizeof(mg_info->res_path),"submit/%d/%d/result",(sub_info->subid / 1000) * 1000,sub_info->subid);
-
-    snprintf(tpath,sizeof(tpath),"pro/%d/setting",pro_info->proid);
-    set_file = fopen(tpath,"r");
-    lchr = '\n';
-    while((tchr = fgetc(set_file)) != EOF){
-	if(lchr == '\n' && tchr == '='){
-	    while(fgetc(set_file) != '\n');
-	    break;
+	    jmod_info->manage_dll = dlopen(tpath,RTLD_NOW);
+	    jmod_info->manage_sub_fn = dlsym(jmod_info->manage_dll,"submit");
+	    jmod_info->manage_res_fn = dlsym(jmod_info->manage_dll,"result");
 	}
-	lchr = tchr;
+	mg_sub_fn = (judgm_manage_submit_fn)jmod_info->manage_sub_fn;
+
+	mg_info = sub_info->manage_info;
+	snprintf(mg_info->pro_path,sizeof(mg_info->pro_path),"tmp/pro/%d_%d",pro_info->proid,pro_info->cacheid);
+	snprintf(mg_info->res_path,sizeof(mg_info->res_path),"submit/%d/%d/result",(sub_info->subid / 1000) * 1000,sub_info->subid);
+
+	snprintf(tpath,sizeof(tpath),"tmp/pro/%d_%d/setting",pro_info->proid,pro_info->cacheid);
+	if((set_file = fopen(tpath,"r")) == NULL){
+	    throw 0;	
+	}
+	lchr = '\n';
+	while((tchr = fgetc(set_file)) != EOF){
+	    if(lchr == '\n' && tchr == '='){
+		while(fgetc(set_file) != '\n');
+		break;
+	    }
+	    lchr = tchr;
+	}
+
+	mg_sub_fn(mg_info,set_file);
+
+	fclose(set_file);
+    }catch(...){
+	manage_finish_result(sub_info->subid,
+			sub_info->uid,
+			sub_info->pro_info->proid,
+			JUDGE_ERR,
+			0,
+			0,
+			0,
+			sub_info->rejudge_flag);
     }
-
-    mg_sub_fn(mg_info,set_file);
-
-    fclose(set_file);
 }
 DLL_PUBLIC int center_manage_queuesubmit(int subid,int proid,int lang,char *set_data,size_t set_len){
     center_judge_submit(subid,proid,lang,set_data,set_len);
@@ -275,15 +288,6 @@ int center_manage_result(int subid,char *res_data){
     judgm_manage_info *mg_info;
     judgm_manage_result_fn mg_res_fn;
 
-    PGconn *db_conn;
-    PGresult *db_res;
-    char db_result[32];
-    char db_score[32];
-    char db_runtime[32];
-    char db_memory[32];
-    char db_subid[32];
-    char *db_param[5];
-
     if((sub_it = manage_submap.find(subid)) == manage_submap.end()){
 	return -1;
     }
@@ -295,45 +299,66 @@ int center_manage_result(int subid,char *res_data){
     if(mg_res_fn(mg_info,res_data)){
 	manage_submap.erase(sub_it);
 
-	if((db_conn = center_manage_conndb()) == NULL){
-	    return -1;
-	}
-
-	snprintf(db_result,sizeof(db_result),"%d",mg_info->result);
-	snprintf(db_score,sizeof(db_score),"%lf",mg_info->score);
-	snprintf(db_runtime,sizeof(db_runtime),"%lu",mg_info->runtime);
-	snprintf(db_memory,sizeof(db_memory),"%lu",mg_info->memory / 1024UL);
-	snprintf(db_subid,sizeof(db_subid),"%d",subid);
-	db_param[0] = db_result;
-	db_param[1] = db_score;
-	db_param[2] = db_runtime;
-	db_param[3] = db_memory;
-	db_param[4] = db_subid;
-	db_res = PQexecParams(db_conn,
-		"UPDATE \"submit\" SET \"result\"=$1,\"score\"=$2,\"runtime\"=$3,\"memory\"=$4 WHERE \"subid\"=$5;",
-		5,
-		NULL,
-		db_param,
-		NULL,
-		NULL,
-		0);
-	PQclear(db_res);
-	center_manage_closedb(db_conn);
-
-	manage_notice(subid,
-		sub_info->uid,
-		sub_info->pro_info->proid,
-		mg_info->result,
-		mg_info->score,
-		mg_info->runtime,
-		mg_info->memory,
-		sub_info->rejudge_flag);
+	manage_finish_result(subid,
+			sub_info->uid,
+			sub_info->pro_info->proid,
+			mg_info->result,
+			mg_info->score,
+			mg_info->runtime,
+			mg_info->memory,
+			sub_info->rejudge_flag);
 
 	center_manage_putpro(sub_info->pro_info);
 	delete sub_info;
     }else{
 	return -1;
     }
+
+    return 0;
+}
+static int manage_finish_result(int subid,int uid,int proid,int result,double score,int runtime,int memory,bool rejudge_flag){
+    PGconn *db_conn;
+    PGresult *db_res;
+    char db_result[32];
+    char db_score[32];
+    char db_runtime[32];
+    char db_memory[32];
+    char db_subid[32];
+    char *db_param[5];
+
+    if((db_conn = center_manage_conndb()) == NULL){
+	return -1;
+    }
+
+    snprintf(db_result,sizeof(db_result),"%d",result);
+    snprintf(db_score,sizeof(db_score),"%lf",score);
+    snprintf(db_runtime,sizeof(db_runtime),"%lu",runtime);
+    snprintf(db_memory,sizeof(db_memory),"%lu",memory / 1024UL);
+    snprintf(db_subid,sizeof(db_subid),"%d",subid);
+    db_param[0] = db_result;
+    db_param[1] = db_score;
+    db_param[2] = db_runtime;
+    db_param[3] = db_memory;
+    db_param[4] = db_subid;
+    db_res = PQexecParams(db_conn,
+	    "UPDATE \"submit\" SET \"result\"=$1,\"score\"=$2,\"runtime\"=$3,\"memory\"=$4 WHERE \"subid\"=$5;",
+	    5,
+	    NULL,
+	    db_param,
+	    NULL,
+	    NULL,
+	    0);
+    PQclear(db_res);
+    center_manage_closedb(db_conn);
+
+    manage_notice(subid,
+	    uid,
+	    proid,
+	    result,
+	    score,
+	    runtime,
+	    memory,
+	    rejudge_flag);
 
     return 0;
 }

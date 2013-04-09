@@ -28,6 +28,7 @@ public:
 
 static void manage_submit_th(void *data);
 static void manage_submit_cb(void *data);
+static int manage_finish_result(int subid,int uid,int proid,int result,double score,int runtime,int memory,bool rejudge_flag);
 static int manage_notice(int subid,int uid,int proid,int result,double score,int runtime,int memory,bool rejudge_flag);
 
 static int manage_updatepro(int proid,int cacheid,center_jmod_info *jmod_info,int lang_flag);
