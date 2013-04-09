@@ -1131,7 +1131,12 @@ var class_user_editpro_mbox = function(){
 
     j_mbox.find('button.update').on('click',function(e){
 	$.post('/toj/php/problem.php',{'action':'update_pro_cache','data':JSON.stringify({'proid':proid})},function(res){
-
+	    defer.resolve();
+	    com.url_pull();
+	});
+    });
+    j_mbox.find('button.rejudge').on('click',function(e){
+	$.post('/toj/php/problem.php',{'action':'rejudge_pro','data':JSON.stringify({'proid':proid})},function(res){
 	    defer.resolve();
 	    com.url_pull();
 	});

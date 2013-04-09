@@ -187,10 +187,23 @@ if($action == 'update_pro_cache')
 	die('Epermission_denied');
 
     $dt = json_decode($data);
-
     $proid = intval($dt->proid);
     if(!problem::update_pro_cache($sqlc,$proid))
 	die('Eupdate_problem_cache');    
+
+    echo('S');
+}
+if($action == 'rejudge_pro')
+{
+    if(!sec_is_login())
+	die('Enot_login');
+    if(!sec_check_level($sqlc, USER_LEVEL_SUPERADMIN))
+	die('Epermission_denied');
+
+    $dt = json_decode($data);
+    $proid = intval($dt->proid);
+    if(!problem::rejudge_pro($sqlc, $proid))
+	die('Erejudge_pro');
 
     echo('S');
 }

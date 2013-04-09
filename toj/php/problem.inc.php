@@ -319,6 +319,12 @@ class problem
 	$ok = true;
 	$sublist = pg_fetch_all_columns($res, 0);
 	if(!$sublist)return false;
+
+	$sqlstr = 'UPDATE "submit" SET "result"=100,"runtime"=0,"memory"=0,"score"=0 WHERE "proid"=$1;';
+	$sqlarr = array($proid);
+	$res = pg_query_params($sqlc, $sqlstr, $sqlarr);
+	pg_free_result($res);
+
 	foreach($sublist as $sub)
 	{
 	    $subid = intval($sub);
@@ -334,6 +340,11 @@ class problem
 	$res = pg_query_params($sqlc, $sqlstr, $sqlarr);
 	$proid = intval(pg_fetch_result($res, 0));
 	if(!$proid)return false;
+
+	$sqlstr = 'UPDATE "submit" SET "result"=100,"runtime"=0,"memory"=0,"score"=0 WHERE "subid"=$1;';
+	$sqlarr = array($subid);
+	$res = pg_query_params($sqlc, $sqlstr, $sqlarr);
+	pg_free_result($res);
 
 	return problem::send_socket($subid);
     }

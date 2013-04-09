@@ -139,6 +139,14 @@ var stat = new function(){
 					});
 					j_subres_mbox.prepend(j_button);
 				    }
+				    if(user.level == -1){
+					j_button = $('<button style="margin:6px 0px 0px 6px; float:right;">重測</button>');
+					j_button.on('click',function(e){
+					    $.post('/toj/php/status.php',{'action':'rejudge_submit','data':JSON.stringify({'subid':that.sub_subid})});
+					    com.url_pull();
+					});
+					j_subres_mbox.prepend(j_button);
+				    }
 				    
 				    $.getScript('/toj/smod/' + subid_node.smodname + '/' + subid_node.smodname + '.js',function(script,stat,res){
 					subres_mbox = new class_stat_subres_mbox(that.sub_subid,reto);
@@ -148,7 +156,7 @@ var stat = new function(){
 				});
 			    });
 			}else{
-			    com.url_update('/toj/node/');
+			    com.url_update('/toj/none/');
 			}
 		    });
 		}   
@@ -435,7 +443,7 @@ var class_stat_subfile_mbox = function(){
     that.node.url_chg = function(direct,url_upart,url_dpart){
 	if(direct == 'in'){
 	    that.fadein(j_mbox);
-	    j_mbox.find('h2.subid').text('SubID:' + stat.sub_subid);
+	    j_mbox.find('h2.subid').text('SubID: ' + stat.sub_subid);
 
 	    $.post('/toj/php/status.php',{'action':'get_submit_data','data':JSON.stringify({'subid':stat.sub_subid})},function(res){
 		var i;

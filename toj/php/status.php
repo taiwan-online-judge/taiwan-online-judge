@@ -3,6 +3,7 @@ ini_set("display_errors", "On");
 error_reporting(E_ALL & ~E_NOTICE);
 
 require_once('status.inc.php');
+require_once('problem.inc.php');
 
 $sqlc = db_connect();
 
@@ -90,6 +91,28 @@ if($action == 'get_submit_data')
 	die('Eerror_get_submit_data');
 
     echo(json_encode($ret));
+}
+if($action == 'rejudge_submit')
+{
+    if(!sec_is_login())
+	die('Enot_login');
+
+    $dt = json_decode($data);
+    $subid = intval($dt->subid);
+    if(!$subid)
+	die('Eno_subid');
+
+    $sub = status::get_by_subid($sqlc, $subid);
+    if(!$sub)
+	die('Ewrong_subid');
+
+    if(!sec_check_level($sqlc, USER_LEVEL_SUPERADMIN))
+	die('Epermission_denied');
+
+    if(!problem::rejudge_sub($sqlc, $subid))
+	die('Erejudge_sub');
+
+    echo('S');
 }
 
 db_close($sqlc);
