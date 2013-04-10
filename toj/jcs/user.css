@@ -11,6 +11,12 @@ div.user_page > div.main_pbox > div.info_box > img.avatar{
     width:100%;
     display:block;
 }
+div.user_page > div.main_pbox > div.data_box{
+    width:978px;
+    margin:0px 0px 0px 6px;
+    padding:32px 0px 32px 0px;
+    float:left;
+}
 div.user_page > div.edit_pbox > div.edit_box{
     width:240px;
     margin:0px 0px 0px 246px;

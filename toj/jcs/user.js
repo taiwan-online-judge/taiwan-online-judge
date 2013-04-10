@@ -284,6 +284,10 @@ var class_user_main_pbox = function(){
 	    that.fadeout(j_pbox);
 	}
     };
+
+    j_pbox.find('div.data_box > button.looksub').on('click',function(e){
+	com.url_push('/toj/stat/sub/uid:' + user.view_uid + '/');
+    });
 }; __extend(class_user_main_pbox,class_com_pbox);
 
 var class_user_edit_pbox = function(){

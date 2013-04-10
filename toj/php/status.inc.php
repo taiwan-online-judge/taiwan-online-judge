@@ -29,9 +29,9 @@ class status
 	    $condstr = $condstr.'"last_update">\''.pg_escape_string($last_update).'\' AND ';
 	}
 
-	if($filter->userid != null)
+	if($filter->uid != null)
 	{
-	    $condstr = $condstr.'"uid"='.pg_escape_string($filter->userid).' AND ';
+	    $condstr = $condstr.'"submit"."uid"='.pg_escape_string($filter->uid).' AND ';
 	}
 	if($filter->result != null)
 	{
@@ -69,7 +69,6 @@ class status
 	    $condstr = $condstr.'"subid"'.$relstr.pg_escape_string($sort->subid[1]);
 	    $ordstr = $ordstr.'"subid" '.($sort->subid[0]==0 ? 'DESC' : 'ASC');
 	}
-
 
 	$sqlstr = 'SELECT "submit".*, "user"."nickname", "problem"."proname" FROM ("submit" INNER JOIN "user" ON "submit"."uid"="user"."uid") INNER JOIN "problem" ON "submit"."proid"="problem"."proid" WHERE '.$condstr.' ORDER BY '.$ordstr.' LIMIT '.pg_escape_string($count).';';
 

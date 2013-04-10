@@ -1,6 +1,6 @@
 var stat = new function(){
     var that = this;
-    var stat_allsub_pbox = null;
+    var stat_sub_pbox = null;
 
 
     var sub_node = null;
@@ -15,7 +15,7 @@ var stat = new function(){
     that.sub_subid = null;
 
     that.init = function(){
-	stat_allsub_pbox = new class_stat_sub_pbox('allsub');
+	stat_sub_pbox = new class_stat_sub_pbox('sub');
 	subfile_mbox = new class_stat_subfile_mbox;
 	j_subres_mbox = $('#index_mask > div.stat_mask > div.subres_mbox');
 
@@ -24,9 +24,9 @@ var stat = new function(){
 	    if(direct == 'in'){
 		index.title_set('TOJ-狀態');
 
-		index.tab_add('allsub','/toj/stat/allsub/','全部動態');
-		if(url_dpart[0] != 'allsub'){
-		    com.url_update('/toj/stat/allsub/');	
+		index.tab_add('sub','/toj/stat/sub/','全部動態');
+		if(url_dpart[0] != 'sub'){
+		    com.url_update('/toj/stat/sub/');	
 		    return 'stop';
 		}
 	    }else if(direct == 'out'){
@@ -35,7 +35,7 @@ var stat = new function(){
 
 	    return 'cont';
 	};
-	that.stat_node.child_set(stat_allsub_pbox.node);
+	that.stat_node.child_set(stat_sub_pbox.node);
 	com.vus_root.child_set(that.stat_node);	
 
 
@@ -174,6 +174,7 @@ var stat = new function(){
 var class_stat_sub_pbox = function(pbox_name){
     var that = this;
     var j_pbox = $('#index_page > div.stat_page > div.' + pbox_name + '_pbox');
+    var j_filter = j_pbox.find('div.subset > table.filter');
     var j_table = j_pbox.find('table.sublist');
     
     var refresh_flag = false;
@@ -184,6 +185,8 @@ var class_stat_sub_pbox = function(pbox_name){
     var top_flag = true;
     var top_queue = new Array;
     var down_block = false;
+
+    var filter = new Object;
 
     var sub_listset = function(j_item,subo){
 	var j_a;
@@ -230,7 +233,7 @@ var class_stat_sub_pbox = function(pbox_name){
 	}
 	j_ajax = $.post('/toj/php/status.php',{'action':'get_submit',
 	    'data':JSON.stringify({
-		'filter':{'uid':null,'result':null,'proid':null,'lang':null},
+		'filter':{'uid':filter.uid,'result':filter.result,'proid':null,'lang':null},
 		'sort':{'score':null,'runtime':null,'memory':null,'subid':[1,0]},
 		'wait':10,
 		'count':100,
@@ -289,7 +292,7 @@ var class_stat_sub_pbox = function(pbox_name){
 	    down_block = true;
 	    $.post('/toj/php/status.php',{'action':'get_submit',
 		'data':JSON.stringify({
-		    'filter':{'uid':null,'result':null,'proid':null,'lang':null},
+		    'filter':{'uid':filter.uid,'result':filter.result,'proid':null,'lang':null},
 		    'sort':{'score':null,'runtime':null,'memory':null,'subid':[0,esubid]},
 		    'wait':0,
 		    'count':50,
@@ -360,17 +363,13 @@ var class_stat_sub_pbox = function(pbox_name){
 
     that.__super();
 
-    that.node.url_chg = function(direct){
-	if(direct == 'in'){
-	    index.tab_hl(pbox_name);
-	    that.fadein(j_pbox);
-	    refresh_flag = true;
+    that.node.url_chg = function(direct,url_upart,url_dpart){
+	var i;
+	var filter_part;
 
-	    sub_update(1);
-	}else if(direct == 'out'){
-	    index.tab_ll(pbox_name);
-	    that.fadeout(j_pbox);
+	var _clear = function(){
 	    $(window).off('scorll');
+	    j_filter.find('td.value').text('None');
 	    j_table.find('tr.item').remove();
 	    
 	    if(j_ajax != null){
@@ -386,11 +385,52 @@ var class_stat_sub_pbox = function(pbox_name){
 	    top_queue = new Array;
 	    down_block = false;
 	    subid_curr = null;
+
+	    filter = new Object;
 	}
 
-	return 'cont';
+	if(direct == 'in' || direct == 'same'){
+	    if(direct == 'same'){
+		_clear();
+	    }else{
+		index.tab_hl(pbox_name);
+		that.fadein(j_pbox);
+	    }
+	    refresh_flag = true;
+
+	    filter.uid = null;
+	    filter.result = null;
+	    if(url_dpart[0] != undefined){
+		filter_part = url_dpart[0].split(':');
+		for(i = 0;i < filter_part.length;i += 2){
+		    if(filter_part[i] == 'uid'){
+			filter.uid = parseInt(filter_part[i + 1]);
+		    }else if(filter_part[i] == 'result'){
+			filter.result = parseInt(filter_part[i + 1]);
+		    }
+		}
+	    }
+
+	    if(filter.uid != null){
+		j_filter.find('tr.uid > td.value').text(filter.uid);
+	    }
+	    if(filter.result != null){
+		j_filter.find('tr.result > td.value').text(filter.result);
+	    }
+
+	    sub_update(1);
+	}else if(direct == 'out'){
+	    index.tab_ll(pbox_name);
+	    that.fadeout(j_pbox);
+	    _clear();
+	}
+
+	return 'stop';
     };
 
+    j_pbox.find('div.subset > table.filter button.clear').on('click',function(e){
+	com.url_push('/toj/stat/sub/');
+    });
     j_table.on('mousedown',function(e){
 	return false;
     });

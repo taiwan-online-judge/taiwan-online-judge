@@ -133,7 +133,7 @@ input,select{
 
 <div id="index_panel_box" exminheight=true class="index_panel_box"><ul id="index_panel" class="index_panel">
     <li class="button home"><a href="/toj/home/" class="button">首頁</a></li>
-    <li class="button stat"><a href="/toj/stat/allsub/" class="button">狀態</a></li>
+    <li class="button stat"><a href="/toj/stat/sub/" class="button">狀態</a></li>
     <li class="button user" style="display:none;"><a class="button">個人</a></li>
     <li class="button square"><a class="button">方塊</a></li>
     <ul class="square_box"></ul>
@@ -163,7 +163,23 @@ input,select{
     </div>
 
     <div class="stat_page">
-	<div class="com_pbox sub_pbox allsub_pbox">
+	<div class="com_pbox sub_pbox">
+	    <div class="subset">
+		<table class="filter">
+		    <tr class="head">
+			<th class="key"><h3>過濾器</h3></th>
+			<th class="value"><button class="clear">清除</button></th>
+		    </tr>
+		    <tr class="item uid">
+			<td class="key">UID</td>
+			<td class="value">None</td>
+		    </tr>
+		    <tr class="item result">
+			<td class="key">Result</td>
+			<td class="value">None</td>
+		    </tr>
+		</table>
+	    </div>
 	    <table class="sublist">
 		<tr class="head">
 		    <th class="subid">SubID</th>
@@ -185,6 +201,9 @@ input,select{
 	    <div class="info_box">
 		<img class="avatar"></img>
 		<div class="aboutme"></div>
+	    </div>
+	    <div class="data_box">
+		<button class="looksub">查看動態</button>
 	    </div>
 	</div>
 	<div class="com_pbox edit_pbox">

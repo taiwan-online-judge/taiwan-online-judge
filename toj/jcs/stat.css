@@ -1,8 +1,32 @@
-div.stat_page > div.sub_pbox > table.sublist{
-    width:978px;
-    margin:0px 0px 6px 164px;
+div.stat_page > div.sub_pbox > div.subset{
+    width:240px;
+    margin:0px 0px 6px 0px;
+    float:left;
+}
+div.stat_page > div.sub_pbox > div.subset > table.filter{
+    width:100%;
     border-collapse:collapse;    
     text-align:left;
+}
+div.stat_page > div.sub_pbox > div.subset > table.filter tr.head{
+    height:64px;
+}
+div.stat_page > div.sub_pbox > div.subset > table.filter tr.item{
+    height:32px;
+}
+div.stat_page > div.sub_pbox > div.subset > table.filter th.key,div.stat_page > div.sub_pbox > div.subset > table.filter td.key{
+    width:76px;
+}
+div.stat_page > div.sub_pbox > div.subset > table.filter th.value,div.stat_page > div.sub_pbox > div.subset > table.filter td.value{
+    width:158px;
+    padding:0px 0px 0px 6px;
+}
+div.stat_page > div.sub_pbox > table.sublist{
+    width:978px;
+    margin:0px 0px 6px 6px;
+    border-collapse:collapse;    
+    text-align:left;
+    float:left;
 }
 div.stat_page > div.sub_pbox > table.sublist tr.head{
     height:64px;
