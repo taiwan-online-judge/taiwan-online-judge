@@ -270,6 +270,7 @@ var class_user_main_pbox = function(){
 		    com.url_update('/toj/none/');
 		}else{
 		    reto = JSON.parse(res);
+		    j_pbox.find('div.info_box > div.name').text(reto.nickname + ' (' + reto.username + ')');
 		    if(reto.avatar == ''){
 			j_pbox.find('div.info_box > img.avatar').attr('src','http://i.imgur.com/ykkQD.png');
 		    }else{
@@ -282,6 +283,9 @@ var class_user_main_pbox = function(){
 	}else if(direct == 'out'){
 	    index.tab_ll('main');
 	    that.fadeout(j_pbox);
+
+	    j_pbox.find('div.info_box > div.name').text('');
+	    j_pbox.find('div.info_box > img.avatar').attr('src','');
 	}
     };
 

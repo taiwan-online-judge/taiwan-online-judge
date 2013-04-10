@@ -358,6 +358,19 @@ var class_stat_sub_pbox = function(pbox_name){
 	    );
 	}
     };
+    var filter_getparam = function(){
+	var ret;
+
+	ret = '';
+	if(filter.uid != null){
+	    ret += 'uid:' + filter.uid; 
+	}
+	if(filter.result != null){
+	    ret += 'result:' + filter.result; 
+	}
+
+	return ret;
+    };
 
     that.node = new vus.node(pbox_name);
 
@@ -369,7 +382,8 @@ var class_stat_sub_pbox = function(pbox_name){
 
 	var _clear = function(){
 	    $(window).off('scorll');
-	    j_filter.find('td.value').text('None');
+	    j_filter.find('tr.uid > td.value').text('None');
+	    j_filter.find('tr.result select').val(null);
 	    j_table.find('tr.item').remove();
 	    
 	    if(j_ajax != null){
@@ -415,7 +429,7 @@ var class_stat_sub_pbox = function(pbox_name){
 		j_filter.find('tr.uid > td.value').text(filter.uid);
 	    }
 	    if(filter.result != null){
-		j_filter.find('tr.result > td.value').text(filter.result);
+		j_filter.find('tr.result select').val(filter.result);
 	    }
 
 	    sub_update(1);
@@ -428,6 +442,18 @@ var class_stat_sub_pbox = function(pbox_name){
 	return 'stop';
     };
 
+    j_pbox.find('div.subset > table.filter tr.result select').on('change',function(e){
+	var param;
+
+	if((filter.result = $(this).val()) == 'null'){
+	    filter.result = null;
+	}
+	if((param = filter_getparam()) != ''){
+	    com.url_push('/toj/stat/sub/' + param + '/');
+	}else{
+	    com.url_push('/toj/stat/sub/');
+	}
+    });
     j_pbox.find('div.subset > table.filter button.clear').on('click',function(e){
 	com.url_push('/toj/stat/sub/');
     });

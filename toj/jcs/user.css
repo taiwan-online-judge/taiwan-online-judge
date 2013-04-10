@@ -3,13 +3,22 @@ div.user_page > div.main_pbox > div.info_box{
     padding:32px 0px 32px 0px;
     float:left;
 }
-div.user_page > div.main_pbox > div.info_box > div.aboutme{
-    padding:6px 0px 6px 0px;
+div.user_page > div.main_pbox > div.info_box > div.name{
+    width:100%;
+    height:32px;
+    padding:0px 0px 6px 0px;
+    font-weight:bold;
+    line-height:32px;
     word-break:break-all;
 }
 div.user_page > div.main_pbox > div.info_box > img.avatar{
     width:100%;
     display:block;
+}
+div.user_page > div.main_pbox > div.info_box > div.aboutme{
+    width:100%;
+    padding:6px 0px 6px 0px;
+    word-break:break-all;
 }
 div.user_page > div.main_pbox > div.data_box{
     width:978px;
@@ -71,6 +80,7 @@ div.user_page > div.mgsq_pbox div.item > div.info{
 div.user_page > div.mgsq_pbox div.item > div.info > span.time{
     width:237px;
     height:32px;
+    color:#BDC0BA;
     font-size:12px;
     line-height:32px;
     float:right;

@@ -45,8 +45,13 @@ div.stat_page > div.sub_pbox > table.sublist th,div.stat_page > div.sub_pbox > t
 div.stat_page > div.sub_pbox > table.sublist th.nickname,div.stat_page > div.sub_pbox > table.sublist td.nickname{
     width:auto;
 }
-div.stat_page > div.sub_pbox > table.sublist th.time,div.stat_page > div.sub_pbox > table.sublist td.time{
-    width:237px;
+div.stat_page > div.sub_pbox > table.sublist th.time{
+    width:158px;
+}
+div.stat_page > div.sub_pbox > table.sublist td.time{
+    width:158px;
+    color:#BDC0BA;
+    font-size:12px;
 }
 div.stat_page > div.sub_pbox > table.sublist th.lang,div.stat_page > div.sub_pbox > table.sublist td.lang{
     width:76px;

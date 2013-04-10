@@ -160,6 +160,7 @@ var com = new function(){
 	var j;
 	var ret;
 	var len;
+	var stop_flag;
 
 	var url_old;
 	var url_new;
@@ -232,6 +233,7 @@ var com = new function(){
 	    }
 	    is_mbox_curr = check_mbox_url(that.url_curr);
 
+	    stop_flag = false;
 	    if(that.url_prev == null || (is_mbox_prev == false && is_mbox_curr == true)){
 		i = 0;
 		node_curr = that.vus_root;
@@ -279,7 +281,11 @@ var com = new function(){
 			break;
 		    }
 		    url_upart.push(url_dpart.shift());
-		    node_curr.url_chg('same',url_upart,url_dpart);
+		    ret = node_curr.url_chg('same',url_upart,url_dpart);
+		    if(ret == 'stop'){
+			stop_flag = true;
+			break;
+		    }
 		    i++;
 		}
 	    }
@@ -287,7 +293,7 @@ var com = new function(){
 	    if(that.url_prev != null && is_mbox_prev == false && is_mbox_curr == false){
 		index.page_scroll_reset();	
 	    }
-	    if(that.url_prev == null || that.pbox_exist == false || !(is_mbox_prev == true && is_mbox_curr == false)){
+	    if(stop_flag == false && (that.url_prev == null || that.pbox_exist == false || !(is_mbox_prev == true && is_mbox_curr == false))){
 		_chg_in(url_cpart,i,node_curr,url_upart,url_dpart);	
 	    }
 
