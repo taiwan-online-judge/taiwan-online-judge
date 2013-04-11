@@ -32,12 +32,18 @@ public:
     judge_pro_info *pro_info;
     int lang;
     char *set_data;
+    int set_len;
 
-    judge_submit_info(int subid,judge_pro_info *pro_info,int lang,char *set_data){
+    judge_submit_info(int subid,judge_pro_info *pro_info,int lang,char *set_data,int set_len){
 	this->subid = subid;
 	this->pro_info = pro_info;
 	this->lang = lang;
-	this->set_data = set_data;
+	this->set_data = new char[set_len];
+	memcpy(this->set_data,set_data,set_len);
+	this->set_len = set_len;
+    }
+    ~judge_submit_info(){
+	delete this->set_data;
     }
 };
 
