@@ -41,7 +41,7 @@ static void __exit mod_exit(){
 }
 module_init(mod_init);
 module_exit(mod_exit);
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("Dual MIT/GPL");
 
 static long mod_ioctl(struct file *filp,unsigned int cmd,unsigned long arg){
     int ret;
