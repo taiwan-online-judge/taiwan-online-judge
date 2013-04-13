@@ -1,10 +1,9 @@
 .code64
-.section .data
 .section .text
-.global hook_sys_block
-.type hook_sys_block,@function
+.global judgk_syscall_block
+.extern judgk_syscall_check
 
-hook_sys_block:
+judgk_syscall_block:
     push %rax
     push %rbx
     push %rcx
@@ -20,10 +19,11 @@ hook_sys_block:
     push %r13
     push %r14
     push %r15
+    pushfq
 
     call judgk_syscall_check
-    test %eax,%eax
-    
+
+    popfq
     pop %r15
     pop %r14
     pop %r13
@@ -38,17 +38,17 @@ hook_sys_block:
     pop %rdx
     pop %rcx
     pop %rbx
-    pop %rax
 
-    jnz block
+    test %rax,%rax
+    pop %rax
+    jnz .block
     
-    push %rdx
+    push %rdx	//use rdx, because mul rax => rdx:rax, kill two birds with one stone
     mov $8,%rdx
     mul %rdx
     pop %rdx
     add judgk_syscall_ori_table,%rax
     jmp *(%rax)
-block:
-    call judgk_syscall_block
-    mov $-1,%rax
+
+.block:
     ret

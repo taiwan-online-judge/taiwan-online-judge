@@ -23,14 +23,14 @@ int judgk_security_hook(){
     ori_sops = (struct security_operations*)*security_hook_addr;
     memcpy(&hook_sops,ori_sops,sizeof(struct security_operations));
 
+    judgk_security_checkaddr = (unsigned long)security_check;
+
     count = (sizeof(hook_sops) - sizeof(hook_sops.name)) / sizeof(unsigned long);
     len = (judgk_security_blockend - judgk_security_block) + sizeof(unsigned long);
     security_block_code = __vmalloc(((((len * count - 1) >> PAGE_SHIFT) + 1) << PAGE_SHIFT),GFP_KERNEL | GFP_ATOMIC,PAGE_KERNEL_EXEC);
 
-    judgk_security_checkaddr = (unsigned long)security_check;
-
-    ori_array = (unsigned long*)(((char*)ori_sops) + sizeof(hook_sops.name));
-    hook_array = (unsigned long*)(((char*)&hook_sops) + sizeof(hook_sops.name));
+    ori_array = (unsigned long*)(((char*)ori_sops) + offsetof(struct security_operations,ptrace_access_check));
+    hook_array = (unsigned long*)(((char*)&hook_sops) + offsetof(struct security_operations,ptrace_access_check));
     for(i = 0;i < count;i++){
 	addr = (((char*)security_block_code) + len * i);
 	memcpy(addr,&ori_array[i],sizeof(unsigned long));
@@ -38,24 +38,31 @@ int judgk_security_hook(){
 	hook_array[i] = (unsigned long)addr + sizeof(unsigned long);
     }
 
-    //hook_sops.capable = hook_capable;
-    //hook_sops.bprm_set_creds = hook_bprm_set_creds;
-    //hook_sops.bprm_check_security = hook_bprm_check_security;
-    //hook_sops.bprm_secureexec = hook_bprm_secureexec;
-    //hook_sops.bprm_committing_creds = hook_bprm_committing_creds;
-    //hook_sops.bprm_committed_creds = hook_bprm_committed_creds;
-    //hook_sops.inode_alloc_security = hook_inode_alloc_security;
-    //hook_sops.inode_free_security = hook_inode_free_security;
-    //hook_sops.inode_follow_link = hook_inode_follow_link;
-    //hook_sops.inode_getattr = hook_inode_getattr;
-    //hook_sops.file_alloc_security = hook_file_alloc_security;
-    //hook_sops.file_free_security = hook_file_free_security;
-    //hook_sops.mmap_addr = hook_mmap_addr;
-    //hook_sops.mmap_file = hook_mmap_file;
-    //hook_sops.file_mprotect = hook_file_mprotect;
-    //hook_sops.task_free = hook_task_free;
-    //hook_sops.cred_free = hook_cred_free;
-    //hook_sops.cred_prepare = hook_cred_prepare;
+    hook_sops.capable = ori_sops->capable;
+    hook_sops.bprm_set_creds = ori_sops->bprm_set_creds;
+    hook_sops.bprm_check_security = ori_sops->bprm_check_security;
+    hook_sops.bprm_secureexec = ori_sops->bprm_secureexec;
+    hook_sops.bprm_committing_creds = ori_sops->bprm_committing_creds;
+    hook_sops.bprm_committed_creds = ori_sops->bprm_committed_creds;
+    hook_sops.inode_alloc_security = ori_sops->inode_alloc_security;
+    hook_sops.inode_free_security = ori_sops->inode_free_security;
+    hook_sops.inode_follow_link = ori_sops->inode_follow_link;
+    hook_sops.inode_getattr = ori_sops->inode_getattr;
+    hook_sops.file_alloc_security = ori_sops->file_alloc_security;
+    hook_sops.file_free_security = ori_sops->file_free_security;
+    hook_sops.mmap_addr = ori_sops->mmap_addr;
+    hook_sops.mmap_file = ori_sops->mmap_file;
+    hook_sops.file_mprotect = ori_sops->file_mprotect;
+    hook_sops.task_free = ori_sops->task_free;
+    hook_sops.cred_free = ori_sops->cred_free;
+    hook_sops.cred_prepare = ori_sops->cred_prepare;
+
+    hook_sops.inode_permission = hook_inode_permission;
+    hook_sops.file_permission = hook_file_permission;
+    hook_sops.file_open = hook_file_open;
+    hook_sops.file_ioctl = hook_file_ioctl;
+    hook_sops.d_instantiate = hook_d_instantiate;
+    hook_sops.vm_enough_memory = hook_vm_enough_memory;
 
     *security_hook_addr = (unsigned long)&hook_sops;
 
@@ -144,7 +151,10 @@ static int security_init_hook(){
 
     return 0;
 }
-static unsigned long security_check(void){
+static inline void security_kill(void){
+    send_sig(SIGKILL,current,0);
+}
+static long security_check(void){
     struct judgk_proc_info *info;
 
     info = judgk_proc_task_lookup(current);
@@ -152,14 +162,12 @@ static unsigned long security_check(void){
 	return 0;
     }
 
-    pr_alert("judgk:PID %d  Security block\n",current->tgid);
+    pr_alert("judgk:PID %d  RF\n",current->tgid);
 
-    security_hook_rf(info);
+    info->status = JUDGE_RF;
+    security_kill();
+
     return -EACCES;
-}
-static inline void security_hook_rf(struct judgk_proc_info *info){
-    info->status = JUDGE_RF; 
-    send_sig(SIGKILL,current,0);
 }
 
 static int hook_inode_permission(struct inode *inode,int mask){
@@ -173,7 +181,9 @@ static int hook_inode_permission(struct inode *inode,int mask){
     if((mask & ~(MAY_EXEC | MAY_READ | MAY_OPEN | MAY_CHDIR | MAY_NOT_BLOCK)) != 0){
 	pr_alert("judgk:PID %d  RF inode_permission %08x\n",current->tgid,mask);
 
-	security_hook_rf(info);
+	info->status = JUDGE_RF;
+	security_kill();
+
 	return -EACCES;
     }
     return ori_sops->inode_permission(inode,mask);
@@ -187,10 +197,14 @@ static int hook_file_permission(struct file *file,int mask){
     }
 
     if((mask & ~(MAY_READ | MAY_WRITE)) != 0){
-	security_hook_rf(info);
+	info->status = JUDGE_RF;
+	security_kill();
+
 	return -EACCES;
     }else if((mask & MAY_WRITE) != 0 && file != info->std_out){
-	security_hook_rf(info);
+	info->status = JUDGE_RF;
+	security_kill();
+
 	return -EACCES;
     }
     return ori_sops->file_permission(file,mask);
@@ -232,7 +246,9 @@ static int hook_file_open(struct file *file, const struct cred *cred){
     if(ret != 0){
 	pr_alert("judgk:PID %d  RF file_open %s %08x\n",current->tgid,path,file->f_mode);
 
-	security_hook_rf(info);
+	info->status = JUDGE_RF;
+	security_kill();
+
 	return ret;
     }
     return ori_sops->file_open(file,cred);
@@ -248,7 +264,9 @@ static int hook_file_ioctl(struct file *file,unsigned int cmd,unsigned long arg)
     if(file != info->std_in && file != info->std_out){
 	pr_alert("judgk:PID %d  file_ioctl\n",current->tgid);
 
-	security_hook_rf(info);
+	info->status = JUDGE_RF;
+	security_kill();
+
 	return -EACCES;
     }
     return ori_sops->file_ioctl(file,cmd,arg);
@@ -263,7 +281,9 @@ static void hook_d_instantiate(struct dentry *dentry,struct inode *inode){
 
     if(inode == NULL || inode->i_ino != security_meminfo_ino){
 	pr_alert("judgk:PID %d  d_instantiate\n",current->tgid);
-	security_hook_rf(info);
+
+	info->status = JUDGE_RF;
+	security_kill();
     }
     return ori_sops->d_instantiate(dentry,inode);
 }
@@ -276,11 +296,13 @@ static int hook_vm_enough_memory(struct mm_struct *mm,long pages){
     }
 
     info->memory = (mm->total_vm + pages) << PAGE_SHIFT;
-    //pr_alert("judgk:PID %d  vm_enough_memory %lu\n",current->tgid,info->memory);
 
     if(info->memory > info->memlimit){
+	pr_alert("judgk:PID %d  vm_enough_memory %lu\n",current->tgid,info->memory);
+
 	info->status = JUDGE_MLE;
-	send_sig(SIGKILL,current,0);
+	security_kill();
+
 	return -EACCES;
     }
     return ori_sops->vm_enough_memory(mm,pages);

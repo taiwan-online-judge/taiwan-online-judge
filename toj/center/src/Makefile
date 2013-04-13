@@ -2,7 +2,7 @@ ifneq ($(KERNELRELEASE),)
 	judgk-objs := judgk_mod.o judgk_proc.o judgk_syscall.o judgk_syscall_asm.o judgk_security.o judgk_security_asm.o judgk_hyperio.o
 	obj-m := judgk.o
 else
-	KERNEL_SOURCE := /usr/lib/modules/3.8.4-1-ARCH/build
+	KERNEL_SOURCE := /lib/modules/$(shell uname -r)/build
 	PWD := $(shell pwd)
 default:
 	${MAKE} -C ${KERNEL_SOURCE} M=${PWD} modules

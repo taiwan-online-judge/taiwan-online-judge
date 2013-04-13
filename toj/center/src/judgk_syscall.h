@@ -57,13 +57,12 @@ static unsigned int syscall_whitelist[SYSCALL_WHITELIST_SIZE] = {
 
 int judgk_syscall_hook(void);
 int judgk_syscall_unhook(void);
-int judgk_syscall_check(void);
-int judgk_syscall_block(void);
+long judgk_syscall_check(void);
 
 unsigned long *judgk_syscall_ori_table;
 
 extern struct judgk_proc_info* judgk_proc_task_lookup(struct task_struct *task);
-extern long hook_sys_block(void);
+extern long judgk_syscall_block(void);
 
 //typedef asmlinkage long (*func_sys_nanosleep)(struct timespec __user *rqtp,struct timespec __user *rmtp);
 //func_sys_nanosleep ori_sys_nanosleep;

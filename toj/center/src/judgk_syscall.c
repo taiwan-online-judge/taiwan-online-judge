@@ -32,7 +32,7 @@ int judgk_syscall_hook(){
 	    j++;
 	    continue;
 	}
-	syscall_table[i] = (unsigned long)hook_sys_block;
+	syscall_table[i] = (unsigned long)judgk_syscall_block;
     }
     syscall_addr_restore((unsigned long)(&syscall_table[i - 1]),restore);
 
@@ -198,13 +198,7 @@ static int syscall_addr_restore(unsigned long addr,int restore){
     return 0;
 }
 
-int judgk_syscall_check(){
-    if(judgk_proc_task_lookup(current)){
-	return 1;
-    }
-    return 0;
-}
-int judgk_syscall_block(){
+long judgk_syscall_check(){
     struct judgk_proc_info *info;
 
     if((info = judgk_proc_task_lookup(current)) == NULL){
@@ -213,7 +207,8 @@ int judgk_syscall_block(){
 
     info->status = JUDGE_RF;
     send_sig(SIGKILL,current,0);
-    return 0;
+
+    return -EACCES;
 }
 
 /*asmlinkage long hook_sys_nanosleep(struct timespec __user *rqtp,struct timespec __user *rmtp){
