@@ -21,11 +21,15 @@ var vus = new function(){
 	var that = this;
 	that.name = name;
 	that.parent = null;
+	that.ref_count = 1;
 	that.child = new Object;
 	that.delay_child = new Object;
 
 	that.url_chg = function(direct,url_upart,url_dpart){
 	    return 'cont';
+	};
+	that.get = function(){
+	    that.ref_count++;
 	};
 	that.child_set = function(node){
 	    var delay_obj;
@@ -266,9 +270,10 @@ var com = new function(){
 		    url_upart = url_ppart.slice(0);
 		    url_dpart = new Array;
 		    while(node_curr != node_bottom){
+			node_parent = node_curr.parent;
 			node_curr.url_chg('out',url_upart,url_dpart);
 			url_dpart = url_dpart.splice(0,0,url_upart.pop());
-			node_curr = node_curr.parent;
+			node_curr = node_parent;
 		    }
 		}
 
