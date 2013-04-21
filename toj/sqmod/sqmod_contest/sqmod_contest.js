@@ -1,10 +1,12 @@
-var sqmod_test = function(that,j_page){
-    var pro_pbox = new class_sqmod_test_pro_pbox(that.sqid,j_page);
+var sqmod_contest = function(that,j_page){
+    var sboard_pbox = new class_sqmod_contest_sboard_pbox(that.sqid,j_page);
+    var pro_pbox = new class_sqmod_contest_pro_pbox(that.sqid,j_page);
 
     that.node.url_chg = function(direct,url_upart,url_dpart){
 	if(direct == 'in'){
 	    index.title_set('TOJ-' + that.sqname);
 
+	    index.tab_add('sboard','/toj/sq/' + that.sqid + '/sboard/','記分板');
 	    index.tab_add('pro','/toj/sq/' + that.sqid + '/pro/','題目');
 
 	    if(url_dpart.length == 0){
@@ -17,10 +19,180 @@ var sqmod_test = function(that,j_page){
 
 	return 'cont';
     };
+
+    that.node.child_set(sboard_pbox.node);
     that.node.child_set(pro_pbox.node);
 };
 
-var class_sqmod_test_pro_pbox = function(sqid,j_page){
+var class_sqmod_contest_sboard_pbox = function(sqid,j_page){
+    var that = this;
+    var j_pbox = j_page.find('div.sboard_pbox');
+    var j_table = j_pbox.find('table.sboardlist');
+    var refresh_flag = false;
+
+    var sboard_refresh = function(){
+	if(refresh_flag == false){
+	    return;
+	}
+
+	$.post('/toj/sqmod/sqmod_contest/sqmod_contest.php',{'action':'get_prolist','data':JSON.stringify({'sqid':sqid})},function(res){
+	    var i;
+	    var prolist;
+	    var proo;
+
+	    var tds;
+	    var j_head;
+	    var j_td;
+	    var j_a;
+
+	    if(res[0] != 'E'){
+		prolist = JSON.parse(res);
+
+		j_table.css('width',(486 + prolist.length * 123) + 'px');
+
+		j_head = j_table.find('tr.head');
+		tds = j_head.find('td.pro');
+		for(i =  0;i < prolist.length;i++){
+		    proo = prolist[i];
+		    if(i < tds.length){
+			j_td = $(tds[i]);
+		    }else{
+			j_td = $('<td class="pro"><a></a></td>');
+			j_head.append(j_td);
+		    }
+
+		    j_a = j_td.find('a');
+		    j_a.text(proo.proid);
+		    j_a.attr('href','/toj/pro/' + proo.proid + '/');
+		}	
+		for(;i < tds.length;i++){
+		    $(tds[i]).remove();
+		}
+
+		$.post('/toj/sqmod/sqmod_contest/sqmod_contest.php',{'action':'get_scoreboard','data':JSON.stringify({'sqid':sqid})},function(res){
+		    var i;
+		    var j;
+		    var reto;
+		    var start_time
+		    var sboard_list;
+		    var sboardo;
+		    var proo;
+		    var total_ac;
+		    var total_score;
+		    var duration;
+		    var use_time;
+
+		    var trs;
+		    var tds;
+		    var j_item;
+		    var j_a;
+		    var j_score;
+
+		    if(res[0] != 'E'){
+			reto = JSON.parse(res);
+			start_time = reto.start_time;
+			sboard_list = reto.list;
+
+			trs = j_table.find('tr.item');
+			for(i = 0;i < sboard_list.length;i++){
+			    sboardo = sboard_list[i];
+
+			    if(i < trs.length){
+				j_item = $(trs[i]);
+			    }else{
+				j_item = $('<tr class="item"><td class="rank"></td><td class="nickname"><a></a></td><td class="ac"></td><td class="score"></td></tr>');
+				j_table.append(j_item);
+			    }
+			    
+			    j_a = j_item.find('td.nickname > a');
+			    j_a.text(sboardo.nickname);
+			    j_a.attr('href','/toj/user/' + sboardo.uid + '/');
+
+			    if(sboardo.rank == -1){
+				j_item.find('td.rank').text('-');
+			    }else{
+				j_item.find('td.rank').text(sboardo.rank);
+			    }
+
+			    tds = j_item.find('td.pro');
+			    for(j = tds.length;j < prolist.length;j++){
+				j_item.append($('<td class="pro"><span class="score"></span><sup class="try"></sup><sub class="time"></sub></td>'));
+			    }
+			    for(;j < tds.length;j++){
+				$(tds[j]).remove();
+			    }
+
+			    total_ac = 0;
+			    total_score = 0;
+			    tds = j_item.find('td.pro');
+			    for(j = 0;j < prolist.length;j++){
+				j_td = $(tds[j]);
+				if(!(prolist[j].proid in sboardo.problem) || sboardo.problem[prolist[j].proid].tries == 0){
+				    j_td.find('span.score').text('')
+				    j_td.find('sup.try').text('');
+				    j_td.find('sub.time').text('');
+				}else{
+				    proo = sboardo.problem[prolist[j].proid];
+
+				    j_score = j_td.find('span.score');
+				    if(proo.is_ac == true){
+					j_score.css('color',RESULTCOLOR[0]);
+					total_ac++;
+
+					if(start_time != null){
+					    duration = new Date(com.get_date(proo.ac_time) - com.get_date(start_time)).getTime();
+					    j_td.find('sub.time').text(com.get_durstring(duration,true));
+					}
+				    }else{
+					j_score.css('color',null);
+				    }
+				    total_score += proo.best_score;
+
+				    j_score.text(proo.best_score)
+				    j_td.find('sup.try').text(proo.tries_before_ac);
+				}
+			    }
+			    j_item.find('td.ac').text(total_ac);
+			    j_item.find('td.score').text(total_score);
+			}
+			for(;i < trs.length;i++){
+			    trs[i].remove();
+			}
+		    }
+
+		    setTimeout(sboard_refresh,5000);
+		});
+	    }
+	});
+    };
+
+    that.node = new vus.node('sboard');
+
+    that.__super();
+
+    that.node.url_chg = function(direct,url_upart,url_dpart){
+	var reto;
+
+	if(direct == 'in'){
+	    index.tab_hl('sboard');
+
+	    refresh_flag = true;
+	    sboard_refresh();
+
+	    that.fadein(j_pbox);
+	}else if(direct == 'out'){
+	    index.tab_ll('sboard');
+	    that.fadeout(j_pbox);
+
+	    refresh_flag = false;
+
+	    j_table.find('tr.item').remove();
+	    j_table.find('tr.head > td.pro').remove();
+	}
+    };
+}; __extend(class_sqmod_contest_sboard_pbox,class_com_pbox);
+
+var class_sqmod_contest_pro_pbox = function(sqid,j_page){
     var that = this;
     var j_pbox = j_page.find('div.pro_pbox');
     var promap = null;
@@ -123,7 +295,7 @@ var class_sqmod_test_pro_pbox = function(sqid,j_page){
 	    return;
 	}
 
-	$.post('/toj/sqmod/sqmod_test/sqmod_test.php',{'action':'get_user_stat','data':JSON.stringify({'sqid':sqid,'display_team':true})},function(res){
+	$.post('/toj/sqmod/sqmod_contest/sqmod_contest.php',{'action':'get_user_stat','data':JSON.stringify({'sqid':sqid,'display_team':true})},function(res){
 	    var i;
 	    var j;
 
@@ -213,7 +385,7 @@ var class_sqmod_test_pro_pbox = function(sqid,j_page){
 	    that.fadein(j_pbox);
 	    refresh_flag = true;
 
-	    $.post('/toj/sqmod/sqmod_test/sqmod_test.php',{'action':'get_prolist','data':JSON.stringify({'sqid':sqid})},function(res){
+	    $.post('/toj/sqmod/sqmod_contest/sqmod_contest.php',{'action':'get_prolist','data':JSON.stringify({'sqid':sqid})},function(res){
 		var i;
 		var reto; 
 		var proo;
@@ -225,7 +397,6 @@ var class_sqmod_test_pro_pbox = function(sqid,j_page){
 
 		    promap = new Array;
 		    j_list = j_pbox.find('table.prolist');
-		    console.log(j_pbox.length);
 		    for(i =  0;i < reto.length;i++){
 			proo = reto[i];
 			proo.bscore = 0;
@@ -245,8 +416,10 @@ var class_sqmod_test_pro_pbox = function(sqid,j_page){
 	    index.tab_ll('pro');
 	    that.fadeout(j_pbox);
 	    refresh_flag = false;
+
+	    j_pbox.find('table.prolist tr.item').remove();
 	}
 
 	return 'cont';
     };
-}; __extend(class_sqmod_test_pro_pbox,class_com_pbox);
+}; __extend(class_sqmod_contest_pro_pbox,class_com_pbox);

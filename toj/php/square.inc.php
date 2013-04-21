@@ -226,6 +226,20 @@ class square
 	}
 	return $ret;
     }
+    public static function get_user_list($sqlc, $sqid)
+    {
+	//get problem list of square $sqid.
+	$sqlstr = 'SELECT "user"."uid", "user"."nickname" FROM "user" INNER JOIN "us_sq" ON "user"."uid"="us_sq"."uid" WHERE "us_sq"."sqid"=$1 ORDER BY "user"."uid";';
+	$sqlarr = array($sqid);
+	$sqlr = pg_query_params($sqlc, $sqlstr, $sqlarr);
+	$ret = array();
+	while($obj = pg_fetch_object($sqlr))
+	{
+	    $obj->uid = intval($obj->uid);
+	    array_push($ret, $obj);
+	}
+	return $ret;
+    }
 }
 
 ?>

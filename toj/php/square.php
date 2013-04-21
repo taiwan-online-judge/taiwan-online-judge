@@ -2,6 +2,7 @@
 //ini_set("display_errors", "On");
 
 require_once('square.inc.php');
+require_once('event.inc.php');
 
 $sqlc = db_connect();
 
@@ -44,6 +45,9 @@ if($action == 'add_sq')
     if(!$res2)
 	die('Eadd_admin_failed');
 
+    if(event::exec_func('../sqmod/'.$sq->sqmodname.'/'.$sq->sqmodname.'.inc.php','event_create',[$res->sqid]) === false)
+	die('Eevent_error');
+
     echo('S');
 }
 if($action == 'delete_sq')
@@ -59,12 +63,16 @@ if($action == 'delete_sq')
 	die('Epermission_denied');
 
     $sqid = intval($sq->sqid);
-    if(!square::get($sqlc, $sqid))
-	die('Eno_such_sq');
+    $sq = square::get($sqlc, $sqid);
+    if(!$sq)
+	die('Ewrong_sqid');
 
     $res = square::del($sqlc, $sqid);
     if(!$res)
 	die('Edelete_failed');
+
+    if(event::exec_func('../sqmod/'.$sq->sqmodname.'/'.$sq->sqmodname.'.inc.php','event_destroy',[$sq->sqid]) === false)
+	die('Eevent_error');
 
     echo('S');
 }
@@ -313,7 +321,8 @@ if($action == 'add_pro_into_sq')
     if(!problem::is_available($sqlc, $dt->proid))
 	die('Ewrong_proid');
 
-    if(!square::get($sqlc, $dt->sqid))
+    $sq = square::get($sqlc, $dt->sqid);
+    if(!$sq)
 	die('Ewrong_sqid');
 
     $adm = sec_check_level($sqlc, USER_LEVEL_SUPERADMIN) || square::get_user_relationship($sqlc, $uid, $dt->sqid) >= SQUARE_USER_ADMIN;
@@ -327,6 +336,9 @@ if($action == 'add_pro_into_sq')
     $ret = square::add_pro($sqlc, $dt->proid, $dt->sqid);
     if(!$ret)
 	die('Eadd_problem_into_square_failed');
+
+    if(event::exec_func('../sqmod/'.$sq->sqmodname.'/'.$sq->sqmodname.'.inc.php','event_add_pro',[$sq->sqid, $dt->proid]) === false)
+	die('Eevent_error');
 
     echo('S');
 }
@@ -343,7 +355,8 @@ if($action == 'delete_pro_from_sq')
 
     $dt = json_decode($data);
 
-    if(!square::get($sqlc, $dt->sqid))
+    $sq = square::get($sqlc, $dt->sqid);
+    if(!$sq)
 	die('Ewrong_sqid');
 
     $adm = sec_check_level($sqlc, USER_LEVEL_SUPERADMIN) || square::get_user_relationship($sqlc, $uid, $dt->sqid) >= SQUARE_USER_ADMIN;
@@ -357,6 +370,9 @@ if($action == 'delete_pro_from_sq')
     $ret = square::del_pro($sqlc, $dt->proid, $dt->sqid);
     if(!$ret)
 	die('Edelete_problem_from_square_failed');
+
+    if(event::exec_func('../sqmod/'.$sq->sqmodname.'/'.$sq->sqmodname.'.inc.php','event_del_pro',[$sq->sqid, $dt->proid]) === false)
+	die('Eevent_error');
 
     echo('S');
 }

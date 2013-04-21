@@ -62,11 +62,11 @@ var index = new function(){
 
 	$('#index_mask').on('click',function(e){
 	    if((e.target == this || e.target.parentNode == this) && $(this).hasClass('index_mask')){
-		com.url_pull();
+		com.url_pull_pbox();
 	    }
 	});
 	$('#index_mask > button.close').on('click',function(e){
-	    com.url_pull();
+	    com.url_pull_pbox();
 	});
     };
 

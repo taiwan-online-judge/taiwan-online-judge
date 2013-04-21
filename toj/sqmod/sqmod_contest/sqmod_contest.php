@@ -2,10 +2,11 @@
 //ini_set("display_errors", "On");
 
 require_once('common.inc.php');
-require_once('php/user.inc.php');
-require_once('sqmod_test.inc.php');
+require_once('user.inc.php');
+require_once('square.inc.php');
+require_once('sqmod_contest.inc.php');
 require_once('team.inc.php');
-require_once('php/sqlib_scoreboard.inc.php');
+require_once('sqlib_scoreboard.inc.php');
 
 $sqlc = db_connect();
 $msqlc = db_connect('toj_mod');
@@ -76,6 +77,44 @@ if($action == 'get_user_stat')
 	}
     }
     echo(json_encode($ret));
+}
+if($action == 'get_scoreboard'){
+    $dt = json_decode($data);
+    $sqid = intval($dt->sqid);
+
+    $sqo = square::get($sqlc, $sqid);
+    if($sqo == NULL || $sqo->sqmodname != SQMODNAME)
+	die('Eerror_sq_error');
+    if(!sec_is_login())
+	die('Enot_login');
+    $uid = intval($_COOKIE['uid']);
+    if(square::get_user_relationship($sqlc, $uid, $sqid) < SQUARE_USER_ACTIVE)
+	die('Ecannot_view_sq');
+
+    $list = get_scoreboard($sqlc, $msqlc, $sqid, SCOREBOARD_ID_SCOREBOARD);
+    $user_map = array();
+    for($idx = 0;$idx < count($list);$idx++){
+	$list[$idx]->nickname = user::get_nickname($sqlc, $list[$idx]->uid);
+	$user_map[$list[$idx]->uid] = true;
+    }
+
+    $user_list = square::get_user_list($sqlc, $sqid);
+    for($idx = 0;$idx < count($user_list);$idx++){
+	if(!array_key_exists($user_list[$idx]->uid,$user_map)){
+	    array_push($list,array(
+		'uid' => $user_list[$idx]->uid,
+		'nickname' => $user_list[$idx]->nickname,
+		'rank' => -1,
+		'rank_score' => 0,
+		'problem' => []
+	    ));
+	}
+    }
+
+    echo(json_encode(array(
+	'start_time' => $sqo->start_time,
+	'list' => $list
+    )));
 }
 
 db_close($sqlc);

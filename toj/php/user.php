@@ -125,7 +125,12 @@ if($action == 'view')
     if(intval($_COOKIE['uid']) != $user->uid)
 	unset($user->email);
 
-    echo(json_encode($user));
+    $statis = user::statistic($sqlc, $user->uid);
+
+    echo(json_encode(array(
+	'user' => $user,
+	'statis' => $statis
+    )));
 }
 if($action == 'login')
 {

@@ -4,9 +4,10 @@ require_once('common.inc.php');
 require_once('square.inc.php');
 require_once('sqlib_scoreboard.inc.php');
 
-const SQMODNAME = 'sqmod_test';
+const SQMODNAME = 'sqmod_contest';
 
 const SCOREBOARD_ID_PROBSTAT = 1;
+const SCOREBOARD_ID_SCOREBOARD = 2;
 
 function score_func($sqid, $proid, $best_score, $best_time, $is_ac, $ac_time, $tries_before_ac, $last_score, $last_status, $tries)
 {
@@ -190,6 +191,16 @@ function get_base_line($data, $sqid, $isteam)
     }
 
     return $ret;
+}
+
+function get_scoreboard($sqlc, $msqlc, $sqid, $sboard_id){
+    $sq = square::get($sqlc, $sqid);
+    if(!$sq)
+	die('Eno_such_sq');
+    
+    $data = sqlib_scoreboard::get_scoreboard($sqlc, $msqlc, $sqid, $sboard_id, 'score_func', $sq->start_time, $sq->end_time, 0, 65536);
+
+    return $data;
 }
 
 function calc_default_baseline($total_score)

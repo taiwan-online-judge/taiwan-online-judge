@@ -181,7 +181,7 @@ var user = new function(){
 	    'data':{'action':'view','data':JSON.stringify({'uid':null})},
 	    'async':!sync,
 	    'success':function(res){
-		var reto;
+		var usero;
 		var old_uid;
 
 		old_uid = that.uid;
@@ -197,14 +197,14 @@ var user = new function(){
 		    
 		    that.login_chg.fire(false);
 		}else{
-		    reto = JSON.parse(res);    
-		    that.uid = reto.uid;
-		    that.level = reto.level;
-		    that.username = reto.username;
-		    that.nickname = reto.nickname;
-		    that.avatar = reto.avatar;
-		    that.aboutme = reto.aboutme;
-		    that.email = reto.email;
+		    usero = JSON.parse(res).user;    
+		    that.uid = usero.uid;
+		    that.level = usero.level;
+		    that.username = usero.username;
+		    that.nickname = usero.nickname;
+		    that.avatar = usero.avatar;
+		    that.aboutme = usero.aboutme;
+		    that.email = usero.email;
 
 		    if(old_uid != that.uid){
 			that.login_chg.fire(true);
@@ -264,20 +264,158 @@ var class_user_main_pbox = function(){
 	    that.fadein(j_pbox);
 
 	    $.post('/toj/php/user.php',{'action':'view','data':JSON.stringify({'uid':user.view_uid})},function(res){
+		var i;
+		
 		var reto;
+		var usero;
+		var statiso;
+		var trylist;
+		var substatis;
+		var actry;
+		var series;
+		var total;
+
+		var j_div;
+		var j_span;
+		var j_a;
+
+		var pie_add = function(j_div,series){
+		    var draw = function(){
+			var data = google.visualization.arrayToDataTable(series);
+			var chart = new google.visualization.PieChart(j_div[0]);
+
+			chart.draw(data,{
+			    'chartArea':{'width':'90%','height':'85%','top':'15%','left':'10%'},
+			    'backgroundColor':'#1C1C1C',
+			    'legend':{
+				'textStyle':{'color':'#E9E9E9'}
+			    },
+			    'pieSliceBorderColor':'#E9E9E9',
+			    'pieSliceText':'value',
+			    'titleTextStyle':{'color':'#E9E9E9','fontSize':'16'}
+			});
+		    }
+		    if(typeof google === 'object'){
+			draw();
+		    }else{
+			google.setOnLoadCallback(draw);
+		    }
+		};
+		var combo_add = function(j_div,series){
+		    var draw = function(){
+			var data = google.visualization.arrayToDataTable(series);
+			var chart = new google.visualization.ComboChart(j_div[0]);
+
+			chart.draw(data,{
+			    'backgroundColor':'#1C1C1C',
+			    'legend':{
+				'textStyle':{'color':'#E9E9E9'}
+			    },
+			    'titleTextStyle':{'color':'#E9E9E9','fontSize':'16'},
+			    'hAxis':{'textStyle':{'color':'#E9E9E9'},'slantedText':false},
+			    'vAxis':{'textStyle':{'color':'#E9E9E9'}},
+			    'series':{'0':{'type':'bars','targetAxisIndex':0}}
+			});
+		    }
+		    if(typeof google === 'object'){
+			draw();
+		    }else{
+			google.setOnLoadCallback(draw);
+		    }
+		};
+		var draw_timeline = function(timesub){
+		    var i;
+		    var j;
+		    var series;
+		    var part;
+		    var last_time;
+		    var curr_time;
+
+		    if(timesub.length == 0){
+			return;
+		    }
+		    series = new Array();
+		    series.push(['Time','上傳次數']);
+
+		    part = timesub[0].time.split('-');		    
+		    last_time = parseInt(part[0]) * 12 + parseInt(part[1]) + 1;
+
+		    series.push([timesub[0].time,timesub[0].count]);
+
+		    for(i = 1;i < timesub.length;i++){
+			part = timesub[i].time.split('-');		    
+			curr_time = parseInt(part[0]) * 12 + parseInt(part[1]);
+
+			for(;last_time < curr_time;last_time++){
+			    if((last_time % 6) == 1){
+				series.push([Math.floor(last_time / 12) + '-' + last_time % 12,0]);
+			    }else{
+				series.push(['',0]);
+			    }
+			}
+
+			if((last_time % 6) == 1){
+			    series.push([Math.floor(last_time / 12) + '-' + last_time % 12,timesub[i].count]);
+			}else{
+			    series.push(['',timesub[i].count]);
+			}
+
+			last_time = curr_time + 1;
+		    }
+
+		    combo_add(j_pbox.find('div.data_box > div.statis > div.timecombo > div.chart'),series);
+		};
 
 		if(res[0] == 'E'){
 		    com.url_update('/toj/none/');
 		}else{
 		    reto = JSON.parse(res);
-		    j_pbox.find('div.info_box > div.name').text(reto.nickname + ' (' + reto.username + ')');
-		    if(reto.avatar == ''){
+		    usero = reto.user;
+		    statiso = reto.statis;
+
+		    j_pbox.find('div.info_box > div.name').text(usero.nickname + ' (' + usero.username + ')');
+		    if(usero.avatar == ''){
 			j_pbox.find('div.info_box > img.avatar').attr('src','http://i.imgur.com/ykkQD.png');
 		    }else{
-			j_pbox.find('div.info_box > img.avatar').attr('src',reto.avatar);
+			j_pbox.find('div.info_box > img.avatar').attr('src',usero.avatar);
 		    }
-		    j_pbox.find('div.info_box > div.aboutme').text(reto.aboutme);
+		    j_pbox.find('div.info_box > div.aboutme').text(usero.aboutme);
 
+		    j_div = j_pbox.find('div.data_box > div.trylist');
+		    trylist = statiso.trylist;
+		    actry = 0;
+		    for(i = 0;i < trylist.length;i++){
+			j_span = $('<span class="item"><a></a></span>');
+			
+			j_a = j_span.find('a');
+			j_a.css('color',RESULTCOLOR[trylist[i].result]);
+			j_a.text(trylist[i].proid);
+			j_a.attr('href','/toj/pro/' + trylist[i].proid + '/');
+
+			j_div.append(j_span);
+
+			if(trylist[i].result == 0){
+			    actry++;
+			}
+		    }
+
+		    substatis = statiso.substatis;
+		    series = new Array();
+		    series[0] = ['Result','Count'];
+		    total = 0;
+		    for(i = 0;i < substatis.length;i++){
+			series[i + 1] = [RESULTMAP[substatis[i].result],substatis[i].count];	
+		    }
+
+		    pie_add(j_pbox.find('div.data_box > div.statis > div.subpie > div.chart'),series);
+
+		    pie_add(j_pbox.find('div.data_box > div.statis > div.trypie > div.chart'),
+			[['Result','Count'],
+			 ['AC',actry],
+			 ['Failed',statiso.trylist.length - actry]
+			]);
+
+		    draw_timeline(statiso.timesub);
 		}
 	    });
 	}else if(direct == 'out'){
@@ -286,6 +424,7 @@ var class_user_main_pbox = function(){
 
 	    j_pbox.find('div.info_box > div.name').text('');
 	    j_pbox.find('div.info_box > img.avatar').attr('src','');
+	    j_pbox.find('div.data_box > div.trylist').empty();
 	}
     };
 
@@ -849,18 +988,19 @@ var class_user_editsq_mbox = function(){
 		    j++;
 
 		    pro_listset(j_item,proo,type);
-		    j_last = j_item;
 		}else{
 		    j_item = pro_listnew(proo,type);
 		    j_item.hide();
 
 		    if(j_last == null){
-			j_table.append(j_item);
+			j_table.prepend(j_item);
 		    }else{
 			j_item.insertAfter(j_last);
 		    }
 		    j_item.css('opacity',0).slideDown('fast').fadeTo(100,1);
 		}
+
+		j_last = j_item;
 	    }
 	    for(;j < trs.length;j++){
 		j_item = $(trs[j]);
@@ -930,6 +1070,8 @@ var class_user_editsq_mbox = function(){
 		j_mbox.find('[name="e_min"]').val(sqo.end_time.getMinutes());
 	    }
 	    j_mbox.find('button.delete').show();
+
+	    pro_update();
 	}
 
 	com.vus_mbox.child_set(that.node);
@@ -940,7 +1082,6 @@ var class_user_editsq_mbox = function(){
     that.node.url_chg = function(direct,url_upart,url_dpart){
 	if(direct == 'in'){
 	    that.fadein(j_mbox);
-	    pro_update();
 	}else if(direct == 'out'){
 	    that.fadeout(j_mbox);
 
@@ -992,7 +1133,7 @@ var class_user_editsq_mbox = function(){
 		    }
 		}else{
 		    defer.resolve();
-		    com.url_pull();
+		    com.url_pull_pbox();
 		}
 	    });
 	}
@@ -1049,7 +1190,7 @@ var class_user_editsq_mbox = function(){
 		    }
 		}else{
 		    defer.resolve();
-		    com.url_pull();
+		    com.url_pull_pbox();
 		}
 	    });
 	}else if(action == 'edit'){
@@ -1074,13 +1215,13 @@ var class_user_editsq_mbox = function(){
 		}else{
 		    user.update(false);
 		    defer.resolve();
-		    com.url_pull();
+		    com.url_pull_pbox();
 		}
 	    });
 	}
     });
     j_mbox.find('button.cancel').on('click',function(e){
-	com.url_pull();
+	com.url_pull_pbox();
     });
 }; __extend(class_user_editsq_mbox,class_com_mbox);
 var class_user_editpro_mbox = function(){
@@ -1140,13 +1281,13 @@ var class_user_editpro_mbox = function(){
     j_mbox.find('button.update').on('click',function(e){
 	$.post('/toj/php/problem.php',{'action':'update_pro_cache','data':JSON.stringify({'proid':proid})},function(res){
 	    defer.resolve();
-	    com.url_pull();
+	    com.url_pull_pbox();
 	});
     });
     j_mbox.find('button.rejudge').on('click',function(e){
 	$.post('/toj/php/problem.php',{'action':'rejudge_pro','data':JSON.stringify({'proid':proid})},function(res){
 	    defer.resolve();
-	    com.url_pull();
+	    com.url_pull_pbox();
 	});
     });
     j_mbox.find('button.submit').on('click',function(e){
@@ -1188,7 +1329,7 @@ var class_user_editpro_mbox = function(){
 		    }
 		}else{
 		    defer.resolve();
-		    com.url_pull();
+		    com.url_pull_pbox();
 		}
 	    });
 	}else if(action == 'edit'){
@@ -1215,13 +1356,13 @@ var class_user_editpro_mbox = function(){
 		    }
 		}else{
 		    defer.resolve();
-		    com.url_pull();
+		    com.url_pull_pbox();
 		}
 	    });
 	}
     });
     j_mbox.find('button.cancel').on('click',function(e){
-	com.url_pull();
+	com.url_pull_pbox();
     });
 }; __extend(class_user_editpro_mbox,class_com_mbox);
 

@@ -71,14 +71,14 @@
 	    sqlib_scoreboard::update($sqlc, $msqlc, $sqid, $sboard_id, $score_func, $start_time, $end_time);
 	    
 	    //display
-	    $sqlstr = 'SELECT "a1"."uid", "a1"."rank_score", COUNT(*) AS "rank" FROM "sqlib_scoreboard_main" "a1", "sqlib_scoreboard_main" "a2" WHERE "a1"."sqid"=$1 AND "a1"."sboard_id"=$2 AND "a2"."sqid"=$1 AND "a2"."sboard_id"=$2 AND ("a2"."rank_score">"a1"."rank_score" OR "a2"."uid"="a1"."uid") GROUP BY "a1"."uid", "a1"."rank_score" ORDER BY "a1"."rank_score" DESC, "a1"."uid" LIMIT $4 OFFSET $3;';
-	    $sqlarr = array($sqid, $sboard_id, $start_offset-1, $number);
+	    $sqlstr = 'SELECT "a1"."uid", "a1"."rank_score", COUNT(*) AS "rank" FROM "sqlib_scoreboard_main" "a1", "sqlib_scoreboard_main" "a2" WHERE "a1"."sqid"=$1 AND "a1"."sboard_id"=$2 AND "a2"."sqid"=$1 AND "a2"."sboard_id"=$2 AND ("a2"."rank_score">"a1"."rank_score" OR "a2"."uid"="a1"."uid")  GROUP BY "a1"."uid", "a1"."rank_score" ORDER BY "a1"."rank_score" DESC, "a1"."uid" LIMIT $4 OFFSET $3;';
+	    $sqlarr = array($sqid, $sboard_id, $start_offset, $number);
 	    if($uid)
 	    {
 		$sqlstr = 'SELECT "a1"."uid", "a1"."rank_score", COUNT(*) AS "rank" FROM "sqlib_scoreboard_main" "a1", "sqlib_scoreboard_main" "a2" WHERE "a1"."sqid"=$1 AND "a1"."sboard_id"=$2 AND "a1"."uid"=$3 AND "a2"."sqid"=$1 AND "a2"."sboard_id"=$2 AND ("a2"."rank_score">"a1"."rank_score" OR "a2"."uid"="a1"."uid") GROUP BY "a1"."uid", "a1"."rank_score";';
 		$sqlarr = array($sqid, $sboard_id, $uid);
 	    }
-	    
+
 	    $res = pg_query_params($msqlc, $sqlstr, $sqlarr);
 	    $arr = pg_fetch_all($res);
 

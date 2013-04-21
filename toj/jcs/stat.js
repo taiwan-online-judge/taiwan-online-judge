@@ -110,12 +110,13 @@ var stat = new function(){
 		    $.post('/toj/php/status.php',{'action':'get_by_subid','data':JSON.stringify({'subid':that.sub_subid})},function(res){
 			var reto;
 
-			if(res[0] != 'E'){
+			if(res[0] == 'E'){
+			    com.url_update('/toj/none/');
+			}else{
 			    reto = JSON.parse(res);
 			    subid_node.smodname = reto.smodname;
 			    reto.submit_time = com.get_date(reto.submit_time);
 			    delete reto.smodname;
-
 
 			    css = $('<link rel="stylesheet" type="text/css" href="/toj/smod/' + subid_node.smodname + '/' + subid_node.smodname + '.css">');
 			    $('head').append(css);
@@ -143,7 +144,7 @@ var stat = new function(){
 					j_button = $('<button style="margin:6px 0px 0px 6px; float:right;">重測</button>');
 					j_button.on('click',function(e){
 					    $.post('/toj/php/status.php',{'action':'rejudge_submit','data':JSON.stringify({'subid':that.sub_subid})});
-					    com.url_pull();
+					    com.url_pull_pbox();
 					});
 					j_subres_mbox.prepend(j_button);
 				    }
@@ -155,8 +156,6 @@ var stat = new function(){
 				    });
 				});
 			    });
-			}else{
-			    com.url_update('/toj/none/');
 			}
 		    });
 		}   
@@ -233,7 +232,7 @@ var class_stat_sub_pbox = function(pbox_name){
 	}
 	j_ajax = $.post('/toj/php/status.php',{'action':'get_submit',
 	    'data':JSON.stringify({
-		'filter':{'uid':filter.uid,'result':filter.result,'proid':null,'lang':null},
+		'filter':{'uid':filter.uid,'result':filter.result,'proid':filter.proid,'lang':null},
 		'sort':{'score':null,'runtime':null,'memory':null,'subid':[1,0]},
 		'wait':10,
 		'count':100,
@@ -292,7 +291,7 @@ var class_stat_sub_pbox = function(pbox_name){
 	    down_block = true;
 	    $.post('/toj/php/status.php',{'action':'get_submit',
 		'data':JSON.stringify({
-		    'filter':{'uid':filter.uid,'result':filter.result,'proid':null,'lang':null},
+		    'filter':{'uid':filter.uid,'result':filter.result,'proid':filter.proid,'lang':null},
 		    'sort':{'score':null,'runtime':null,'memory':null,'subid':[0,esubid]},
 		    'wait':0,
 		    'count':50,
@@ -363,11 +362,15 @@ var class_stat_sub_pbox = function(pbox_name){
 
 	ret = '';
 	if(filter.uid != null){
-	    ret += 'uid:' + filter.uid; 
+	    ret += 'uid:' + filter.uid + ':'; 
+	}
+	if(filter.proid != null){
+	    ret += 'proid:' + filter.proid + ':';
 	}
 	if(filter.result != null){
-	    ret += 'result:' + filter.result; 
+	    ret += 'result:' + filter.result + ':'; 
 	}
+	ret = ret.slice(0,-1);
 
 	return ret;
     };
@@ -379,11 +382,14 @@ var class_stat_sub_pbox = function(pbox_name){
     that.node.url_chg = function(direct,url_upart,url_dpart){
 	var i;
 	var filter_part;
+	var key;
+	var value;
 
 	var _clear = function(){
 	    $(window).off('scorll');
 	    j_filter.find('tr.uid > td.value').text('None');
-	    j_filter.find('tr.result select').val(null);
+	    j_filter.find('tr.proid input').val('None');
+	    j_filter.find('tr.result select').val('null');
 	    j_table.find('tr.item').remove();
 	    
 	    if(j_ajax != null){
@@ -413,20 +419,29 @@ var class_stat_sub_pbox = function(pbox_name){
 	    refresh_flag = true;
 
 	    filter.uid = null;
+	    filter.proid = null;
 	    filter.result = null;
 	    if(url_dpart[0] != undefined){
 		filter_part = url_dpart[0].split(':');
 		for(i = 0;i < filter_part.length;i += 2){
-		    if(filter_part[i] == 'uid'){
-			filter.uid = parseInt(filter_part[i + 1]);
-		    }else if(filter_part[i] == 'result'){
-			filter.result = parseInt(filter_part[i + 1]);
+		    key = filter_part[i];
+		    value = filter_part[i + 1];
+
+		    if(key == 'uid'){
+			filter.uid = parseInt(value);
+		    }else if(key == 'proid'){
+			filter.proid = parseInt(value);
+		    }else if(key == 'result'){
+			filter.result = parseInt(value);
 		    }
 		}
 	    }
 
 	    if(filter.uid != null){
 		j_filter.find('tr.uid > td.value').text(filter.uid);
+	    }
+	    if(filter.proid != null){
+		j_filter.find('tr.proid input').val(filter.proid);
 	    }
 	    if(filter.result != null){
 		j_filter.find('tr.result select').val(filter.result);
@@ -442,6 +457,31 @@ var class_stat_sub_pbox = function(pbox_name){
 	return 'stop';
     };
 
+    j_pbox.find('div.subset > table.filter tr.proid input').on('focusin',function(e){
+	if($(this).val() == 'None'){
+	    $(this).val('');
+	}
+    }).on('focusout',function(e){
+	if($(this).val() == ''){
+	    $(this).val('None');
+	}
+    }).on('keypress',function(e){
+	var param;
+
+	if(e.which != 13){
+	    return;
+	}
+
+	if((filter.proid = $(this).val()) == 'None'){
+	    filter.proid = null;
+	}
+	console.log(filter.proid);
+	if((param = filter_getparam()) != ''){
+	    com.url_push('/toj/stat/sub/' + param + '/');
+	}else{
+	    com.url_push('/toj/stat/sub/');
+	}
+    });
     j_pbox.find('div.subset > table.filter tr.result select').on('change',function(e){
 	var param;
 

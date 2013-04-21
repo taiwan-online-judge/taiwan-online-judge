@@ -12,7 +12,7 @@ div.stat_page > div.sub_pbox > div.subset > table.filter tr.head{
     height:64px;
 }
 div.stat_page > div.sub_pbox > div.subset > table.filter tr.item{
-    height:32px;
+    height:38px;
 }
 div.stat_page > div.sub_pbox > div.subset > table.filter th.key,div.stat_page > div.sub_pbox > div.subset > table.filter td.key{
     width:76px;

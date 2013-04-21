@@ -192,6 +192,57 @@ class user
 
 	return true;	
     }
+
+    public static function statistic($sqlc, $uid){
+	$sqlstr = 'SELECT "proid",MIN("result") AS "result" FROM "submit" WHERE "uid"=$1 GROUP BY "proid" ORDER BY "proid" ASC;';
+	$sqlarr = array(intval($uid));
+	$sqlr = pg_query_params($sqlc, $sqlstr, $sqlarr);
+	$trylist = array();
+	while($obj = pg_fetch_object($sqlr)){
+	    $obj->proid = intval($obj->proid); 
+	    $obj->result = intval($obj->result); 
+	    array_push($trylist, $obj);
+	}
+	pg_free_result($sqlr);
+    
+	$sqlstr = 'SELECT "result",COUNT("result") AS "count" FROM "submit" WHERE "uid"=$1 GROUP BY "result" ORDER BY "result";';
+	$sqlarr = array(intval($uid));
+	$sqlr = pg_query_params($sqlc, $sqlstr, $sqlarr);
+	$substatis = array();
+	while($obj = pg_fetch_object($sqlr)){
+	    $obj->result = intval($obj->result);
+	    $obj->count = intval($obj->count);
+	    array_push($substatis, $obj);
+	}
+	pg_free_result($sqlr);
+
+	$sqlstr = 'SELECT "result",COUNT("result") AS "count" FROM "submit" WHERE "uid"=$1 GROUP BY "result" ORDER BY "result";';
+	$sqlarr = array(intval($uid));
+	$sqlr = pg_query_params($sqlc, $sqlstr, $sqlarr);
+	$substatis = array();
+	while($obj = pg_fetch_object($sqlr)){
+	    $obj->result = intval($obj->result);
+	    $obj->count = intval($obj->count);
+	    array_push($substatis, $obj);
+	}
+	pg_free_result($sqlr);
+
+	$sqlstr = 'SELECT TO_CHAR("submit_time",\'YYYY-MM\') AS "time",COUNT("submit_time") AS "count" FROM "submit" WHERE uid=$1 GROUP BY TO_CHAR("submit_time",\'YYYY-MM\');';
+	$sqlarr = array(intval($uid));
+	$sqlr = pg_query_params($sqlc, $sqlstr, $sqlarr);
+	$timesub = array();
+	while($obj = pg_fetch_object($sqlr)){
+	    $obj->count = intval($obj->count);
+	    array_push($timesub, $obj);
+	}
+	pg_free_result($sqlr);
+
+	return array(
+	    'trylist' => $trylist,
+	    'substatis' => $substatis,
+	    'timesub' => $timesub
+	);
+    }
 }
 
 function sec_check_level($sqlc, $lv, $uid = null)

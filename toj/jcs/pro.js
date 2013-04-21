@@ -151,7 +151,7 @@ var class_pro_sub_mbox = function(){
 		    j_error.text('其他錯誤');
 		}
 	    }else{
-		com.url_pull();
+		com.url_pull_pbox();
 	    }
 	});
     });

@@ -33,31 +33,31 @@ class status
 	{
 	    $condstr = $condstr.'"submit"."uid"='.pg_escape_string($filter->uid).' AND ';
 	}
-	if($filter->result != null)
+	if($filter->result !== null)
 	{
 	    $condstr = $condstr.'"result"='.pg_escape_string($filter->result).' AND ';
 	}
 	if($filter->proid != null)
 	{
-	    $condstr = $condstr.'"proid"='.pg_escape_string($filter->proid).' AND ';
+	    $condstr = $condstr.'"submit"."proid"='.pg_escape_string($filter->proid).' AND ';
 	}	
 	if($filter->lang != null)
 	{
 	    $condstr = $condstr.'"lang"='.pg_escape_string($filter->lang).' AND ';
 	}
-	if($sort->score != null)
+	if($sort->score !== null)
 	{
 	    $relstr = $sort->score[0]==0 ? '<=' : '>=';  
 	    $condstr = $condstr.'"score"'.$relstr.pg_escape_string($sort->score[1]).' AND ';
 	    $ordstr = $ordstr.'"score" '.($sort->score[0]==0 ? 'DESC' : 'ASC').' ,';
 	}
-	if($sort->runtime != null)
+	if($sort->runtime !== null)
 	{
 	    $relstr = $sort->runtime[0]==0 ? '<=' : '>=';  
 	    $condstr = $condstr.'"runtime"'.$relstr.pg_escape_string($sort->runtime[1]).' AND ';
 	    $ordstr = $ordstr.'"runtime" '.($sort->runtime[0]==0 ? 'DESC' : 'ASC').' ,';
 	}	
-	if($sort->maxmem != null)
+	if($sort->maxmem !== null)
 	{
 	    $relstr = $sort->maxmem[0]==0 ? '<=' : '>=';  
 	    $condstr = $condstr.'"memory"'.$relstr.pg_escape_string($sort->maxmem[1]).' AND ';
