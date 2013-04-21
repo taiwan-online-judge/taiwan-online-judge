@@ -23,6 +23,7 @@ var index = new function(){
 
 		    j_panel.addClass('panel_m');
 		    $('#index_panel_box').stop().css('opacity','1').animate({width:240},'slow','easeOutExpo');
+		    $('#index_panel span.title').stop().animate({left:0},'slow','easeOutQuart');
 		    $('#index_panel a.button').stop().animate({left:0},'slow','easeOutQuart');
 		}
 	    }else{
@@ -31,6 +32,7 @@ var index = new function(){
 		    $('#index_panel_box').stop().animate({opacity:0},'fast','easeOutQuad',
 			function(){
 			    $('#index_panel_box').css('width','0px');
+			    $('#index_panel span.title').css('left','50%');
 			    $('#index_panel a.button').css('left','50%');
 
 			    that.page_scroll_unlock();

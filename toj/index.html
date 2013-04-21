@@ -148,8 +148,14 @@ select{
     <li class="button home"><a href="/toj/home/" class="button">首頁</a></li>
     <li class="button stat"><a href="/toj/stat/sub/" class="button">狀態</a></li>
     <li class="button user" style="display:none;"><a class="button">個人</a></li>
-    <li class="button square"><a class="button">方塊</a></li>
-    <ul class="square_box"></ul>
+    <li class="button square" style="display:none;"><a class="button">方塊</a></li>
+    <ul class="square_box">
+	<li class="button mgsq"><a class="button"><strong>管理方塊</strong></a></li>
+	<li class="title"><span class="title">進行中</span></li>
+	<ul class="run"></ul>
+	<li class="title"><span class="title">已結束</span></li>
+	<ul class="past"></ul>
+    </ul>
 
     <li class="button login" style="margin:64px 0px 0px 0px; display:none;"><a href="/toj/login/" class="button">登入</a></li>
     <li class="button register" style="display:none;"><a href="/toj/register/" class="button">註冊</a></li>

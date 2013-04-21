@@ -140,16 +140,42 @@ ul.index_panel > ul.square_box{
     overflow:hidden;
     display:none;
 }
-ul.index_panel > ul.square_box > li.button{
+ul.index_panel > ul.square_box ul{
+    width:100%;
+    margin:0px 0px;
+    padding:0px 0px;
+    list-style:none;
+    overflow:hidden;
+}
+ul.index_panel > ul.square_box li.title{
+    width:auto;
+    height:32px;
+    margin:6px 0px 0px 0px;
+    padding:0px 0px 0px 32px;
+    line-height:32px;
+    border-bottom:#BDC0BA 1px solid;
+}
+ul.index_panel > ul.square_box li.button{
     width:auto;
     height:32px;
     padding:0px 0px 0px 32px;
     font-size:16px;
     line-height:32px;
 }
-ul.index_panel > ul.square_box > li:hover.button{
+ul.index_panel > ul.square_box li:hover.button{
     color:#FFFFFF;
     background-color:rgba(255,255,255,0.2);
+}
+ul.index_panel span.title{
+    width:100%;
+    height:100%;
+    color:#BDC0BA;
+    font-size:16px;
+    font-weight:bold;
+    position:relative;
+    top:0px;
+    left:50%;
+    display:block;
 }
 ul.index_panel a.button{
     width:100%;
