@@ -1,12 +1,12 @@
 var pro = new function(){
     var that = this;
-    var j_pbox = null;
-    var pro_pbox = null;
+    var j_page = null;
+    var pro_page = null;
     var pro_proid = null;
     var pro_pmodname = null;
 
     that.init = function(){
-	j_pbox = $('#index_page > div.pro_pbox');
+	j_page = $('#index_page > div.pro_page');
 
 	that.sub_mbox = new class_pro_sub_mbox();
 
@@ -15,14 +15,15 @@ var pro = new function(){
 	    var proid;
 
 	    var _clean = function(){
-		if(pro_pbox != null){
-		    that.node.child_del(pro_pbox.node);
+		if(pro_page != null){
+		    that.node.child_del(pro_page.node);
 		}
-		j_pbox.empty();
-		j_pbox.removeClass(pro_pmodname);
+		j_page.empty();
+		j_page.removeClass(pro_pmodname);
+		index.tab_empty();
 		index.content_empty();
 
-		pro_pbox = null;
+		pro_page = null;
 		pro_proid = null;
 		pro_pmodname = null;
 	    };
@@ -55,14 +56,14 @@ var pro = new function(){
 			css = $('<link rel="stylesheet" type="text/css" href="/toj/pmod/' + pro_pmodname + '/' + pro_pmodname + '.css">');
 			$('head').append(css);
 			css.ready(function(){
-			    j_pbox.addClass(pro_pmodname);
+			    j_page.addClass(pro_pmodname);
 
 			    $.get('/toj/pmod/' + pro_pmodname + '/' + pro_pmodname + '.html',{},function(res){
-				j_pbox.html(res);
+				j_page.html(res);
 				$.getScript('/toj/pmod/' + pro_pmodname + '/' + pro_pmodname + '.js',function(script,stat,res){
-				    pro_pbox = new class_pro_pbox(pro_proid,reto.proname);
-				    eval('new ' + pro_pmodname + '(pro_pbox,j_pbox)');
-				    that.node.child_set(pro_pbox.node);
+				    pro_page = new class_pro_page(pro_proid,reto.proname);
+				    eval('new ' + pro_pmodname + '(pro_page,j_page)');
+				    that.node.child_set(pro_page.node);
 				});
 			    });
 			});
@@ -80,9 +81,9 @@ var pro = new function(){
     };
 };
 
-var class_pro_pbox = function(proid,proname){
+var class_pro_page = function(proid,proname){
     var that  = this; 
-    var j_pbox = $('#index_page > div.pro_pbox');
+    var j_page = $('#index_page > div.pro_page');
 
     that.proid = proid;
     that.proname = proname;
@@ -97,7 +98,7 @@ var class_pro_pbox = function(proid,proname){
 	pro.sub_mbox.init(proid);
 	com.url_push('/toj/m/pro_sub/');
     };
-}; __extend(class_pro_pbox,class_com_pbox);
+}; __extend(class_pro_page,class_com_pbox);
 
 var class_pro_sub_mbox = function(){
     var that = this;

@@ -1,48 +1,126 @@
-div.pmod_test > div.info{
+div.pmod_test > div.pro_pbox > div.info{
     width:240px;
     float:left;
 }
-div.pmod_test > div.info > table.statlist{
+div.pmod_test > div.pro_pbox > div.info > table.statlist{
     width:100%;
     text-align:left;
     border-collapse:collapse;    
 }
-div.pmod_test > div.info > table.statlist td.name{
+div.pmod_test > div.pro_pbox > div.info > table.statlist td.name{
     width:76px;
 }
-div.pmod_test > div.info > table.statlist td.value{
+div.pmod_test > div.pro_pbox > div.info > table.statlist td.value{
     width:auto;
     padding:0px 0px 0px 6px;
 }
-div.pmod_test > div.info > table.limitlist{
+div.pmod_test > div.pro_pbox > div.info > table.limitlist{
     width:100%;
     text-align:left;
     border-collapse:collapse;    
 }
-div.pmod_test > div.info > table.limitlist td.name{
+div.pmod_test > div.pro_pbox > div.info > table.limitlist td.name{
     width:76px;
 }
-div.pmod_test > div.info > table.limitlist td.value{
+div.pmod_test > div.pro_pbox > div.info > table.limitlist td.value{
     width:auto;
     padding:0px 0px 0px 6px;
 }
-div.pmod_test > div.info > table.scorelist{
+div.pmod_test > div.pro_pbox > div.info > table.scorelist{
     width:100%;
     text-align:left;
     border-collapse:collapse;    
 }
-div.pmod_test > div.info > table.scorelist th.no,div.pmod_test > div.info > table.scorelist td.no{
+div.pmod_test > div.pro_pbox > div.info > table.scorelist th.no,div.pmod_test > div.pro_pbox > div.info > table.scorelist td.no{
     width:76px;
 }
-div.pmod_test > div.info > table.scorelist th.score,div.pmod_test > div.info > table.scorelist td.score{
+div.pmod_test > div.pro_pbox > div.info > table.scorelist th.score,div.pmod_test > div.pro_pbox > div.info > table.scorelist td.score{
     width:auto;
     padding:0px 0px 0px 6px;
 }
-div.pmod_test > div.content{
+div.pmod_test > div.pro_pbox > div.content{
     width:978px;
     margin:0px 0px 0px 6px;
     float:left;
 }
-div.pmod_test p{
+div.pmod_test > div.pro_pbox p{
     text-indent:32px;
+}
+
+
+
+div.pmod_test > div.edit_pbox > div.edit_box{
+    width:976px;
+    margin:0px 0px 0px 246px;
+    padding:0px 0px 32px 0px;
+}
+div.pmod_test > div.edit_pbox > div.edit_box input{
+    width:228px;
+    margin:0px 0px 16px 0px;
+}
+div.pmod_test > div.edit_pbox > div.edit_box > div.contentbox{
+    width:100%;
+    height:512px;
+    padding:0px 0px 32px 0px;
+}
+div.pmod_test > div.edit_pbox > div.testdata_box{
+    width:976px;
+    margin:0px 0px 0px 246px;
+    padding:0px 0px 32px 0px;
+}
+div.pmod_test > div.edit_pbox > div.testdata_box > table.table{
+    margin:32px 0px 32px 0px;
+    border-collapse:collapse;    
+    text-align:left;
+}
+div.pmod_test > div.edit_pbox > div.testdata_box > table.table tr.head{
+    height:64px
+}
+div.pmod_test > div.edit_pbox > div.testdata_box > table.table tr.item{
+    height:64px
+}
+div.pmod_test > div.edit_pbox > div.testdata_box > table.table th,div.pmod_test > div.edit_pbox > div.testdata_box > table.table td{
+    width:76px;
+    padding:0px 0px 0px 6px;
+}
+div.pmod_test > div.edit_pbox > div.testdata_box > table.table th.no,div.pmod_test > div.edit_pbox > div.testdata_box > table.table td.no{
+    padding:0px 0px 0px 0px;
+}
+
+div.pmod_test > div.edit_pbox > div.testdata_box > table.table td.score > input{
+    width:35px;
+}
+div.pmod_test > div.edit_pbox > div.testdata_box > table.table th.file,div.pmod_test > div.edit_pbox > div.testdata_box > table.table td.file{
+    width:322px;
+}
+
+div.pmod_test > div.edit_pbox div.prog_box{
+    width:486px;
+    height:16px;
+    margin:0px 0px 16px 0px;
+    background-color:rgba(255,255,255,0.2);
+    color:#1C1C1C;
+    font-size:12px;
+    font-family:monospace;
+    line-height:16px;
+    text-align:right;
+    position:relative;
+}
+div.pmod_test > div.edit_pbox div.prog_box > div.total{
+    width:0%;
+    height:16px;
+    position:absolute;
+    top:0px;
+    left:0%;
+    overflow:hidden;
+}
+div.pmod_test > div.edit_pbox div.prog_box > div.prog{
+    width:0%;
+    height:16px;
+    background-color:#3A8FB7;
+    font-weight:bold;
+    position:absolute;
+    top:0px;
+    left:0px;
+    overflow:hidden;
 }

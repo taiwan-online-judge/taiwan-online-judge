@@ -4,6 +4,7 @@
 
 require_once('problem.inc.php');
 require_once('user.inc.php');
+require_once('event.inc.php');
 
 $sqlc = db_connect();
 
@@ -50,8 +51,9 @@ if($action == 'add_pro')
 	die('Eproname_too_short');
     if(strlen($dt->proname) > PRONAME_LEN_MAX)
 	die('Eproname_too_long');
-
-    if(!problem::getmod($sqlc, $dt->modid))
+    
+    $mod = problem::getmod($sqlc, $dt->modid);
+    if(!$mod)
 	die('Ewrong_modid');    
 
     if($dt->hidden !== true && $dt->hidden !== false)
@@ -64,6 +66,9 @@ if($action == 'add_pro')
     $pro = problem::add($sqlc, $dt);
     if(!$pro)
 	die('Eadd_problem');    
+
+    if(event::exec_func('../pmod/'.$mod->pmodname.'/'.$mod->pmodname.'.inc.php','event_create',[$pro->proid]) === false)
+	die('Eevent_error');
 
     echo(json_encode($pro));
 }
