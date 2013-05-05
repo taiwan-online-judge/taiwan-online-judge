@@ -27,6 +27,8 @@ class IMCProxy:
 
         self.MSGTYPE_CALL = 'call'
 
+        self.test_count = 0
+
     def add_conn(self,linkid,conn):
         self._linkid_connmap[id(conn)] = linkid
         self._conn_linkidmap[linkid] = conn
@@ -46,9 +48,9 @@ class IMCProxy:
 
     def _recvloop_dispatch(self,conn,data):
         msg = json.loads(data.decode('utf-8'))
-        msg_type == msg['type']
+        msg_type = msg['type']
         if msg_type == self.MSGTYPE_CALL:
-            _recv_msg_call(msg)
+            self._recv_msg_call(conn,msg)
 
     def _conn_close_cb(self,conn):
         self.del_conn(conn)
@@ -64,10 +66,12 @@ class IMCProxy:
         }
         conn.send_msg(bytes(json.dumps(msg),'utf-8')) 
 
-    def _recv_msg_call(self,msg):
+    def _recv_msg_call(self,conn,msg):
         iden = msg['iden']
         dst = msg['dst']
         func = msg['func']
         param = msg['param']
 
-        print(func)
+        self.test_count += 1
+        print(self.test_count)
+        self._send_msg_call(conn,None,None,'Hello too',None)

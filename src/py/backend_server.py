@@ -38,6 +38,8 @@ class BackendWorker():
 
                 print('/backend/' + self.linkid)
 
+                self.imc_proxy._send_msg_call(self.center_conn,None,None,'Hello',None)
+
             netio.send_pack(stream,bytes(json.dumps({
                 'linkclass':self.linkclass,
                 'ws_addr':('210.70.137.215',81)
