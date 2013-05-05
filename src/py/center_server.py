@@ -26,9 +26,9 @@ class Worker:
             'center_linkid':center_serv.linkid
         }),'utf-8'))
 
-        conn = netio.SocketConnection(self.stream)
+        conn = netio.SocketConnection(self.linkid,self.stream)
         conn.add_close_callback(lambda conn : self.close())
-        center_serv.imc_proxy.add_conn(self.linkid,conn)
+        center_serv.imc_proxy.add_conn(conn)
 
     def close(self):
         pass

@@ -16,8 +16,8 @@ def recv_pack(stream,callback):
     stream.read_bytes(8,_recv_size)
 
 class SocketConnection(imcproxy.IMCConnection):
-    def __init__(self,stream):
-        super().__init__()
+    def __init__(self,linkid,stream):
+        super().__init__(linkid)
 
         self.ioloop = tornado.ioloop.IOLoop.current()
         self.stream = stream

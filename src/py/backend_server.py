@@ -32,13 +32,16 @@ class BackendWorker():
                 info = json.loads(data.decode('utf-8'))
 
                 self.linkid = info['linkid']
-                self.center_conn = netio.SocketConnection(stream)
+                self.center_conn = netio.SocketConnection(info['center_linkid'],stream)
                 self.center_conn.add_close_callback(lambda conn : __retry())
-                self.imc_proxy.add_conn(info['center_linkid'],self.center_conn)
+                self.imc_proxy.add_conn(self.center_conn)
 
                 print('/backend/' + self.linkid)
 
-                self.imc_proxy._send_msg_call(self.center_conn,None,None,'Hello',None)
+                def ___tmp(genid):
+                    print(genid)
+
+                self.imc_proxy._send_msg_call(self.center_conn,5000,13,___tmp,None,None,'Hello',None)
 
             netio.send_pack(stream,bytes(json.dumps({
                 'linkclass':self.linkclass,
