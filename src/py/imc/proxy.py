@@ -3,7 +3,9 @@ import json
 import tornado.ioloop
 import tornado.stack_context
 
-class IMCConnection:
+import nonblock
+
+class Connection:
     def __init__(self,linkid):
         self.linkid = linkid
         self._close_callback = []
@@ -21,16 +23,21 @@ class IMCConnection:
         for callback in self._close_callback:
             callback(self)
 
-class IMCProxy:
-    def __init__(self):
+class Proxy:
+    def __init__(self,linkid):
+        self._linkid = linkid
+
         self._conn_linkidmap = {}
         self._conn_waitretmap = {}
+        self._call_pathmap = {}
 
         self.MSGTYPE_CALL = 'call'
         self.MSGTYPE_RET = 'ret'
 
         self._check_waitret_timer = tornado.ioloop.PeriodicCallback(self._check_waitret,1000)
         self._check_waitret_timer.start()
+
+        Proxy.instance = self 
 
     def add_conn(self,conn):
         self._conn_linkidmap[conn.linkid] = conn
@@ -44,16 +51,45 @@ class IMCProxy:
         del self._conn_waitretmap[conn.linkid]
 
     def get_conn(self,linkid):
-        if linkid not in self.conn_linkidmap:
+        if linkid not in self._conn_linkidmap:
             return None
 
-        return self.conn_linkidmap[linkid]
+        return self._conn_linkidmap[linkid]
+
+    def call(self,genid,iden,dst,func_name,param):
+        def _fail_cb(genid):
+            print('Opps')
+
+        self._route_call(genid,_fail_cb,iden,dst,func_name,param)
+
+    def register_call(self,path,func_name,func):
+        self._call_pathmap[''.join([path,'/',func_name])] = func
+
+    def _route_call(self,genid,fail_callback,iden,dst,func_name,param):
+        dst_part = dst.split('/')[1:]
+        linkid = dst_part[1]
+        path = ''.join(dst_part[2:])
+
+        if linkid == self._linkid:
+            self._handle_call(genid,fail_callback,iden,path,func_name,param)
+        else:
+            conn = self.get_conn(linkid)
+            if conn == None:
+                pass
+
+    def _handle_call(self,genid,fail_callback,iden,path,func_name,param):
+        try:
+            self._call_pathmap[''.join([path,'/',func_name])](param)
+        except KeyError:
+            fail_callback(genid)
 
     def _recvloop_dispatch(self,conn,data):
         msg = json.loads(data.decode('utf-8'))
         msg_type = msg['type']
         if msg_type == self.MSGTYPE_CALL:
             self._recv_msg_call(conn,msg)
+        elif msg_type == self.MSGTYPE_RET:
+            self._recv_msg_ret(conn,msg)
 
     def _conn_close_cb(self,conn):
         wait_map = self._conn_waitretmap[conn.linkid]
@@ -97,7 +133,35 @@ class IMCProxy:
         conn.send_msg(bytes(json.dumps(msg),'utf-8')) 
 
     def _recv_msg_call(self,conn,msg):
+        genid = msg['genid']
         iden = msg['iden']
         dst = msg['dst']
         func = msg['func']
         param = msg['param']
+
+        print(genid)
+
+        self._send_msg_ret(conn,genid,'Hello')
+    
+    def _send_msg_ret(self,conn,genid,retvalue):
+        msg = {
+            'type':self.MSGTYPE_RET,
+            'genid':genid,
+            'retvalue':retvalue
+        }
+        conn.send_msg(bytes(json.dumps(msg),'utf-8'))
+
+    def _recv_msg_ret(self,conn,msg):
+        genid = msg['genid']
+        retvalue = msg['retvalue']
+
+        self._conn_waitretmap[conn.linkid].pop(genid)
+
+        print(retvalue)
+
+@nonblock.call
+def imc_call(iden,dst,func_name,param,_genid):
+    Proxy.instance.call(_genid,iden,dst,func_name,param)
+
+def imc_register_call(path,func_name,func):
+    Proxy.instance.register_call(path,func_name,func)

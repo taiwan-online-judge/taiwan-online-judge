@@ -8,7 +8,7 @@ def call(f):
         global gen_current_id
         global gen_waitmap
 
-        kwargs['genid'] = gen_current_id
+        kwargs['_genid'] = gen_current_id
         return f(*args,**kwargs)
 
     return wrapper

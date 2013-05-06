@@ -3,7 +3,7 @@ import struct
 import tornado.ioloop
 import tornado.stack_context
 
-import imcproxy
+from imc.proxy import Connection
 
 def send_pack(stream,data):
     stream.write(struct.pack('l',len(data)) + data)
@@ -15,7 +15,7 @@ def recv_pack(stream,callback):
 
     stream.read_bytes(8,_recv_size)
 
-class SocketConnection(imcproxy.IMCConnection):
+class SocketConnection(Connection):
     def __init__(self,linkid,stream):
         super().__init__(linkid)
 

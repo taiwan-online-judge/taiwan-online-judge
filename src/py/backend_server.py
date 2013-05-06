@@ -8,7 +8,8 @@ import tornado.iostream
 import tornado.ioloop
 
 import netio
-import imcproxy
+import imc.nonblock
+from imc.proxy import Proxy,Connection,imc_call,imc_register_call
 
 class BackendWorker():
     def __init__(self,center_addr):
@@ -17,7 +18,6 @@ class BackendWorker():
 
         self.linkclass = 'backend'
         self.linkid = None
-        self.imc_proxy = imcproxy.IMCProxy()
 
     def start(self):
         self._conn_center()
@@ -32,16 +32,17 @@ class BackendWorker():
                 info = json.loads(data.decode('utf-8'))
 
                 self.linkid = info['linkid']
+                Proxy(self.linkid)
+
                 self.center_conn = netio.SocketConnection(info['center_linkid'],stream)
                 self.center_conn.add_close_callback(lambda conn : __retry())
-                self.imc_proxy.add_conn(self.center_conn)
+                Proxy.instance.add_conn(self.center_conn)
 
                 print('/backend/' + self.linkid)
 
-                def ___tmp(genid):
-                    print(genid)
 
-                self.imc_proxy._send_msg_call(self.center_conn,5000,13,___tmp,None,None,'Hello',None)
+                imc_register_call('','test_dst',self._test_dst)
+                self._test_call(None)
 
             netio.send_pack(stream,bytes(json.dumps({
                 'linkclass':self.linkclass,
@@ -52,6 +53,15 @@ class BackendWorker():
         stream = tornado.iostream.IOStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0))
         stream.set_close_callback(__retry)
         stream.connect(self.center_addr,lambda : __send_worker_info())
+
+    @imc.nonblock.func
+    def _test_call(self,param):
+        print('test')
+        imc_call(None,'/backend/' + self.linkid,'test_dst','Hello')
+
+    @imc.nonblock.func
+    def _test_dst(self,param):
+        print('dst')
        
 if __name__ == '__main__':
     backend_worker = BackendWorker(('localhost',5730))

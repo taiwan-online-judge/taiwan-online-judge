@@ -10,7 +10,7 @@ import tornado.httpserver
 import tornado.web
 
 import netio
-import imcproxy
+from imc.proxy import Proxy,Connection
 
 class Worker:
     def __init__(self,stream,linkclass,linkid,worker_ip):
@@ -28,7 +28,7 @@ class Worker:
 
         conn = netio.SocketConnection(self.linkid,self.stream)
         conn.add_close_callback(lambda conn : self.close())
-        center_serv.imc_proxy.add_conn(conn)
+        Proxy.instance.add_conn(conn)
 
     def close(self):
         pass
@@ -58,9 +58,9 @@ class CenterServer(tornado.tcpserver.TCPServer):
         self.linkid_usemap = {}
         self.backend_workerlist = []
 
-        self.imc_proxy = imcproxy.IMCProxy()
         self.linkclass = 'center'
         self.linkid = self._create_linkid()
+        Proxy(self.linkid)
 
         print('/center/' + self.linkid)
 
