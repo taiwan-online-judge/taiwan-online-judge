@@ -56,12 +56,12 @@ class BackendWorker():
 
     @imc.nonblock.func
     def _test_call(self,param):
-        print('test')
-        imc_call(None,'/backend/' + self.linkid,'test_dst','Hello')
+        ret = (yield imc_call(None,'/backend/' + self.center_conn.linkid,'test_dst','Hello'))
+        print(ret)
 
     @imc.nonblock.func
     def _test_dst(self,param):
-        print('dst')
+        return 'Hello Too'
        
 if __name__ == '__main__':
     backend_worker = BackendWorker(('localhost',5730))
