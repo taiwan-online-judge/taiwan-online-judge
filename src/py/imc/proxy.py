@@ -30,6 +30,7 @@ class Proxy:
 
         self._conn_linkidmap = {}
         self._caller_genidmap = {self._linkid:{}}
+        self._retcall_genidmap = {}
         self._call_pathmap = {}
 
         self.MSGTYPE_CALL = 'call'
@@ -62,22 +63,41 @@ class Proxy:
 
         return self._conn_linkidmap[linkid]
 
+    def register_call(self,path,func_name,func):
+        self._call_pathmap[''.join([path,'/',func_name])] = func
+
     def call(self,genid,timeout,iden,dst,func_name,param):
         def _call_cb(genid,err,retvalue):
             print('Opps')
 
         try:
-            stat,retvalue = self._route_call(genid,iden,dst,func_name,param)
+            stat,linkid,retvalue = self._route_call(genid,iden,dst,func_name,param)
             if stat == True:
-                self._ioloop.add_callback(nonblock.retcall,genid,retvalue)
+                self._ioloop.add_callback(self.retcall,genid,retvalue)
             else:
-                self._add_waitcaller(self._linkid,genid,timeout,_call_cb)
+                if retvalue != None:
+                    self._retcall_genidmap[retvalue] = {
+                        'genid':genid,
+                        'callback':tornado.stack_context.wrap(self._retcall)
+                    }
+
+                self._add_waitcaller(linkid,genid,timeout,_call_cb)
 
         except Exception as err:
+            print(err)
             _call_cb(genid,err,None)
 
-    def register_call(self,path,func_name,func):
-        self._call_pathmap[''.join([path,'/',func_name])] = func
+    def retcall(self,genid,retvalue):
+        stat,retvalue = nonblock.retcall(genid,retvalue)
+        if stat == True:
+            try:
+                data = self._retcall_genidmap.pop(genid)
+                data['callback'](data['genid'],retvalue)
+
+            except KeyError:
+                pass
+        else:
+            pass
 
     def _route_call(self,genid,iden,dst,func_name,param):
         dst_part = dst.split('/')[1:]
@@ -85,11 +105,15 @@ class Proxy:
         path = ''.join(dst_part[2:])
 
         if linkid == self._linkid:
-            stat,retvalue = self._handle_call(genid,iden,path,func_name,param)
-            if stat == True:
-                ret = (True,retvalue)
-            else:
-                ret = (False,self._linkid)
+            try:
+                stat,retvalue = self._call_pathmap[''.join([path,'/',func_name])](param)
+                if stat == True:
+                    ret = (True,None,retvalue)
+                else:
+                    ret = (False,linkid,retvalue) 
+
+            except KeyError:
+                raise Exception('notexist')
 
         else:
             conn = self.get_conn(linkid)
@@ -97,15 +121,9 @@ class Proxy:
                 pass
 
             self._send_msg_call(conn,genid,iden,dst,func_name,param)
-            ret = (False,conn.linkid)
+            ret = (False,conn.linkid,None)
 
         return ret
-
-    def _handle_call(self,genid,iden,path,func_name,param):
-        try:
-            return self._call_pathmap[''.join([path,'/',func_name])](param)
-        except KeyError:
-            raise Exception('notexist')
 
     def _recvloop_dispatch(self,conn,data):
         msg = json.loads(data.decode('utf-8'))
@@ -119,7 +137,7 @@ class Proxy:
         self.del_conn(conn)
         print('connection close')
 
-    def _add_waitcaller(linkid,genid,timeout,callback):
+    def _add_waitcaller(self,linkid,genid,timeout,callback):
         wait = {
             'timeout':timeout,
             'callback':tornado.stack_context.wrap(callback)
@@ -164,7 +182,7 @@ class Proxy:
             print('Opps')
 
         try:
-            stat,retvalue = self._route_call(genid,iden,dst,func_name,param)
+            stat,linkid,retvalue = self._route_call(genid,iden,dst,func_name,param)
             if stat == True:
                 self._send_msg_ret(conn,genid,retvalue)
 
@@ -174,8 +192,6 @@ class Proxy:
         except Exception as err:
             _call_cb(genid,err,None)
 
-        #self._send_msg_ret(conn,genid,'Hello')
-    
     def _send_msg_ret(self,conn,genid,retvalue):
         msg = {
             'type':self.MSGTYPE_RET,
@@ -188,10 +204,12 @@ class Proxy:
         genid = msg['genid']
         retvalue = msg['retvalue']
 
-        print(self._caller_genidmap)
-        self._caller_genidmap[conn.linkid].pop(genid)
+        try:
+            del self._caller_genidmap[conn.linkid][genid]
+            self.retcall(genid,retvalue)
 
-        print(retvalue)
+        except KeyError:
+            pass
 
 @nonblock.call
 def imc_call(iden,dst,func_name,param,_genid):

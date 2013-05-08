@@ -26,7 +26,7 @@ def func(f):
             try:
                 next(gen)
 
-                return (False,None)
+                return (False,gen_current_id)
             except StopIteration as ret:
                 del gen_waitmap[gen_current_id]
                 return (True,ret)
@@ -44,7 +44,7 @@ def retcall(genid,value):
         gen = gen_waitmap[gen_current_id]
         gen.send(value)
     
-        return (False,None)
+        return (False,gen_current_id)
     except StopIteration as ret:
         del gen_waitmap[gen_current_id]
         return (True,ret)
