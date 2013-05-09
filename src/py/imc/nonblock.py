@@ -45,6 +45,7 @@ def retcall(genid,value):
         gen.send(value)
     
         return (False,gen_current_id)
-    except StopIteration as ret:
+
+    except StopIteration as err:
         del gen_waitmap[gen_current_id]
-        return (True,ret)
+        return (True,err.value)

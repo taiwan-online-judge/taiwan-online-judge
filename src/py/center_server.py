@@ -11,7 +11,7 @@ import tornado.web
 
 import netio
 import imc.nonblock
-from imc.proxy import Proxy,Connection,imc_register_call
+from imc.proxy import Proxy,Connection,imc_register_call,imc_call
 
 class Worker:
     def __init__(self,stream,linkclass,linkid,worker_ip):
@@ -66,6 +66,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
         print('/center/' + self.linkid)
 
         imc_register_call('','test_dst',self._test_dst)
+        imc_register_call('','test_dstb',self._test_dstb)
 
     def handle_stream(self,stream,address):
         def _recv_worker_info(data):
@@ -104,7 +105,12 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
     @imc.nonblock.func
     def _test_dst(self,param):
-        return 'Hello Too'
+        stat,ret = (yield imc_call(self.linkid,'/center/' + self.linkid,'test_dstb','Hello X'))
+        return ret + ' Too'
+
+    @imc.nonblock.func
+    def _test_dstb(self,param):
+        return param + ' World'
 
 class WebConnHandler(tornado.web.RequestHandler):
     def get(self):
