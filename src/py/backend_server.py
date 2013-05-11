@@ -4,6 +4,7 @@ import socket
 import json
 import datetime
 import time
+from multiprocessing import Process
 
 import tornado.iostream
 import tornado.ioloop
@@ -111,7 +112,17 @@ def start_backend_worker(ws_port):
     backend_worker = BackendWorker(('localhost',5730),ws_port)
     backend_worker.start()
 
-if __name__ == '__main__':
-    start_backend_worker(82)
-
     tornado.ioloop.IOLoop.instance().start()
+
+if __name__ == '__main__':
+    worker_list = []
+
+    worker_list.append(Process(target = start_backend_worker,args = (81, )))
+    worker_list.append(Process(target = start_backend_worker,args = (82, )))
+
+    for proc in worker_list:
+        proc.start()
+
+    for proc in worker_list:
+        proc.join()
+

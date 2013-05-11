@@ -11,7 +11,7 @@ import tornado.web
 
 import netio
 import imc.nonblock
-from imc.proxy import Proxy,Connection,imc_register_call,imc_call
+from imc.proxy import Proxy,Connection,imc_call,imc_register_call
 
 class Worker:
     def __init__(self,stream,linkclass,linkid,worker_ip):
@@ -104,6 +104,8 @@ class CenterServer(tornado.tcpserver.TCPServer):
         
         linkid = str(linkid)
         self.linkid_usemap[linkid] = True
+
+        linkid = str(len(self.linkid_usemap))
         
         return linkid
 

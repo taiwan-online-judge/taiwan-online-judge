@@ -20,7 +20,7 @@ def func(f):
 
         gen = f(*args,**kwargs)
         if isinstance(gen,types.GeneratorType):
-            gen_current_id = id(gen)
+            gen_current_id = str(id(gen))
             gen_waitmap[gen_current_id] = gen
 
             try:
