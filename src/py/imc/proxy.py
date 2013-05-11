@@ -99,7 +99,7 @@ class Proxy:
                 stat,data = self._call_pathmap[''.join([path,'/',func_name])](param)
 
             except KeyError:
-                print('Enot_exist')
+                raise
 
             if stat == True:
                 if caller_linkid == self._linkid:

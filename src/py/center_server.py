@@ -43,7 +43,7 @@ class BackendWorker(Worker):
 
         center_serv.add_backend_worker(self)
 
-    def add_client(self):
+    def add_client(self,client_linkid):
         return self.ws_addr
 
     def close(self):
@@ -91,7 +91,11 @@ class CenterServer(tornado.tcpserver.TCPServer):
         if size == 0:
             return None
 
-        return self.backend_workerlist[random.randrange(size)].add_client()
+        linkid = self._create_linkid()
+        worker = self.backend_workerlist[random.randrange(size)]
+        ws_ip,ws_port = worker.add_client(linkid)
+
+        return (linkid,worker.linkid,ws_ip,ws_port)
 
     def _create_linkid(self):
         linkid = uuid.uuid4()
@@ -113,16 +117,22 @@ class CenterServer(tornado.tcpserver.TCPServer):
         return param + ' World'
 
 class WebConnHandler(tornado.web.RequestHandler):
-    def get(self):
+    def set_default_headers(self):
+        self.set_header('Access-Control-Allow-Origin','*')
+
+    def post(self):
         global center_serv
 
-        addr = center_serv.add_client()
-        if addr == None:
+        data = center_serv.add_client()
+        if data == None:
             self.write('Eno_backend')
         else:
-            ip,port = addr
+            client_linkid,worker_linkid,ip,port = data
             self.write(json.dumps({
-                'ip':ip,'port':port
+                'client_linkid':client_linkid,
+                'worker_linkid':worker_linkid,
+                'ip':ip,
+                'port':port
             }))
 
 if __name__ == '__main__':

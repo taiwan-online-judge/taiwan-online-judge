@@ -3,24 +3,41 @@
 import socket
 import json
 import datetime
+import time
 
 import tornado.iostream
 import tornado.ioloop
+import tornado.httpserver
+import tornado.websocket
 
 import netio
 import imc.nonblock
 from imc.proxy import Proxy,Connection,imc_call,imc_register_call
 
 class BackendWorker():
-    def __init__(self,center_addr):
+    def __init__(self,center_addr,ws_port):
         self.ioloop = tornado.ioloop.IOLoop.current()
         self.center_addr = center_addr
-
         self.linkclass = 'backend'
         self.linkid = None
+        self.ws_port = ws_port
+
+        self._client_linkidmap = {}
 
     def start(self):
         self._conn_center()
+
+    def add_client(self,linkid,handler):
+        self._client_linkidmap[linkid] = {}
+
+        conn = netio.WebSocketConnection(linkid,handler)
+        conn.add_close_callback(lambda conn : self.del_client(conn.linkid))
+        Proxy.instance.add_conn(conn)
+
+        return conn
+
+    def del_client(self,linkid):
+        del self._client_linkidmap[linkid]
 
     def _conn_center(self):
         def __retry():
@@ -46,7 +63,7 @@ class BackendWorker():
 
             netio.send_pack(stream,bytes(json.dumps({
                 'linkclass':self.linkclass,
-                'ws_addr':('210.70.137.215',81)
+                'ws_addr':('210.70.137.215',self.ws_port)
             }),'utf-8'))
             netio.recv_pack(stream,___recv_info_cb)
 
@@ -56,15 +73,45 @@ class BackendWorker():
 
     @imc.nonblock.func
     def _test_call(self,param):
+        print(time.perf_counter())
         ret = (yield imc_call(self.linkid,'/backend/' + self.center_conn.linkid,'test_dst','Hello'))
+        print(time.perf_counter())
         print(ret)
 
     @imc.nonblock.func
     def _test_dst(self,param):
-        return 'Hello Too'
-       
-if __name__ == '__main__':
-    backend_worker = BackendWorker(('localhost',5730))
+        return param + ' Too'
+
+class WebSocketConnHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        pass
+
+    def on_message(self,msg):
+        global backend_worker
+
+        if hasattr(self,'worker_conn'):
+            self.worker_conn.recv_msg(msg)
+        
+        else:
+            info = json.loads(msg)
+            self.worker_conn = backend_worker.add_client(info['client_linkid'],self)
+
+    def on_close(self):
+        if hasattr(self,'worker_conn'):
+            self.worker_conn.close()
+
+def start_backend_worker(ws_port):
+    global backend_worker
+
+    http_serv = tornado.httpserver.HTTPServer(tornado.web.Application([
+        ('/conn',WebSocketConnHandler)
+    ]))
+    http_serv.listen(ws_port)
+
+    backend_worker = BackendWorker(('localhost',5730),ws_port)
     backend_worker.start()
+
+if __name__ == '__main__':
+    start_backend_worker(82)
 
     tornado.ioloop.IOLoop.instance().start()

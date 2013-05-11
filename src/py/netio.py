@@ -65,3 +65,19 @@ class SocketConnection(Connection):
         self._ping_timer = tornado.ioloop.PeriodicCallback(__check,1000)
         self._ping_timer.start()
         self._ping_delay = 0
+
+class WebSocketConnection(Connection):
+    def __init__(self,linkid,handler):
+        super().__init__(linkid)
+
+        self.ioloop = tornado.ioloop.IOLoop.current()
+        self.handler = handler
+
+    def send_msg(self,data):
+        self.handler.write_message(data,True)
+
+    def recv_msg(self,data):
+        self._recvloop_callback(self,data)
+
+    def start_recvloop(self,recvloop_callback):
+        self._recvloop_callback = tornado.stack_context.wrap(recvloop_callback)
