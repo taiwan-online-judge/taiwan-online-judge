@@ -14,13 +14,13 @@ import imc.nonblock
 from imc.proxy import Proxy,Connection,imc_call,imc_register_call
 
 class Worker:
-    def __init__(self,stream,linkclass,linkid,worker_ip):
+    def __init__(self,stream,linkclass,linkid,worker_info):
         global center_serv
 
         self.stream = stream
         self.linkclass = linkclass
         self.linkid = linkid
-        self.worker_ip = worker_ip
+        self.sock_addr = (worker_info['sock_ip'],worker_info['sock_port'])
 
         netio.send_pack(self.stream,bytes(json.dumps({
             'linkid':self.linkid,
@@ -35,11 +35,11 @@ class Worker:
         pass
 
 class BackendWorker(Worker):
-    def __init__(self,stream,linkid,worker_ip,worker_info):
+    def __init__(self,stream,linkid,worker_info):
         global center_serv
 
-        super().__init__(stream,'backend',linkid,worker_ip)
-        self.ws_addr = worker_info['ws_addr']
+        super().__init__(stream,'backend',linkid,worker_info)
+        self.ws_addr = (worker_info['ws_ip'],worker_info['ws_port'])
 
         center_serv.add_backend_worker(self)
 
@@ -56,14 +56,20 @@ class CenterServer(tornado.tcpserver.TCPServer):
     def __init__(self):
         super().__init__()
 
-        self.linkid_usemap = {}
-        self.backend_workerlist = []
+        self._linkid_usemap = {}
+        self._worker_linkidmap = {}
+        self._client_linkidmap = {}
+        self._backend_workerlist = []
 
         self.linkclass = 'center'
         self.linkid = self._create_linkid()
         Proxy(self.linkid)
 
         print('/center/' + self.linkid)
+
+        imc_register_call('','lookup_linkid',self._lookup_linkid)
+        imc_register_call('','add_client',self._add_client)
+        imc_register_call('','del_client',self._del_client)
 
         imc_register_call('','test_dst',self._test_dst)
         imc_register_call('','test_dstb',self._test_dstb)
@@ -75,47 +81,89 @@ class CenterServer(tornado.tcpserver.TCPServer):
             linkclass = worker_info['linkclass']
             if linkclass == 'backend':
                 linkid = self._create_linkid()
-                worker_ip,worker_port = address 
-                worker = BackendWorker(stream,linkid,worker_ip,worker_info)
+                worker = BackendWorker(stream,linkid,worker_info)
 
         netio.recv_pack(stream,_recv_worker_info)
 
     def add_backend_worker(self,worker):
-        self.backend_workerlist.append(worker)
+        self._worker_linkidmap[worker.linkid] = worker
+        self._backend_workerlist.append(worker)
     
     def del_backend_worker(self,worker):
-        self.backend_workerlist.remove(worker)
+        self._worker_linkidmap.pop(worker.linkid,None)
+        self._backend_workerlist.remove(worker)
 
     def add_client(self):
-        size = len(self.backend_workerlist)
+        size = len(self._backend_workerlist)
         if size == 0:
             return None
 
         linkid = self._create_linkid()
-        worker = self.backend_workerlist[random.randrange(size)]
+        worker = self._backend_workerlist[random.randrange(size)]
         ws_ip,ws_port = worker.add_client(linkid)
 
         return (linkid,worker.linkid,ws_ip,ws_port)
 
     def _create_linkid(self):
         linkid = uuid.uuid4()
-        while linkid in self.linkid_usemap:
+        while linkid in self._linkid_usemap:
             linkid = uuid.uuid4()
         
         linkid = str(linkid)
-        self.linkid_usemap[linkid] = True
+        self._linkid_usemap[linkid] = True
 
-        linkid = str(len(self.linkid_usemap))
+        linkid = str(len(self._linkid_usemap))
         
         return linkid
 
     @imc.nonblock.func
-    def _test_dst(self,param):
-        stat,ret = (yield imc_call(self.linkid,'/center/' + self.linkid,'test_dstb','Hello X'))
-        return ret + ' Too'
+    def _lookup_linkid(self,iden,param):
+        linkid = param
+
+        try:
+            worker = self._worker_linkidmap[linkid]
+            if iden['linkclass'] != 'client':
+                sock_ip,sock_port = worker.sock_addr
+                return {'worker_linkid':worker.linkid,'sock_ip':sock_ip,'sock_port':sock_port}
+
+        except KeyError:
+            return None
+        
+    @imc.nonblock.func
+    def _add_client(self,iden,param):
+        worker_linkid = param['worker_linkid']
+        client_linkid = param['client_linkid']
+
+        self._client_linkidmap[client_linkid] = True
+        conn = Proxy.instance.get_conn(worker_linkid)
+        Proxy.instance.link_conn(client_linkid,conn)
 
     @imc.nonblock.func
-    def _test_dstb(self,param):
+    def _del_client(self,iden,param):
+        client_linkid = param
+
+        del self._client_linkidmap[client_linkid]
+        conn = Proxy.instance.get_conn(client_linkid)
+        Proxy.instance.unlink_conn(client_linkid)
+
+    @imc.nonblock.func
+    def _test_dst(self,iden,param):
+        #stat,ret = (yield imc_call(
+        #    {'linkclass':'center','linkid':self.linkid},
+        #    '/center/' + self.linkid + '/',
+        #    'test_dstb',
+        #    'Hello X'
+        #))
+
+        linkidlist = []
+        linkids = self._client_linkidmap.keys()
+        for linkid in linkids:
+            linkidlist.append(linkid)
+
+        return linkidlist
+
+    @imc.nonblock.func
+    def _test_dstb(self,iden,param):
         return param + ' World'
 
 class WebConnHandler(tornado.web.RequestHandler):
