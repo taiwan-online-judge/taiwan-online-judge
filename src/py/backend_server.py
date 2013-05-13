@@ -23,7 +23,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
         self._ioloop = tornado.ioloop.IOLoop.current()
         self.center_addr = center_addr
-        self.linkclass = 'backend'
+        self._linkclass = 'backend'
         self._linkid = None
         self.sock_addr = None
         self.ws_port = ws_port
@@ -78,7 +78,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         conn.add_close_callback(lambda conn : self.del_client(conn.linkid))
         Proxy.instance.add_conn(conn)
 
-        imc_call_async(self._iden,'/center/' + self.center_conn.linkid + '/','add_client',{'worker_linkid':self._linkid,'client_linkid':linkid})
+        imc_call_async(self._iden,'/center/' + self.center_conn.linkid + '/','add_client',{'backend_linkid':self._linkid,'client_linkid':linkid})
 
         return conn
 
@@ -97,7 +97,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 info = json.loads(data.decode('utf-8'))
 
                 self._linkid = info['linkid']
-                self._iden = {'linkclass':'backend','linkid':self._linkid}
+                self._iden = {'linkclass':self._linkid,'linkid':self._linkid}
 
                 self.center_conn = netio.SocketConnection(info['center_linkid'],stream)
                 Proxy(self._linkid,self._connect_linkid,self.center_conn)
@@ -111,13 +111,13 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 imc_register_call('','test_dst',self._test_dst)
                 time.sleep(0.5)
 
-                x = int(self._linkid) - (int(self._linkid) - 2) % 4
-                self._test_call(None,str(x))
-                self._test_call(None,str(x + 1))
+                #x = int(self._linkid) - (int(self._linkid) - 2) % 4
+                #self._test_call(None,str(x))
+                #self._test_call(None,str(x + 1))
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
-                'linkclass':self.linkclass,
+                'linkclass':self._linkclass,
                 'sock_ip':sock_ip,
                 'sock_port':sock_port,
                 'ws_ip':'210.70.137.215',
@@ -161,7 +161,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 }),'utf-8'))
                 netio.recv_pack(stream,___recv_cb)
 
-        stat,ret = (yield imc_call({'linkclass':'backend','linkid':self._linkid},'/center/' + self.center_conn.linkid + '/','lookup_linkid',linkid))
+        stat,ret = (yield imc_call(self._iden,/center/' + self.center_conn.linkid + '/','lookup_linkid',linkid))
         
         if stat == False or ret == None:
             callback(None)
@@ -186,7 +186,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     @imc.nonblock.func
     def _test_call(self,iden,param):
         #print(time.perf_counter())
-        stat,ret = (yield imc_call({'linkclass':'backend','linkid':self._linkid},'/backend/' + param + '/','test_dst','Hello'))
+        stat,ret = (yield imc_call(self._iden,'/backend/' + param + '/','test_dst','Hello'))
         #print(time.perf_counter())
         if stat == True:
             print(stat,ret)
@@ -202,22 +202,22 @@ class WebSocketConnHandler(tornado.websocket.WebSocketHandler):
     def on_message(self,msg):
         global backend_worker
 
-        if hasattr(self,'worker_conn'):
-            self.worker_conn.recv_msg(msg)
+        if hasattr(self,'backend_conn'):
+            self.backend_conn.recv_msg(msg)
         
         else:
             try:
                 info = json.loads(msg)
-                self.worker_conn = backend_worker.add_client(info['client_linkid'],self)
+                self.backend_conn = backend_worker.add_client(info['client_linkid'],self)
 
             except Exception:
                 self.close()
 
     def on_close(self):
-        global backend_worker
+        global backend_backend
 
-        if hasattr(self,'worker_conn'):
-            self.worker_conn.close()
+        if hasattr(self,'backend_conn'):
+            self.backend_conn.close()
 
 def start_backend_worker(ws_port):
     global backend_worker

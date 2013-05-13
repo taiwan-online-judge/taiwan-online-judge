@@ -28,7 +28,7 @@ class SocketConnection(Connection):
     def send_msg(self,data):
         self.stream.write(struct.pack('l',len(data)) + data)
 
-    def start_recvloop(self,recvloop_callback):
+    def start_recv(self,recv_callback):
         def _recv_size(data):
             size, = struct.unpack('l',data)
             if size > 0:
@@ -40,10 +40,10 @@ class SocketConnection(Connection):
                 self.stream.read_bytes(8,_recv_size)
 
         def _recv_data(data):
-            self._recvloop_callback(self,data)
+            self._recv_callback(self,data)
             self.stream.read_bytes(8,_recv_size)
 
-        self._recvloop_callback = tornado.stack_context.wrap(recvloop_callback)
+        self._recv_callback = tornado.stack_context.wrap(recv_callback)
         self.stream.read_bytes(8,_recv_size)
     
     def close(self):
@@ -77,7 +77,7 @@ class WebSocketConnection(Connection):
         self.handler.write_message(data,True)
 
     def recv_msg(self,data):
-        self._recvloop_callback(self,data)
+        self._recv_callback(self,data)
 
-    def start_recvloop(self,recvloop_callback):
-        self._recvloop_callback = tornado.stack_context.wrap(recvloop_callback)
+    def start_recv(self,recv_callback):
+        self._recv_callback = tornado.stack_context.wrap(recv_callback)

@@ -11,7 +11,7 @@ import tornado.web
 
 import netio
 import imc.nonblock
-from imc.proxy import Proxy,Connection,imc_call,imc_register_call
+from imc.proxy import Proxy,Connection,imc_call,imc_call_async,imc_register_call
 
 class Worker:
     def __init__(self,stream,linkclass,linkid,worker_info):
@@ -42,9 +42,6 @@ class BackendWorker(Worker):
         self.ws_addr = (worker_info['ws_ip'],worker_info['ws_port'])
 
         center_serv.add_backend_worker(self)
-
-    def add_client(self,client_linkid):
-        return self.ws_addr
 
     def close(self):
         global center_serv
@@ -81,28 +78,28 @@ class CenterServer(tornado.tcpserver.TCPServer):
             linkclass = worker_info['linkclass']
             if linkclass == 'backend':
                 linkid = self._create_linkid()
-                worker = BackendWorker(stream,linkid,worker_info)
+                BackendWorker(stream,linkid,worker_info)
 
         netio.recv_pack(stream,_recv_worker_info)
 
-    def add_backend_worker(self,worker):
-        self._worker_linkidmap[worker.linkid] = worker
-        self._backend_workerlist.append(worker)
+    def add_backend_worker(self,backend):
+        self._worker_linkidmap[backend.linkid] = backend
+        self._backend_workerlist.append(backend)
     
-    def del_backend_worker(self,worker):
-        self._worker_linkidmap.pop(worker.linkid,None)
-        self._backend_workerlist.remove(worker)
+    def del_backend_worker(self,backend):
+        self._worker_linkidmap.pop(backend.linkid,None)
+        self._backend_workerlist.remove(backend)
 
-    def add_client(self):
+    def dispatch_client(self):
         size = len(self._backend_workerlist)
         if size == 0:
             return None
 
         linkid = self._create_linkid()
-        worker = self._backend_workerlist[random.randrange(size)]
-        ws_ip,ws_port = worker.add_client(linkid)
+        backend = self._backend_workerlist[random.randrange(size)]
+        ws_ip,ws_port = backend.ws_addr
 
-        return (linkid,worker.linkid,ws_ip,ws_port)
+        return (linkid,backend.linkid,ws_ip,ws_port)
 
     def _create_linkid(self):
         linkid = uuid.uuid4()
@@ -131,12 +128,16 @@ class CenterServer(tornado.tcpserver.TCPServer):
         
     @imc.nonblock.func
     def _add_client(self,iden,param):
-        worker_linkid = param['worker_linkid']
+        backend_linkid = param['backend_linkid']
         client_linkid = param['client_linkid']
 
         self._client_linkidmap[client_linkid] = True
-        conn = Proxy.instance.get_conn(worker_linkid)
+        conn = Proxy.instance.get_conn(backend_linkid)
         Proxy.instance.link_conn(client_linkid,conn)
+
+        print(client_linkid);
+
+        imc_call_async({'linkclass':'center','linkid':self.linkid},'/client/' + client_linkid + '/','test_call','Hello Client')
 
     @imc.nonblock.func
     def _del_client(self,iden,param):
@@ -173,14 +174,14 @@ class WebConnHandler(tornado.web.RequestHandler):
     def post(self):
         global center_serv
 
-        data = center_serv.add_client()
+        data = center_serv.dispatch_client()
         if data == None:
             self.write('Eno_backend')
         else:
-            client_linkid,worker_linkid,ip,port = data
+            client_linkid,backend_linkid,ip,port = data
             self.write(json.dumps({
                 'client_linkid':client_linkid,
-                'worker_linkid':worker_linkid,
+                'backend_linkid':backend_linkid,
                 'ip':ip,
                 'port':port
             }))

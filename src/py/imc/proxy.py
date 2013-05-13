@@ -15,7 +15,7 @@ class Connection:
     def send_msg(self,data):
         pass
 
-    def start_recvloop(self,recvloop_callback):
+    def start_recv(self,recv_callback):
         pass
 
     def add_close_callback(self,callback):
@@ -26,11 +26,10 @@ class Connection:
             callback(self)
 
 class Proxy:
-    def __init__(self,linkid,connect_linkid = None,center_conn = None):
+    def __init__(self,linkid,connect_linkid = None):
         self._ioloop = tornado.ioloop.IOLoop.instance()
         self._linkid = linkid
         self._connect_linkid = connect_linkid
-        self._center_conn = center_conn
 
         self._conn_linkidmap = {}
         self._caller_retidmap = {self._linkid:{}}
@@ -52,7 +51,7 @@ class Proxy:
         self._caller_retidmap[conn.linkid] = {}
 
         conn.add_close_callback(self._conn_close_cb)
-        conn.start_recvloop(self._recvloop_dispatch)
+        conn.start_recv(self._recv_dispatch)
 
     def link_conn(self,linkid,conn):
         assert conn.linkid in self._conn_linkidmap 
@@ -70,7 +69,8 @@ class Proxy:
         wait_map = self._caller_retidmap[conn.linkid]
         wait_retids = wait_map.keys()
         for retid in wait_retids:
-            wait_map[retid]['fail_callback'](retid,'Eclose')
+            wait = wait_map[retid]
+            wait['fail_callback'](wait['caller_linkid'],retid,'Eclose')
 
         linkids = conn.link_linkidmap.keys()
         link_del = []
@@ -101,7 +101,7 @@ class Proxy:
             callback(self._conn_linkidmap[linkid],*args)
 
         else:
-            self._connect_linkid(linkid,_connect_cb)
+            self._connect_linkid(linkid,tornado.stack_context.wrap(_connect_cb))
 
     def register_call(self,path,func_name,func):
         self._call_pathmap[''.join([path,func_name])] = func
@@ -111,40 +111,38 @@ class Proxy:
         self._route_call(caller_retid,timeout,iden,dst,func_name,param)
 
     def _route_call(self,caller_retid,timeout,iden,dst,func_name,param):
-        def __add_wait_caller(conn_linkid,caller_retid,timeout,fail_callback):
+        def __add_wait_caller(conn_linkid,timeout,fail_callback):
             self._caller_retidmap[conn_linkid][caller_retid] = {
+                'caller_linkid':caller_linkid,
                 'timeout':timeout,
                 'fail_callback':tornado.stack_context.wrap(fail_callback)
             }
 
-        def __add_wait_retcall(callee_retid,caller_linkid,caller_retid):
+        def __add_wait_retcall(callee_retid):
             self._retcall_retidmap[callee_retid] = {
                 'caller_linkid':caller_linkid,
                 'caller_retid':caller_retid,
             }
 
-        def __local_send_remote(conn,caller_linkid,caller_retid,timeout,iden,dst,func_name,param):
+        def __local_send_remote(conn,caller_linkid,caller_retid):
             if conn != None:
-                __add_wait_caller(conn.linkid,caller_retid,timeout,__local_fail_cb)
+                __add_wait_caller(conn.linkid,timeout,__fail_cb)
                 self._send_msg_call(conn,caller_retid,timeout,iden,dst,func_name,param)
             else:
-                __local_fail_cb(caller_retid,'Enoexist')
+                __fail_cb(caller_linkid,caller_retid,'Enoexist')
 
-        def __remote_send_remote(conn,caller_linkid,caller_retid,timeout,iden,dst,func_name,param):
+        def __remote_send_remote(conn,caller_linkid,caller_retid):
             if conn != None:
                 self._send_msg_call(conn,caller_retid,timeout,iden,dst,func_name,param)
             else:
-                __remote_fail_cb(caller_retid,'Enoexist')
+                __fail_cb(caller_linkid,caller_retid,'Enoexist')
 
         def __send_ret(conn,caller_linkid,caller_retid,result):
             if conn != None:
                 self._send_msg_ret(conn,caller_linkid,caller_retid,result)
         
-        def __local_fail_cb(retid,err):
-            self._ret_call(self._linkid,retid,(False,err))
-
-        def __remote_fail_cb(retid,err):
-            print('Opps')
+        def __fail_cb(caller_linkid,caller_retid,err):
+            self._ret_call(caller_linkid,caller_retid,(False,err))
 
         dst_part = dst.split('/',3)
         linkid = dst_part[2]
@@ -158,7 +156,12 @@ class Proxy:
                 stat,data = self._call_pathmap[''.join([path,func_name])](iden,param)
 
             except KeyError:
-                raise
+                if caller_linkid == self._linkid:
+                    self._ioloop.add_callback(self._ret_call,caller_linkid,caller_retid,(False,'Enoexist'))
+                else:
+                    self.request_conn(caller_linkid,__send_ret,caller_linkid,caller_retid,(False,'Enoexist'))
+
+                return
 
             if stat == True:
                 if caller_linkid == self._linkid:
@@ -167,19 +170,19 @@ class Proxy:
                     self.request_conn(caller_linkid,__send_ret,caller_linkid,caller_retid,(True,data))
 
             else:
-                if caller_linkid == self._linkid:
-                    __add_wait_caller(self._linkid,caller_retid,timeout,__local_fail_cb)
-                else:
-                    __add_wait_caller(self._linkid,caller_retid,timeout,__remote_fail_cb)
+                __add_wait_retcall(''.join([self._linkid,'/',data])) 
 
-                __add_wait_retcall(''.join([self._linkid,'/',data]),caller_linkid,caller_retid) 
+                if caller_linkid == self._linkid:
+                    __add_wait_caller(self._linkid,timeout,__fail_cb)
+                else:
+                    __add_wait_caller(self._linkid,timeout,__fail_cb)
 
         else:
             if caller_linkid == self._linkid:
-                self.request_conn(linkid,__local_send_remote,caller_linkid,caller_retid,timeout,iden,dst,func_name,param)
+                self.request_conn(linkid,__local_send_remote,caller_linkid,caller_retid)
 
             else:
-                self.request_conn(linkid,__remote_send_remote,caller_linkid,caller_retid,timeout,iden,dst,func_name,param)
+                self.request_conn(linkid,__remote_send_remote,caller_linkid,caller_retid)
 
     def _ret_call(self,caller_linkid,caller_retid,result):
         def __send_ret(conn,caller_linkid,caller_retid,result):
@@ -205,7 +208,7 @@ class Proxy:
         else:
             self.request_conn(caller_linkid,__send_ret,caller_linkid,caller_retid,result)
 
-    def _recvloop_dispatch(self,conn,data):
+    def _recv_dispatch(self,conn,data):
         msg = json.loads(data.decode('utf-8'))
         msg_type = msg['type']
         if msg_type == self.MSGTYPE_CALL:
@@ -227,7 +230,7 @@ class Proxy:
                 wait['timeout'] -= 1000
 
                 if wait['timeout'] <= 0:
-                    wait['fail_callback'](retid,'Etimeout')
+                    wait['fail_callback'](wait['caller_linkid'],retid,'Etimeout')
                     wait_del.append(retid)
 
             for retid in wait_del:
@@ -263,6 +266,7 @@ class Proxy:
             'caller_retid':caller_retid,
             'result':{'stat':stat,'data':data}
         }
+
         conn.send_msg(bytes(json.dumps(msg),'utf-8'))
 
     def _recv_msg_ret(self,conn,msg):
@@ -270,6 +274,8 @@ class Proxy:
         caller_retid = msg['caller_retid']
         data = msg['result']
         result = (data['stat'],data['data'])
+
+        print('  ' + caller_linkid)
 
         if caller_linkid == self._linkid:
             try:
@@ -284,7 +290,7 @@ class Proxy:
 
 @nonblock.call
 def imc_call(iden,dst,func_name,param,_genid):
-    Proxy.instance.call(_genid,5000,iden,dst,func_name,param)
+    Proxy.instance.call(_genid,1000,iden,dst,func_name,param)
 
 def imc_call_async(iden,dst,func_name,param,callback = None):
     @nonblock.func
