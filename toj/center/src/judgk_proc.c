@@ -150,12 +150,11 @@ int judgk_proc_del(unsigned long arg){
 }
 struct judgk_proc_info* judgk_proc_task_lookup(struct task_struct *task){
     struct judgk_proc_info *info;
-    struct hlist_node *node;
 
     rcu_read_lock();
 
     info = NULL;
-    hlist_for_each_entry_rcu(info,node,&proc_task_ht[(unsigned long)task % PROC_TASK_HTSIZE],node){
+    hlist_for_each_entry_rcu(info,&proc_task_ht[(unsigned long)task % PROC_TASK_HTSIZE],node){
 	if((unsigned long)info->task == (unsigned long)task){
 	    break;
 	}

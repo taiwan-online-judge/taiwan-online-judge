@@ -239,13 +239,12 @@ int judgk_hyperio_mmap(struct file *filp,struct vm_area_struct *vma){
 }
 
 static inline struct hyperio_info* hyperio_filp_lookup(struct file *filp){
-    struct hlist_node *node;
     struct hyperio_info *info;
 
     rcu_read_lock();
 
     info = NULL;
-    hlist_for_each_entry_rcu(info,node,&hyperio_filp_ht[(unsigned long)filp % HYPERIO_FILP_HTSIZE],node){
+    hlist_for_each_entry_rcu(info,&hyperio_filp_ht[(unsigned long)filp % HYPERIO_FILP_HTSIZE],node){
 	if((unsigned long)info->filp == (unsigned long)filp){
 	    break;
 	}
@@ -260,8 +259,6 @@ static int hyperio_tty_open(struct tty_struct *tty, struct file *filp){
     struct hyperio_info *info;
     struct file_operations *hook_fops;
     
-    tty->low_latency = 1;
-
     info = &hyperio_table[tty->index];
     atomic_inc(&info->ref_count);
     info->filp = filp;
