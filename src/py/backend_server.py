@@ -100,7 +100,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 self._iden = {'linkclass':self._linkid,'linkid':self._linkid}
 
                 self.center_conn = netio.SocketConnection(info['center_linkid'],stream)
-                Proxy(self._linkid,self._connect_linkid,self.center_conn)
+                Proxy(self._linkid,self._connect_linkid)
 
                 self.center_conn.add_close_callback(lambda conn : __retry())
                 Proxy.instance.add_conn(self.center_conn)
@@ -161,7 +161,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 }),'utf-8'))
                 netio.recv_pack(stream,___recv_cb)
 
-        stat,ret = (yield imc_call(self._iden,/center/' + self.center_conn.linkid + '/','lookup_linkid',linkid))
+        stat,ret = (yield imc_call(self._iden,'/center/' + self.center_conn.linkid + '/','lookup_linkid',linkid))
         
         if stat == False or ret == None:
             callback(None)

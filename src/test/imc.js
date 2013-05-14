@@ -5,8 +5,10 @@ var __extend__ = function(child,parent){
 var imc = new function(){
     this.Connection = function(linkid){
         var that = this;
-        var link_linkidmap = {};
-        var close_callback = [];
+
+        that.link_linkidmap = {};
+        that.close_callback = [];
+        that.linkid = linkid;
 
         that.send_msg = function(data){};
         that.start_recv = function(recv_callback){};
@@ -14,8 +16,8 @@ var imc = new function(){
         that.close = function(){
             var i;
 
-            for(i = 0;i < close_callback.length;i++){
-                close_callback[i](that);
+            for(i = 0;i < that.close_callback.length;i++){
+                that.close_callback[i](that);
             }
         };
     };
@@ -25,11 +27,12 @@ var imc = new function(){
         var MSGTYPE_RET = 'ret';
 
         var that = this;
+        var caller_retid_count = 0;
         var conn_linkidmap = {};
-        var caller_retidmap = {};
+        var conn_retidmap = {};
         var call_pathmap = {};
 
-        var route_call = function(caller_retid,timeout,iden,dst,func_name,param){
+        var route_call = function(caller_retid,timeout,iden,dst,func_name,param,callback){
             var i;
             var part;
             var dst_linkid;
@@ -37,14 +40,11 @@ var imc = new function(){
             var caller_linkid;
             var func;
 
-            var _retcall_cb = function(data){
-                func = caller_retidmap[caller_retid];
-                if(func == undefined){
-
-                }else{
-                    delete caller_retidmap[caller_retid]
-                    func({'stat':true,'data':data});
-                }
+            var _add_wait_caller = function(conn_linkid){
+                conn_retidmap[conn_linkid][caller_retid] = {
+                    'timeout':timeout,
+                    'callback':callback
+                }   
             };
 
             part = dst.split('/');
@@ -57,19 +57,26 @@ var imc = new function(){
             }
 
             if(dst_linkid == linkid){
-                if(caller_linkid == linkid){
-                    
-                }else{
-
-                }
-
                 if((func = call_pathmap[dst_path + func_name]) != undefined){
-                    func(param,_retcall_cb);
-                }else{
+                    _add_wait_caller(linkid);
 
+                    func(param,function(data){
+                        if(linkid in conn_retidmap && caller_retid in conn_retidmap[linkid]){
+                            delete conn_retidmap[linkid][caller_retid];
+                            callback({'stat':true,'data':data}); 
+                        }   
+                    });
+                }else{
+                    callback({'stat':true,'data':'Enoexist'}); 
                 }   
             }else{
+                that.request_conn(dst_linkid,function(conn){
+                    if(caller_linkid == linkid){
+                        _add_wait_caller(conn.linkid);
+                    }
 
+                    send_msg_call(conn,caller_retid,timeout,iden,dst,func_name,param);
+                });
             }
         };
 
@@ -78,20 +85,72 @@ var imc = new function(){
             if(msgo.type == MSGTYPE_CALL){
                 recv_msg_call(conn,msgo);
             }else if(msgo.type == MSGTYPE_RET){
-
+                recv_msg_ret(conn,msgo);
             }
         };
 
-        var send_msg_call = function(conn,msg){
+        var send_msg_call = function(conn,caller_retid,timeout,iden,dst,func_name,param){
+            msg = {
+                'type':MSGTYPE_CALL,
+                'caller_retid':caller_retid,
+                'timeout':timeout,
+                'iden':iden,
+                'dst':dst,
+                'func_name':func_name,
+                'param':param
+            };
 
+            conn.send_msg(JSON.stringify(msg));
         };
         var recv_msg_call = function(conn,msg){
-            route_call(msg.caller_retid,msg.timeout,msg.iden,msg.dst,msg.func_name,msg.param)
+            var caller_retid = msg.caller_retid;
+            var timeout = msg.timeout;
+            var iden = msg.iden;
+            var dst = msg.dst;
+            var func_name = msg.func_name;
+            var param = msg.param;
+            var caller_linkid = iden.linkid;
+
+            route_call(caller_retid,timeout,iden,dst,func_name,param,function(result){
+                that.request_conn(caller_retid,function(conn){
+                    send_msg_ret(conn,caller_linkid,caller_retid,result);
+                });
+            });
+        };
+
+        var send_msg_ret = function(conn,caller_linkid,caller_retid,result){
+            msg = {
+                'type':MSGTYPE_RET,
+                'caller_linkid':caller_linkid,
+                'caller_retid':caller_retid,
+                'result':result
+            };
+
+            conn.send_msg(JSON.stringify(msg));
+        };
+        var recv_msg_ret = function(conn,msg){
+            var caller_linkid = msg['caller_linkid'];
+            var caller_retid = msg['caller_retid'];
+            var result = msg['result'];
+
+            if(caller_linkid == linkid){
+                if(conn.linkid in conn_retidmap && caller_retid in conn_retidmap[conn.linkid]){
+                    wait = conn_retidmap[conn.linkid][caller_retid];
+                    delete conn_retidmap[conn.linkid][caller_retid];
+
+                    wait.callback(result);
+                }   
+            }else{
+                request_conn(caller_linkid,function(conn){
+                    send_msg_ret(conn,caller_linkid,caller_retid,result);
+                });
+            }
         };
 
         that.add_conn = function(conn){
             conn_linkidmap[conn.linkid] = conn;
-            conn.start_recv(recv_dispatch;
+            conn_retidmap[conn.linkid] = {};
+            conn.start_recv(recv_dispatch);
         };
         that.link_conn = function(linkid,conn){
             conn.link_linkidmap[linkid] = true;
@@ -122,15 +181,18 @@ var imc = new function(){
             }
         };
 
-        that.call = function(iden,dst,func_name,param,callback){
-            caller_retid = linkid + '/' + caller_retidmap.length;
-            caller_retidmap[caller_retid] = callback;
-            route_call(caller_retid,iden,dst,func_name,param);
+        that.call = function(iden,timeout,dst,func_name,param,callback){
+            caller_retid = linkid + '/' + caller_retid_count;
+            caller_retid_count += 1;
+
+            route_call(caller_retid,timeout,iden,dst,func_name,param,callback);
         };
 
         that.register_call = function(path,func_name,func){
             call_pathmap[path + func_name] = func;
         };
+
+        conn_retidmap[linkid] = {};
 
         imc.Proxy.instance = that;
     };
@@ -138,7 +200,7 @@ var imc = new function(){
 };
 
 function imc_call(iden,dst,func_name,param,callback){
-    imc.Proxy.instance.call(iden,dst,func_name,param,callback); 
+    imc.Proxy.instance.call(iden,10000,dst,func_name,param,callback); 
 }
 function imc_register_call(path,func_name,func){
     imc.Proxy.instance.register_call(path,func_name,func); 

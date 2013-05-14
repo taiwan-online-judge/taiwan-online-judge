@@ -137,7 +137,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         print(client_linkid);
 
-        imc_call_async({'linkclass':'center','linkid':self.linkid},'/client/' + client_linkid + '/','test_call','Hello Client')
+        imc_call_async({'linkclass':'center','linkid':self.linkid},'/client/' + client_linkid + '/','test_call','Hello Client',lambda result:print(result))
 
     @imc.nonblock.func
     def _del_client(self,iden,param):

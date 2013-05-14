@@ -32,7 +32,7 @@ class Proxy:
         self._connect_linkid = connect_linkid
 
         self._conn_linkidmap = {}
-        self._caller_retidmap = {self._linkid:{}}
+        self._conn_retidmap = {self._linkid:{}}
         self._retcall_retidmap = {}
         self._call_pathmap = {}
 
@@ -48,7 +48,7 @@ class Proxy:
         assert conn.linkid not in self._conn_linkidmap 
 
         self._conn_linkidmap[conn.linkid] = conn
-        self._caller_retidmap[conn.linkid] = {}
+        self._conn_retidmap[conn.linkid] = {}
 
         conn.add_close_callback(self._conn_close_cb)
         conn.start_recv(self._recv_dispatch)
@@ -66,7 +66,7 @@ class Proxy:
         del conn.link_linkidmap[linkid]
 
     def del_conn(self,conn):
-        wait_map = self._caller_retidmap[conn.linkid]
+        wait_map = self._conn_retidmap[conn.linkid]
         wait_retids = wait_map.keys()
         for retid in wait_retids:
             wait = wait_map[retid]
@@ -81,7 +81,7 @@ class Proxy:
             self.unlink_conn(linkid)
 
         del self._conn_linkidmap[conn.linkid]
-        del self._caller_retidmap[conn.linkid]
+        del self._conn_retidmap[conn.linkid]
 
     def get_conn(self,linkid):
         try:
@@ -98,6 +98,7 @@ class Proxy:
             callback(conn,*args)
 
         if linkid in self._conn_linkidmap:
+
             callback(self._conn_linkidmap[linkid],*args)
 
         else:
@@ -112,16 +113,10 @@ class Proxy:
 
     def _route_call(self,caller_retid,timeout,iden,dst,func_name,param):
         def __add_wait_caller(conn_linkid,timeout,fail_callback):
-            self._caller_retidmap[conn_linkid][caller_retid] = {
+            self._conn_retidmap[conn_linkid][caller_retid] = {
                 'caller_linkid':caller_linkid,
                 'timeout':timeout,
                 'fail_callback':tornado.stack_context.wrap(fail_callback)
-            }
-
-        def __add_wait_retcall(callee_retid):
-            self._retcall_retidmap[callee_retid] = {
-                'caller_linkid':caller_linkid,
-                'caller_retid':caller_retid,
             }
 
         def __local_send_remote(conn,caller_linkid,caller_retid):
@@ -145,15 +140,15 @@ class Proxy:
             self._ret_call(caller_linkid,caller_retid,(False,err))
 
         dst_part = dst.split('/',3)
-        linkid = dst_part[2]
-        path = dst_part[3]
+        dst_linkid = dst_part[2]
+        dst_path = dst_part[3]
 
         caller_linkid = iden['linkid']
         assert caller_retid.split('/',1)[0] == caller_linkid
 
-        if linkid == self._linkid:
+        if dst_linkid == self._linkid:
             try:
-                stat,data = self._call_pathmap[''.join([path,func_name])](iden,param)
+                stat,data = self._call_pathmap[''.join([dst_path,func_name])](iden,param)
 
             except KeyError:
                 if caller_linkid == self._linkid:
@@ -170,7 +165,10 @@ class Proxy:
                     self.request_conn(caller_linkid,__send_ret,caller_linkid,caller_retid,(True,data))
 
             else:
-                __add_wait_retcall(''.join([self._linkid,'/',data])) 
+                self._retcall_retidmap[''.join([self._linkid,'/',data])] = {
+                    'caller_linkid':caller_linkid,
+                    'caller_retid':caller_retid,
+                }
 
                 if caller_linkid == self._linkid:
                     __add_wait_caller(self._linkid,timeout,__fail_cb)
@@ -179,10 +177,10 @@ class Proxy:
 
         else:
             if caller_linkid == self._linkid:
-                self.request_conn(linkid,__local_send_remote,caller_linkid,caller_retid)
+                self.request_conn(dst_linkid,__local_send_remote,caller_linkid,caller_retid)
 
             else:
-                self.request_conn(linkid,__remote_send_remote,caller_linkid,caller_retid)
+                self.request_conn(dst_linkid,__remote_send_remote,caller_linkid,caller_retid)
 
     def _ret_call(self,caller_linkid,caller_retid,result):
         def __send_ret(conn,caller_linkid,caller_retid,result):
@@ -199,7 +197,7 @@ class Proxy:
                     linkid = ret['caller_linkid']
                     retid = ret['caller_retid']
 
-                    del self._caller_retidmap[caller_linkid][retid]
+                    del self._conn_retidmap[caller_linkid][retid]
                     self._ret_call(linkid,retid,data)
 
                 except KeyError:
@@ -221,7 +219,7 @@ class Proxy:
         print('connection close')
     
     def _check_waitcaller(self):
-        wait_maps = self._caller_retidmap.values()
+        wait_maps = self._conn_retidmap.values()
         for wait_map in wait_maps:
             wait_retids = wait_map.keys()
             wait_del = []
@@ -275,11 +273,9 @@ class Proxy:
         data = msg['result']
         result = (data['stat'],data['data'])
 
-        print('  ' + caller_linkid)
-
         if caller_linkid == self._linkid:
             try:
-                del self._caller_retidmap[conn.linkid][caller_retid]
+                del self._conn_retidmap[conn.linkid][caller_retid]
                 self._ret_call(caller_linkid,caller_retid,result)
 
             except KeyError:
@@ -290,7 +286,7 @@ class Proxy:
 
 @nonblock.call
 def imc_call(iden,dst,func_name,param,_genid):
-    Proxy.instance.call(_genid,1000,iden,dst,func_name,param)
+    Proxy.instance.call(_genid,10000,iden,dst,func_name,param)
 
 def imc_call_async(iden,dst,func_name,param,callback = None):
     @nonblock.func

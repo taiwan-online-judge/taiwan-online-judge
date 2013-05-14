@@ -14,7 +14,9 @@ function test(){
             reto = JSON.parse(res)
             linkid = reto.client_linkid;
 
-            new imc.Proxy(linkidm,function(linkid,callback){
+            console.log(linkid);
+
+            new imc.Proxy(linkid,function(linkid,callback){
                 callback(backend_conn);
             });
             iden = {'linkclass':'client','linkid':linkid};
@@ -29,9 +31,11 @@ function test(){
 }
 
 function test_call(param,callback){
-    console.log(param);
-    
     callback('Hello Too');
+
+    imc_call(iden,'/center/1/','test_dst','',function(result){
+        console.log(result); 
+    });
 }
 
 var WebSocketConnection = function(linkid,ws){
@@ -63,18 +67,6 @@ var WebSocketConnection = function(linkid,ws){
 
 function conn_backend(client_linkid,backend_linkid,ip,port){
     var ws;
-    /*var imc_call = function(iden,dst,func_name,param){
-        call = {
-            'type':'call',
-            'caller_retid':client_linkid + '/' + '13',
-            'timeout':60000,
-            'iden':iden,
-            'dst':dst,
-            'func_name':func_name,
-            'param':param
-        }
-
-    };*/
     
     ws = new WebSocket('ws://' + ip + ':' + port + '/conn');
     ws.onopen = function(){
@@ -86,8 +78,6 @@ function conn_backend(client_linkid,backend_linkid,ip,port){
             'client_linkid':client_linkid
         }));
         imc.Proxy.instance.add_conn(new WebSocketConnection(backend_linkid,ws));
-
-        imc_call({'linkclass':'client','linkid':client_linkid},'/center/1' + '/','test_dst','');
     };
 }
 
