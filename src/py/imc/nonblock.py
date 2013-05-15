@@ -18,20 +18,27 @@ def func(f):
         global gen_current_id
         global gen_waitmap
 
-        gen = f(*args,**kwargs)
-        if isinstance(gen,types.GeneratorType):
-            gen_current_id = str(id(gen))
-            gen_waitmap[gen_current_id] = gen
+        try:
+            gen = f(*args,**kwargs)
+            if isinstance(gen,types.GeneratorType):
+                gen_current_id = str(id(gen))
+                gen_waitmap[gen_current_id] = gen
 
-            try:
-                next(gen)
+                try:
+                    next(gen)
 
-                return (False,gen_current_id)
-            except StopIteration as ret:
-                del gen_waitmap[gen_current_id]
-                return (True,ret)
-        else:
-            return (True,gen)
+                    return (False,gen_current_id)
+
+                except StopIteration as ret:
+                    del gen_waitmap[gen_current_id]
+                    return (True,ret)
+
+
+            else:
+                return (True,gen)
+
+        except Exception:
+            return (True,'Einternal')
 
     return wrapper
 
@@ -49,3 +56,6 @@ def retcall(genid,value):
     except StopIteration as err:
         del gen_waitmap[gen_current_id]
         return (True,err.value)
+
+    except Exception:
+        return (True,'Einternal')

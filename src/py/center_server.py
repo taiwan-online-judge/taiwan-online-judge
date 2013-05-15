@@ -55,7 +55,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         self._linkid_usemap = {}
         self._worker_linkidmap = {}
-        self._client_linkidmap = {}
+        self._backend_clientmap = {}
         self._backend_workerlist = []
 
         self.linkclass = 'center'
@@ -84,10 +84,12 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
     def add_backend_worker(self,backend):
         self._worker_linkidmap[backend.linkid] = backend
+        self._backend_clientmap[backend.linkid] = {}
         self._backend_workerlist.append(backend)
     
     def del_backend_worker(self,backend):
         self._worker_linkidmap.pop(backend.linkid,None)
+        del self._backend_clientmap[backend.linkid]
         self._backend_workerlist.remove(backend)
 
     def dispatch_client(self):
@@ -128,10 +130,10 @@ class CenterServer(tornado.tcpserver.TCPServer):
         
     @imc.nonblock.func
     def _add_client(self,iden,param):
-        backend_linkid = param['backend_linkid']
+        backend_linkid = iden['linkid']
         client_linkid = param['client_linkid']
 
-        self._client_linkidmap[client_linkid] = True
+        self._backend_clientmap[backend_linkid][client_linkid] = True
         conn = Proxy.instance.get_conn(backend_linkid)
         Proxy.instance.link_conn(client_linkid,conn)
 
@@ -141,11 +143,14 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
     @imc.nonblock.func
     def _del_client(self,iden,param):
+        backend_linkid = iden['linkid']
         client_linkid = param
 
-        del self._client_linkidmap[client_linkid]
+        del self._backend_clientmap[backend_linkid][client_linkid]
         conn = Proxy.instance.get_conn(client_linkid)
         Proxy.instance.unlink_conn(client_linkid)
+
+
 
     @imc.nonblock.func
     def _test_dst(self,iden,param):
@@ -157,9 +162,11 @@ class CenterServer(tornado.tcpserver.TCPServer):
         #))
 
         linkidlist = []
-        linkids = self._client_linkidmap.keys()
-        for linkid in linkids:
-            linkidlist.append(linkid)
+        clientmaps = self._backend_clientmap.values()
+        for clientmap in clientmaps:
+            linkids = clientmap.keys()
+            for linkid in linkids:
+                linkidlist.append(linkid)
 
         return linkidlist
 

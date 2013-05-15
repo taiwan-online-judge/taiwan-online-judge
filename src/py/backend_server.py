@@ -90,6 +90,8 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     def _conn_center(self):
         def __retry():
             print('retry connect center')
+
+            self.center_conn = None
             self._ioloop.add_timeout(datetime.timedelta(seconds = 5),self._conn_center)
 
         def __send_worker_info():
@@ -160,6 +162,10 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                     'linkid':self._linkid
                 }),'utf-8'))
                 netio.recv_pack(stream,___recv_cb)
+
+        if self.center_conn == None:
+            callback(None)
+            return
 
         stat,ret = (yield imc_call(self._iden,'/center/' + self.center_conn.linkid + '/','lookup_linkid',linkid))
         
