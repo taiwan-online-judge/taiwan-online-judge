@@ -3,12 +3,12 @@ var last = 0;
 var data = new ArrayBuffer(1024);
 
 var linkid = null;
-var iden = null;
+var idendesc = null;
 
-function test_call(param,callback){
+function test_call(iden,param,callback){
     callback('Hello Too');
 
-    imc_call(iden,'/center/1/','test_dst','',function(result){
+    imc_call(idendesc,'/center/1/','test_dst','',function(result){
         console.log(result); 
     });
 }
@@ -35,18 +35,22 @@ var WebSocketConnection = function(linkid,ws){
         console.log('close');
         that.close();
 
-        conn_backend();
+        setTimeout(conn_backend,5000);
     };
 };__extend__(WebSocketConnection,imc.Connection);
 
-function conn_backend(client_linkid,backend_linkid,ip,port){
+function conn_backend(ip,port){
     $.post('http://toj.tfcis.org:83/conn',{},function(res){
         var reto;
+        var iden;
+        var linkid;
         var ws;
         
         if(res[0] != 'E'){
             reto = JSON.parse(res)
-            linkid = reto.client_linkid;
+            idendesc = reto.client_idendesc;
+            iden = JSON.parse(JSON.parse(idendesc)[0]);
+            linkid = iden.linkid;
 
             ws = new WebSocket('ws://' + reto.ip + ':' + reto.port + '/conn');
             ws.onopen = function(){
@@ -55,18 +59,18 @@ function conn_backend(client_linkid,backend_linkid,ip,port){
 
                 console.log('open');
 
+                console.log(linkid);
                 ws.send(JSON.stringify({
-                    'client_linkid':reto.client_linkid
+                    'client_linkid':linkid
                 }));
 
                 conn = new WebSocketConnection(reto.backend_linkid,ws);
 
-                new imc.Proxy(linkid,function(linkid,callback){
+                new imc.Auth();
+                new imc.Proxy(linkid,imc.Auth.instance,function(linkid,callback){
                     callback(conn);
                 });
                 imc.Proxy.instance.add_conn(conn);
-
-                iden = {'linkclass':'client','linkid':linkid};
 
                 imc_register_call('','test_call',test_call);
             };
@@ -74,8 +78,6 @@ function conn_backend(client_linkid,backend_linkid,ip,port){
             setTimeout(conn_backend,5000);
         }
     });
-    
-    
 }
 
 function perf(){

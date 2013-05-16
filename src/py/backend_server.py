@@ -15,6 +15,7 @@ import tornado.websocket
 
 import netio
 import imc.nonblock
+from imc.auth import Auth
 from imc.proxy import Proxy,Connection,imc_call,imc_call_async,imc_register_call
 
 class BackendWorker(tornado.tcpserver.TCPServer):
@@ -23,12 +24,11 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
         self._ioloop = tornado.ioloop.IOLoop.current()
         self.center_addr = center_addr
-        self._linkclass = 'backend'
-        self._linkid = None
         self.sock_addr = None
         self.ws_port = ws_port
 
-        self._iden = None
+        self._linkid = None
+        self._idendesc = None
         self._pendconn_linkidmap = {}
         self._client_linkidmap = {}
 
@@ -78,14 +78,14 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         conn.add_close_callback(lambda conn : self.del_client(conn.linkid))
         Proxy.instance.add_conn(conn)
 
-        imc_call_async(self._iden,'/center/' + self.center_conn.linkid + '/','add_client',{'backend_linkid':self._linkid,'client_linkid':linkid})
+        imc_call_async(self._idendesc,'/center/' + self.center_conn.linkid + '/','add_client',{'backend_linkid':self._linkid,'client_linkid':linkid})
 
         return conn
 
     def del_client(self,linkid):
         del self._client_linkidmap[linkid]
 
-        imc_call_async(self._iden,'/center/' + self.center_conn.linkid + '/','del_client',linkid)
+        imc_call_async(self._idendesc,'/center/' + self.center_conn.linkid + '/','del_client',linkid)
 
     def _conn_center(self):
         def __retry():
@@ -98,28 +98,30 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             def ___recv_info_cb(data):
                 info = json.loads(data.decode('utf-8'))
 
-                self._linkid = info['linkid']
-                self._iden = {'linkclass':self._linkid,'linkid':self._linkid}
+                Auth()
+                f = open('pubkey.pem','r')
+                Auth.instance.set_verifykey(f.read())
+
+                self._idendesc = info['idendesc']
+                iden = Auth.instance.get_iden(self._idendesc)
+                self._linkid = iden['linkid']
+                Proxy(self._linkid,Auth.instance,self._connect_linkid)
 
                 self.center_conn = netio.SocketConnection(info['center_linkid'],stream)
-                Proxy(self._linkid,self._connect_linkid)
-
                 self.center_conn.add_close_callback(lambda conn : __retry())
                 Proxy.instance.add_conn(self.center_conn)
 
-                print('/backend/' + self._linkid)
-
-
                 imc_register_call('','test_dst',self._test_dst)
-                time.sleep(0.5)
+                time.sleep(1)
 
-                #x = int(self._linkid) - (int(self._linkid) - 2) % 4
+                #x = int(self._iden['linkid']) - (int(self._iden['linkid']) - 2) % 4
                 #self._test_call(None,str(x))
-                #self._test_call(None,str(x + 1))
+                if int(self._linkid) % 2 == 0:
+                    self._test_call(None,str(int(self._linkid) + 1))
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
-                'linkclass':self._linkclass,
+                'linkclass':'backend',
                 'sock_ip':sock_ip,
                 'sock_port':sock_port,
                 'ws_ip':'210.70.137.215',
@@ -167,7 +169,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             callback(None)
             return
 
-        stat,ret = (yield imc_call(self._iden,'/center/' + self.center_conn.linkid + '/','lookup_linkid',linkid))
+        stat,ret = (yield imc_call(self._idendesc,'/center/' + self.center_conn.linkid + '/','lookup_linkid',linkid))
         
         if stat == False or ret == None:
             callback(None)
@@ -191,9 +193,25 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         
     @imc.nonblock.func
     def _test_call(self,iden,param):
-        #print(time.perf_counter())
-        stat,ret = (yield imc_call(self._iden,'/backend/' + param + '/','test_dst','Hello'))
-        #print(time.perf_counter())
+        print(time.perf_counter())
+        stat,ret = (yield imc_call(self._idendesc,'/backend/' + param + '/','test_dst','Hello'))
+        print(time.perf_counter())
+
+        print(time.perf_counter())
+        stat,ret = (yield imc_call(self._idendesc,'/backend/' + param + '/','test_dst','Hello'))
+        print(time.perf_counter())
+        
+        print(time.perf_counter())
+        stat,ret = (yield imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dst','Hello'))
+        print(time.perf_counter())
+
+
+        print(time.perf_counter())
+        for i in range(5000):
+            stat,ret = (yield imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dst','Hello'))
+        print(time.perf_counter())
+
+
         if stat == True:
             print(stat,ret)
 
