@@ -158,7 +158,6 @@ struct judgk_proc_info* judgk_proc_task_lookup(struct task_struct *task){
 	if((unsigned long)info->task == (unsigned long)task){
 	    break;
 	}
-	info = NULL;
     }
 
     rcu_read_unlock();

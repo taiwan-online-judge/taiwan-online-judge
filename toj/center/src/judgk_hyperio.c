@@ -248,7 +248,6 @@ static inline struct hyperio_info* hyperio_filp_lookup(struct file *filp){
 	if((unsigned long)info->filp == (unsigned long)filp){
 	    break;
 	}
-	info = NULL;
     }
 
     rcu_read_unlock();
