@@ -22,7 +22,7 @@ var imc = new function(){
         };
     };
 
-    this.Proxy = function(linkid,connect_linkid){
+    this.Proxy = function(linkid,auth,connect_linkid){
         var MSGTYPE_CALL = 'call';
         var MSGTYPE_RET = 'ret';
 
@@ -32,7 +32,7 @@ var imc = new function(){
         var conn_retidmap = {};
         var call_pathmap = {};
 
-        var route_call = function(caller_retid,timeout,iden,dst,func_name,param,callback){
+        var route_call = function(caller_retid,timeout,idendesc,dst,func_name,param,callback){
             var i;
             var part;
             var dst_linkid;
@@ -51,6 +51,8 @@ var imc = new function(){
             dst_linkid = part[2];
             dst_path = part.slice(3).join('/');
 
+            iden = auth.get_iden(idendesc);
+
             caller_linkid = iden.linkid
             if(caller_retid.split('/')[0] != caller_linkid){
                 return false;
@@ -60,14 +62,14 @@ var imc = new function(){
                 if((func = call_pathmap[dst_path + func_name]) != undefined){
                     _add_wait_caller(linkid);
 
-                    func(param,function(data){
+                    func(iden,param,function(data){
                         if(linkid in conn_retidmap && caller_retid in conn_retidmap[linkid]){
                             delete conn_retidmap[linkid][caller_retid];
                             callback({'stat':true,'data':data}); 
                         }   
                     });
                 }else{
-                    callback({'stat':true,'data':'Enoexist'}); 
+                    callback({'stat':false,'data':'Enoexist'}); 
                 }   
             }else{
                 that.request_conn(dst_linkid,function(conn){
@@ -75,7 +77,7 @@ var imc = new function(){
                         _add_wait_caller(conn.linkid);
                     }
 
-                    send_msg_call(conn,caller_retid,timeout,iden,dst,func_name,param);
+                    send_msg_call(conn,caller_retid,timeout,idendesc,dst,func_name,param);
                 });
             }
         };
@@ -89,12 +91,12 @@ var imc = new function(){
             }
         };
 
-        var send_msg_call = function(conn,caller_retid,timeout,iden,dst,func_name,param){
+        var send_msg_call = function(conn,caller_retid,timeout,idendesc,dst,func_name,param){
             msg = {
                 'type':MSGTYPE_CALL,
                 'caller_retid':caller_retid,
                 'timeout':timeout,
-                'iden':iden,
+                'idendesc':idendesc,
                 'dst':dst,
                 'func_name':func_name,
                 'param':param
@@ -105,15 +107,17 @@ var imc = new function(){
         var recv_msg_call = function(conn,msg){
             var caller_retid = msg.caller_retid;
             var timeout = msg.timeout;
-            var iden = msg.iden;
+            var idendesc = msg.idendesc;
             var dst = msg.dst;
             var func_name = msg.func_name;
             var param = msg.param;
-            var caller_linkid = iden.linkid;
 
-            route_call(caller_retid,timeout,iden,dst,func_name,param,function(result){
+            route_call(caller_retid,timeout,idendesc,dst,func_name,param,function(result){
                 that.request_conn(caller_retid,function(conn){
-                    send_msg_ret(conn,caller_linkid,caller_retid,result);
+                    var iden;
+
+                    iden = auth.get_iden(idendesc);
+                    send_msg_ret(conn,iden.linkid,caller_retid,result);
                 });
             });
         };
@@ -181,11 +185,11 @@ var imc = new function(){
             }
         };
 
-        that.call = function(iden,timeout,dst,func_name,param,callback){
+        that.call = function(idendesc,timeout,dst,func_name,param,callback){
             caller_retid = linkid + '/' + caller_retid_count;
             caller_retid_count += 1;
 
-            route_call(caller_retid,timeout,iden,dst,func_name,param,callback);
+            route_call(caller_retid,timeout,idendesc,dst,func_name,param,callback);
         };
 
         that.register_call = function(path,func_name,func){
@@ -197,10 +201,19 @@ var imc = new function(){
         imc.Proxy.instance = that;
     };
 
+    this.Auth = function(){
+        var that = this;
+
+        that.get_iden = function(idendesc){
+            return JSON.parse(JSON.parse(idendesc)[0]);
+        };
+
+        imc.Auth.instance = that;
+    };
 };
 
-function imc_call(iden,dst,func_name,param,callback){
-    imc.Proxy.instance.call(iden,10000,dst,func_name,param,callback); 
+function imc_call(idendesc,dst,func_name,param,callback){
+    imc.Proxy.instance.call(idendesc,10000,dst,func_name,param,callback); 
 }
 function imc_register_call(path,func_name,func){
     imc.Proxy.instance.register_call(path,func_name,func); 

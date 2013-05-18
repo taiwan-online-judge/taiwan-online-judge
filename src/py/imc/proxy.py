@@ -8,7 +8,8 @@ from imc import nonblock
 from imc import auth
 
 class Connection:
-    def __init__(self,linkid):
+    def __init__(self,linkclass,linkid):
+        self.linkclass = linkclass
         self.linkid = linkid
         self.link_linkidmap = {}
         self._close_callback = []
@@ -27,8 +28,9 @@ class Connection:
             callback(self)
 
 class Proxy:
-    def __init__(self,linkid,auth,connect_linkid = None):
+    def __init__(self,linkclass,linkid,auth,connect_linkid = None):
         self._ioloop = tornado.ioloop.IOLoop.instance()
+        self._linkclass = linkclass
         self._linkid = linkid
         self._auth = auth
         self._connect_linkid = connect_linkid
@@ -100,7 +102,6 @@ class Proxy:
             callback(conn,*args)
 
         if linkid in self._conn_linkidmap:
-
             callback(self._conn_linkidmap[linkid],*args)
 
         else:
@@ -111,9 +112,9 @@ class Proxy:
 
     def call(self,caller_genid,timeout,idendesc,dst,func_name,param):
         caller_retid = ''.join([self._linkid,'/',caller_genid])
-        self._route_call(caller_retid,timeout,idendesc,dst,func_name,param)
+        self._route_call(self._linkclass,self._linkid,caller_retid,timeout,idendesc,dst,func_name,param)
 
-    def _route_call(self,caller_retid,timeout,idendesc,dst,func_name,param):
+    def _route_call(self,conn_linkclass,conn_linkid,caller_retid,timeout,idendesc,dst,func_name,param):
         def __add_wait_caller(conn_linkid,timeout,fail_callback):
             self._conn_retidmap[conn_linkid][caller_retid] = {
                 'caller_linkid':caller_linkid,
@@ -147,7 +148,7 @@ class Proxy:
             else:
                 self.request_conn(caller_linkid,__send_ret,caller_linkid,caller_retid,result)
 
-        iden = self._auth.get_iden(idendesc)
+        iden = self._auth.get_iden(conn_linkclass,conn_linkid,idendesc)
         if iden == None:
             __direct_ret((False,'Eilliden'))
 
@@ -260,7 +261,7 @@ class Proxy:
         func_name = msg['func_name']
         param = msg['param']
 
-        self._route_call(caller_retid,timeout,idendesc,dst,func_name,param)
+        self._route_call(conn.linkclass,conn.linkid,caller_retid,timeout,idendesc,dst,func_name,param)
 
     def _send_msg_ret(self,conn,caller_linkid,caller_retid,result):
         stat,data = result
@@ -290,12 +291,12 @@ class Proxy:
         else:
             self._ret_call(caller_linkid,caller_retid,result)
 
-@nonblock.call
+@nonblock.callee
 def imc_call(idendesc,dst,func_name,param,_genid):
     Proxy.instance.call(_genid,10000,idendesc,dst,func_name,param)
 
 def imc_call_async(idendesc,dst,func_name,param,callback = None):
-    @nonblock.func
+    @nonblock.caller
     def func():
         result = (yield imc_call(idendesc,dst,func_name,param))
         if callback != None:

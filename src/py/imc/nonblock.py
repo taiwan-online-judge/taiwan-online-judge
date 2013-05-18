@@ -3,7 +3,7 @@ import types
 gen_current_id = None
 gen_waitmap = {}
 
-def call(f):
+def callee(f):
     def wrapper(*args,**kwargs):
         global gen_current_id
         global gen_waitmap
@@ -13,7 +13,7 @@ def call(f):
 
     return wrapper
 
-def func(f):
+def caller(f):
     def wrapper(*args,**kwargs):
         global gen_current_id
         global gen_waitmap
@@ -22,6 +22,7 @@ def func(f):
             gen = f(*args,**kwargs)
             if isinstance(gen,types.GeneratorType):
                 gen_current_id = str(id(gen))
+
                 gen_waitmap[gen_current_id] = gen
 
                 try:
@@ -37,7 +38,7 @@ def func(f):
             else:
                 return (True,gen)
 
-        except Exception:
+        except Exception as err:
             return (True,'Einternal')
 
     return wrapper
@@ -51,11 +52,11 @@ def retcall(genid,value):
         gen = gen_waitmap[gen_current_id]
         gen.send(value)
     
-        return (False,gen_current_id)
+        return (False,genid)
 
     except StopIteration as err:
-        del gen_waitmap[gen_current_id]
+        del gen_waitmap[genid]
         return (True,err.value)
 
-    except Exception:
+    except KeyError as err:
         return (True,'Einternal')

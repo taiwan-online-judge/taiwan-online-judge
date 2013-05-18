@@ -10,8 +10,6 @@ class Auth:
     def __init__(self):
         self._cache_hashmap = {}
 
-        Auth.instance = self
-
     def set_signkey(self,key):
         self._signer = PKCS1_v1_5.new(RSA.importKey(key))
 

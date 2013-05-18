@@ -14,8 +14,8 @@ import tornado.httpserver
 import tornado.websocket
 
 import netio
+from tojauth import TOJAuth
 import imc.nonblock
-from imc.auth import Auth
 from imc.proxy import Proxy,Connection,imc_call,imc_call_async,imc_register_call
 
 class BackendWorker(tornado.tcpserver.TCPServer):
@@ -43,7 +43,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             def __send_back(stat):
                 netio.send_pack(stream,bytes(json.dumps(stat),'utf-8'))
 
-            linkid = json.loads(data.decode('utf-8'))['linkid']
+            info = json.loads(data.decode('utf-8'))
+            linkclass = info['linkclass']
+            linkid = info['linkid']
 
             conn = Proxy.instance.get_conn(linkid)
             if conn != None:
@@ -52,14 +54,14 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             if linkid not in self._pendconn_linkidmap:
                 __send_back(True)
 
-                conn = netio.SocketConnection(linkid,stream)
+                conn = netio.SocketConnection(linkclass,linkid,stream)
                 Proxy.instance.add_conn(conn)
 
             else:
                 if self._linkid > linkid:
                     __send_back(True)
 
-                    conn = netio.SocketConnection(linkid,stream)
+                    conn = netio.SocketConnection(linkclass,linkid,stream)
                     Proxy.instance.add_conn(conn)
 
                     pends = self._pendconn_linkidmap.pop(linkid)
@@ -74,7 +76,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     def add_client(self,linkid,handler):
         self._client_linkidmap[linkid] = {}
 
-        conn = netio.WebSocketConnection(linkid,handler)
+        conn = netio.WebSocketConnection('client',linkid,handler)
         conn.add_close_callback(lambda conn : self.del_client(conn.linkid))
         Proxy.instance.add_conn(conn)
 
@@ -98,21 +100,20 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             def ___recv_info_cb(data):
                 info = json.loads(data.decode('utf-8'))
 
-                Auth()
-                f = open('pubkey.pem','r')
-                Auth.instance.set_verifykey(f.read())
+                pubkey = open('pubkey.pem','r').read()
+                TOJAuth(pubkey)
 
                 self._idendesc = info['idendesc']
-                iden = Auth.instance.get_iden(self._idendesc)
+                iden = TOJAuth.instance.get_iden('backend',self._linkid,self._idendesc)
                 self._linkid = iden['linkid']
-                Proxy(self._linkid,Auth.instance,self._connect_linkid)
+                Proxy('backend',self._linkid,TOJAuth.instance,self._connect_linkid)
 
-                self.center_conn = netio.SocketConnection(info['center_linkid'],stream)
+                self.center_conn = netio.SocketConnection('center',info['center_linkid'],stream)
                 self.center_conn.add_close_callback(lambda conn : __retry())
                 Proxy.instance.add_conn(self.center_conn)
 
                 imc_register_call('','test_dst',self._test_dst)
-                time.sleep(1)
+                time.sleep(0.5)
 
                 #x = int(self._iden['linkid']) - (int(self._iden['linkid']) - 2) % 4
                 #self._test_call(None,str(x))
@@ -133,7 +134,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         stream.set_close_callback(__retry)
         stream.connect(self.center_addr,__send_worker_info)
 
-    @imc.nonblock.func
+    @imc.nonblock.caller
     def _connect_linkid(self,linkid,callback):
         def __handle_pend(conn):
             pends = self._pendconn_linkidmap.pop(worker_linkid)
@@ -145,7 +146,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 stat = json.loads(data.decode('utf-8'))
 
                 if stat == True:
-                    conn = netio.SocketConnection(worker_linkid,stream)
+                    conn = netio.SocketConnection(worker_linkclass,worker_linkid,stream)
                     Proxy.instance.add_conn(conn)
                     __handle_pend(conn)
 
@@ -161,6 +162,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             
             else:
                 netio.send_pack(stream,bytes(json.dumps({
+                    'linkclass':'backend',
                     'linkid':self._linkid
                 }),'utf-8'))
                 netio.recv_pack(stream,___recv_cb)
@@ -175,6 +177,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             callback(None)
 
         else:
+            worker_linkclass = ret['worker_linkclass']
             worker_linkid = ret['worker_linkid']
 
             conn = Proxy.instance.get_conn(worker_linkid)
@@ -191,31 +194,17 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 stream.set_close_callback(lambda : __handle_pend(None))
                 stream.connect((ret['sock_ip'],ret['sock_port']),__send_info)
         
-    @imc.nonblock.func
+    @imc.nonblock.caller
     def _test_call(self,iden,param):
         print(time.perf_counter())
-        stat,ret = (yield imc_call(self._idendesc,'/backend/' + param + '/','test_dst','Hello'))
+        dst = '/backend/' + param + '/'
+        for i in range(10000):
+            stat,ret = (yield imc_call(self._idendesc,dst,'test_dst','Hello'))
         print(time.perf_counter())
 
-        print(time.perf_counter())
-        stat,ret = (yield imc_call(self._idendesc,'/backend/' + param + '/','test_dst','Hello'))
-        print(time.perf_counter())
-        
-        print(time.perf_counter())
-        stat,ret = (yield imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dst','Hello'))
-        print(time.perf_counter())
+        print(stat,ret)
 
-
-        print(time.perf_counter())
-        for i in range(5000):
-            stat,ret = (yield imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dst','Hello'))
-        print(time.perf_counter())
-
-
-        if stat == True:
-            print(stat,ret)
-
-    @imc.nonblock.func
+    @imc.nonblock.caller
     def _test_dst(self,iden,param):
         return param + ' Too'
 

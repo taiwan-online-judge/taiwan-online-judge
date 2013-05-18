@@ -10,13 +10,14 @@ import tornado.httpserver
 import tornado.web
 
 import netio
+from tojauth import TOJAuth
 import imc.nonblock
-from imc.auth import Auth
 from imc.proxy import Proxy,Connection,imc_call,imc_call_async,imc_register_call
 
 class Worker:
-    def __init__(self,stream,linkid,idendesc,worker_info,center_linkid):
+    def __init__(self,stream,linkclass,linkid,idendesc,worker_info,center_linkid):
         self.stream = stream
+        self.linkclass = linkclass
         self.linkid = linkid
         self.idendesc = idendesc
         self.sock_addr = (worker_info['sock_ip'],worker_info['sock_port'])
@@ -26,7 +27,7 @@ class Worker:
             'center_linkid':center_linkid
         }),'utf-8'))
 
-        conn = netio.SocketConnection(self.linkid,self.stream)
+        conn = netio.SocketConnection(self.linkclass,self.linkid,self.stream)
         conn.add_close_callback(lambda conn : self.close())
         Proxy.instance.add_conn(conn)
 
@@ -37,7 +38,7 @@ class BackendWorker(Worker):
     def __init__(self,stream,linkid,idendesc,worker_info,center_linkid):
         global center_serv
 
-        super().__init__(stream,linkid,idendesc,worker_info,center_linkid)
+        super().__init__(stream,'backend',linkid,idendesc,worker_info,center_linkid)
         self.ws_addr = (worker_info['ws_ip'],worker_info['ws_port'])
 
         center_serv.add_backend_worker(self)
@@ -57,15 +58,13 @@ class CenterServer(tornado.tcpserver.TCPServer):
         self._backend_clientmap = {}
         self._backend_workerlist = []
 
-        Auth()
-        f = open('privkey.pem','r')
-        Auth.instance.set_signkey(f.read())
-        f = open('pubkey.pem','r')
-        Auth.instance.set_verifykey(f.read())
+        pubkey = open('pubkey.pem','r').read()
+        privkey = open('privkey.pem','r').read()
+        TOJAuth(pubkey,privkey)
 
         self._linkid = self._create_linkid()
         self._idendesc = self._create_idendesc('center',self._linkid)
-        Proxy(self._linkid,Auth.instance)
+        Proxy('center',self._linkid,TOJAuth.instance)
 
         imc_register_call('','lookup_linkid',self._lookup_linkid)
         imc_register_call('','add_client',self._add_client)
@@ -125,9 +124,9 @@ class CenterServer(tornado.tcpserver.TCPServer):
         return linkid
 
     def _create_idendesc(self,linkclass,linkid):
-        return Auth.instance.sign_iden({'linkclass':linkclass,'linkid':linkid})
+        return TOJAuth.instance.create_iden(linkclass,linkid)
 
-    @imc.nonblock.func
+    @imc.nonblock.caller
     def _lookup_linkid(self,iden,param):
         linkid = param
 
@@ -135,12 +134,12 @@ class CenterServer(tornado.tcpserver.TCPServer):
             worker = self._worker_linkidmap[linkid]
             if iden['linkclass'] != 'client':
                 sock_ip,sock_port = worker.sock_addr
-                return {'worker_linkid':worker.linkid,'sock_ip':sock_ip,'sock_port':sock_port}
+                return {'worker_linkclass':worker.linkclass,'worker_linkid':worker.linkid,'sock_ip':sock_ip,'sock_port':sock_port}
 
         except KeyError:
             return None
         
-    @imc.nonblock.func
+    @imc.nonblock.caller
     def _add_client(self,iden,param):
         backend_linkid = iden['linkid']
         client_linkid = param['client_linkid']
@@ -151,9 +150,9 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         print(client_linkid);
 
-        imc_call_async(self._idendesc,'/client/' + client_linkid + '/','test_call','Hello Client',lambda result:print(result))
+        #imc_call_async(self._idendesc,'/client/' + client_linkid + '/','test_call','Hello Client',lambda result:print(result))
 
-    @imc.nonblock.func
+    @imc.nonblock.caller
     def _del_client(self,iden,param):
         backend_linkid = iden['linkid']
         client_linkid = param
@@ -164,7 +163,8 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
 
 
-    @imc.nonblock.func
+    
+    @imc.nonblock.caller
     def _test_dst(self,iden,param):
         linkidlist = []
         clientmaps = self._backend_clientmap.values()
@@ -175,7 +175,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         return linkidlist
 
-    @imc.nonblock.func
+    @imc.nonblock.caller
     def _test_dstb(self,iden,param):
         return param + ' World'
 

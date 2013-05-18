@@ -16,8 +16,8 @@ def recv_pack(stream,callback):
     stream.read_bytes(8,_recv_size)
 
 class SocketConnection(Connection):
-    def __init__(self,linkid,stream):
-        super().__init__(linkid)
+    def __init__(self,linkclass,linkid,stream):
+        super().__init__(linkclass,linkid)
 
         self.ioloop = tornado.ioloop.IOLoop.current()
         self.stream = stream
@@ -67,8 +67,8 @@ class SocketConnection(Connection):
         self._ping_delay = 0
 
 class WebSocketConnection(Connection):
-    def __init__(self,linkid,handler):
-        super().__init__(linkid)
+    def __init__(self,linkclass,linkid,handler):
+        super().__init__(linkclass,linkid)
 
         self.ioloop = tornado.ioloop.IOLoop.current()
         self.handler = handler
