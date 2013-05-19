@@ -84,7 +84,7 @@ static int pack_xopenfn(const char *pathname,int flags,...){
     pack_bzinfo *bzinfo;
 
     if((fd = open(pathname,flags)) == -1){
-	return -1;
+	    return -1;
     }
 
     bzinfo = new pack_bzinfo;
@@ -96,6 +96,7 @@ static int pack_xopenfn(const char *pathname,int flags,...){
     bzinfo->bzs.opaque = NULL;
     BZ2_bzDecompressInit(&bzinfo->bzs,0,0);
 
+    printf("      %d\n",fd);
     pack_fdmap.insert(std::pair<int,pack_bzinfo*>(fd,bzinfo));
 
     return fd;
@@ -115,6 +116,7 @@ static ssize_t pack_xreadfn(long fd,void *buf,size_t count){
     int ret;
     pack_bzinfo *bzinfo;
 
+    printf("    %d\n",fd);
     bzinfo = pack_fdmap.find(fd)->second;
 
     bzinfo->bzs.next_out = (char*)buf;
@@ -240,7 +242,7 @@ static int copydir_travel(char *old_path,int old_len,char *new_path,int new_len)
 	    }
 
 	    infd = open(old_path,O_RDONLY);
-	    outfd = open(new_path,O_WRONLY | O_CREAT);
+	    outfd = open(new_path,O_WRONLY | O_CREAT,0644);
 	    fstat(infd,&st);
 	    sendfile(outfd,infd,NULL,st.st_size);
 	    close(infd);
