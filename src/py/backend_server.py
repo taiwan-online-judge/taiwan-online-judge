@@ -135,11 +135,11 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         stream.connect(self.center_addr,__send_worker_info)
 
     @imc.nonblock.caller
-    def _connect_linkid(self,linkid,callback):
+    def _connect_linkid(self,linkid):
         def __handle_pend(conn):
             pends = self._pendconn_linkidmap.pop(worker_linkid)
-            for callback in pends:
-                callback(conn)
+            for gr in pends:
+                gr.switch(conn)
 
         def __send_info():
             def ___recv_cb(data):
@@ -168,13 +168,12 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 netio.recv_pack(stream,___recv_cb)
 
         if self.center_conn == None:
-            callback(None)
-            return
+            return None
 
-        stat,ret = (yield imc_call(self._idendesc,'/center/' + self.center_conn.linkid + '/','lookup_linkid',linkid))
-        
+        stat,ret = imc_call(self._idendesc,'/center/' + self.center_conn.linkid + '/','lookup_linkid',linkid)
+
         if stat == False or ret == None:
-            callback(None)
+            return None
 
         else:
             worker_linkclass = ret['worker_linkclass']
@@ -182,27 +181,30 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
             conn = Proxy.instance.get_conn(worker_linkid)
             if conn != None:
-                callback(conn)
+                return conn
 
             elif worker_linkid in self._pendconn_linkidmap:
-                self._pendconn_linkidmap[worker_linkid].append(tornado.stack_context.wrap(callback))
+                self._pendconn_linkidmap[worker_linkid].append(imc.nonblock.current())
+                return imc.nonblock.switchtop()
 
             else:
-                self._pendconn_linkidmap[worker_linkid] = [tornado.stack_context.wrap(callback)]
+                self._pendconn_linkidmap[worker_linkid] = [imc.nonblock.current()]
 
                 stream = tornado.iostream.IOStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0))
                 stream.set_close_callback(lambda : __handle_pend(None))
                 stream.connect((ret['sock_ip'],ret['sock_port']),__send_info)
+
+                return imc.nonblock.switchtop()
         
     @imc.nonblock.caller
     def _test_call(self,iden,param):
         print(time.perf_counter())
         dst = '/backend/' + param + '/'
-        for i in range(10000):
-            stat,ret = (yield imc_call(self._idendesc,dst,'test_dst','Hello'))
+        for i in range(1):
+            ret = imc_call(self._idendesc,dst,'test_dst','Hello')
         print(time.perf_counter())
 
-        print(stat,ret)
+        print(ret)
 
     @imc.nonblock.caller
     def _test_dst(self,iden,param):

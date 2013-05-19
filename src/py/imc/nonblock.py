@@ -1,62 +1,61 @@
 import types
+from greenlet import greenlet
 
-gen_current_id = None
-gen_waitmap = {}
+gr_waitmap = {}
+
+gr_main = greenlet.getcurrent()
+
+def current():
+    return greenlet.getcurrent()
+
+def switchtop():
+    global gr_main
+
+    return gr_main.switch(None)
 
 def callee(f):
     def wrapper(*args,**kwargs):
-        global gen_current_id
-        global gen_waitmap
-
-        kwargs['_genid'] = gen_current_id
+        kwargs['_grid'] = str(id(greenlet.getcurrent()))
         return f(*args,**kwargs)
 
     return wrapper
 
 def caller(f):
     def wrapper(*args,**kwargs):
-        global gen_current_id
-        global gen_waitmap
+        global gr_waitmap
 
         try:
-            gen = f(*args,**kwargs)
-            if isinstance(gen,types.GeneratorType):
-                gen_current_id = str(id(gen))
+            gr = greenlet(lambda *args,**kwargs : (str(id(greenlet.getcurrent())),f(*args,**kwargs)))
+            grid = str(id(gr))
+            gr_waitmap[grid] = gr
 
-                gen_waitmap[gen_current_id] = gen
+            result = gr.switch(*args,**kwargs)
+            if result == None:
+                return (False,None)
 
-                try:
-                    next(gen)
+            ret_grid,ret = result
+            del gr_waitmap[grid]
 
-                    return (False,gen_current_id)
-
-                except StopIteration as ret:
-                    del gen_waitmap[gen_current_id]
-                    return (True,ret)
-
+            if greenlet.getcurrent() == gr_main:
+                return (False,None)
 
             else:
-                return (True,gen)
+                while ret_grid != grid:
+                    ret_grid,ret = gr_main.switch()
 
-        except Exception as err:
-            return (True,'Einternal')
+                return (True,ret)
+
+        except Exception:
+            return (False,'Einternal')
 
     return wrapper
 
-def retcall(genid,value):
-    global gen_current_id
-    global gen_waitmap
+def retcall(grid,value):
+    global gr_waitmap
 
-    gen_current_id = genid
     try:
-        gen = gen_waitmap[gen_current_id]
-        gen.send(value)
-    
-        return (False,genid)
+        gr = gr_waitmap[grid]
+        gr.switch(value)
 
-    except StopIteration as err:
-        del gen_waitmap[genid]
-        return (True,err.value)
-
-    except KeyError as err:
-        return (True,'Einternal')
+    except Exception:
+        pass

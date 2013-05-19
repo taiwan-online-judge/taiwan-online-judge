@@ -8,13 +8,9 @@ var linkid = null;
 var idendesc = null;
 
 function test_display(iden,param,callback){
-    console.log(param);
-
-    callback(null);
-
-    /*imc_call(idendesc,'/center/1/','test_dst','',function(result){
+    imc_call(idendesc,'/center/1/','test_dst','',function(result){
         console.log(result); 
-    });*/
+    });
 }
 
 var WebSocketConnection = function(linkid,ws){
@@ -77,6 +73,11 @@ function conn_backend(ip,port){
                 imc.Proxy.instance.add_conn(conn);
 
                 imc_register_call('','test_display',test_display);
+
+
+                test_display(idendesc,'',function(result){
+                    console.log(result);
+                });
             };
         }else{
             setTimeout(conn_backend,5000);
