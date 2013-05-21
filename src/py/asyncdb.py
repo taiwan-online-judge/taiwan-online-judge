@@ -31,7 +31,6 @@ class RestrictCursor:
         self.statusmessage = self._cur.statusmessage
         self.tzinfo_factory = self._cur.tzinfo_factory
 
-
 class AsyncDB:
     def __init__(self,dbname,user,password):
         self.OPER_CURSOR = 0

@@ -6,9 +6,24 @@ from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA,SHA512
 from Crypto.Signature import PKCS1_v1_5
 
+current_iden = None
+
 class Auth:
     def __init__(self):
+        global current_iden
+
         self._cache_hashmap = {}
+
+        current_iden = None
+        Auth.instance = self
+
+    def change_iden(self,iden):
+        global current_iden
+
+        old_iden = current_iden
+        current_iden = iden
+
+        return old_iden
 
     def set_signkey(self,key):
         self._signer = PKCS1_v1_5.new(RSA.importKey(key))
