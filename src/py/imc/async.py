@@ -61,7 +61,7 @@ def caller(f):
 
     return wrapper
 
-def retcall(grid,result):
+def retcall(grid,value = None,err = None):
     global gr_waitmap
 
     try:
@@ -70,8 +70,12 @@ def retcall(grid,result):
         old_iden = auth.current_iden
         auth.current_iden = iden
 
-        gr.switch(result)
+        if err == None:
+            gr.switch(value)
         
+        else:
+            gr.throw(err)
+
         auth.current_iden = old_iden
 
     except Exception as err:
