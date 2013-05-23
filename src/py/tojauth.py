@@ -10,6 +10,8 @@ class TOJAuth(Auth):
     ACCESS_SETPER   = 0x10
     ACCESS_EXECUTE  = 0x20
 
+    auth_accessid = 1
+
     def __init__(self,pubkey,privkey = None):
         super().__init__()
 
@@ -78,11 +80,13 @@ class TOJAuth(Auth):
 
     def create_access(self):
         self.check_access(self.auth_accessid, self.ACCESS_EXECUTE)(0)
+
         cur = self.db.cursor()
         sqlstr = ('INSERT INTO "ACCESS" ("owner_idenid") VALUES (%s) '
                 'RETURNING "accessid";')
         sqlarr = (self.current_iden['idenid'], )
         cur.execute(sqlstr, sqlarr)
+
         for data in cur:
             accessid = data[0]
         return accessid
@@ -90,47 +94,29 @@ class TOJAuth(Auth):
     def set_access_list(self, accessid, roleid, permission):
         self.check_access(accessid, self.ACCESS_SETPER)(0)
 
-        def _db_write(accessid, roleid, permission):
-            cur = self.db.cursor()
-            if not self._does_access_list_exist(cur, accessid, roleid):
-                sqlstr = ('INSERT INTO "ACCESS_ROLE" ("accessid", "roleid", '
-                        '"permission") VALUES (%s, %s, %s);')
-                sqlarr = (accessid, roleid, permission)
-            else:
-                sqlstr = ('UPDATE "ACCESS_ROLE" SET "permission"=%s '
-                        'WHERE "accessid"=%s AND "roleid"=%s;')
-                sqlarr = (permission, accessid, roleid)
-            cur.execute(sqlstr, sqlarr)
-        
-        _db_write(accessid, roleid, permission)
+        cur = self.db.cursor()
+        table = 'ACCESS_ROLE'
+        cond = {
+                'accessid' : accessid,
+                'roleid' : roleid
+                }
+        value = {
+                'permission' : permission
+                }
+        cur.upsert(table, cond, value)
 
     def del_access_list(self, accessid, roleid):
         self.check_access(accessid, self.ACCESS_SETPER)(0)
 
-        def _db_write(accessid, roleid):
-            cur = self.db.cursor()
-            if self._does_access_list_exist(cur, accessid, roleid):
-                sqlstr = ('DELETE FROM "ACCESS_ROLE" WHERE "accessid"=%s '
-                        'AND "roleid"=%s;')
-                sqlarr = (accessid, roleid)
-                cur.execute(sqlstr, sqlarr)
-            else:
-                raise Exception('TOJAuth.del_access_list() : Access object '
-                        'doesn\'t exist')
-        
-        _db_write(accessid, roleid)
-
-    def _does_access_list_exist(self, cur, accessid, roleid):
-        sqlstr = ('SELECT COUNT(*) FROM "ACCESS_ROLE" WHERE '
-                '"accessid"=%s AND "roleid"=%s;')
+        cur = self.db.cursor()
+        sqlstr = ('DELETE FROM "ACCESS_ROLE" WHERE "accessid"=%s '
+                'AND "roleid"=%s;')
         sqlarr = (accessid, roleid)
-        cur.execute(sqlstr, sqlarr)
-        for data in cur:
-            count = data[0]
-        return count>0
+        cur.execute(sqlstr, sqlarr)        
 
     def create_role(self, rolename, roletype):
         self.check_access(self.auth_accessid, self.ACCESS_EXECUTE)(0)
+
         cur = self.db.cursor()    
         sqlstr = ('INSERT INTO "ROLE" ("rolename") VALUES (%s)'
                 ' RETURNING "roleid";')
@@ -143,43 +129,26 @@ class TOJAuth(Auth):
     def set_role_relation(self, idenid, roleid):
         self.check_access(self.auth_accessid, self.ACCESS_EXECUTE)(0)
 
-        def _db_write(idenid, roleid):
-            cur = self.db.cursor()
-            if not self._does_role_relation_exist(cur, idenid, roleid):
-                sqlstr = ('INSERT INTO "IDEN_ROLE" ("idenid", "roleid") '
-                        'VALUES (%s, %s);')
-                sqlarr = (idenid, roleid)
-                cur.execute(sqlstr, sqlarr)
-
-        _db_write(idenid, roleid)
+        cur = self.db.cursor()
+        table = 'IDEN_ROLE'
+        cond = {
+                'idenid' : idenid,
+                'roleid' : roleid
+                }
+        cur.upsert(table, cond)
 
     def del_role_relation(self, idenid, roleid):
         self.check_access(self.auth_accessid, self.ACCESS_EXECUTE)(0)
 
-        def _db_write(idenid, roleid):
-            cur = self.db.cursor()
-            if self._does_role_relation_exist(cur, idenid, roleid):
-                sqlstr = ('DELETE FROM "IDEN_ROLE" WHERE "idenid"=%s '
-                        'AND "roleid"=%s;')
-                sqlarr = (idenid, roleid)
-                cur.execute(sqlstr, sqlarr)
-            else:
-                raise Exception('TOJAuth.del_role_relation() : Role relation '
-                        'doesn\'t exist')
-
-        _db_write(idenid, roleid)
-
-    def _does_role_relation_exist(self, cur, idenid, roleid):
-        sqlstr = ('SELECT COUNT(*) FROM "IDEN_ROLE" WHERE "idenid"=%s '
+        cur = self.db.cursor()
+        sqlstr = ('DELETE FROM "IDEN_ROLE" WHERE "idenid"=%s '
                 'AND "roleid"=%s;')
         sqlarr = (idenid, roleid)
         cur.execute(sqlstr, sqlarr)
-        for data in cur:
-            count = data[0]
-        return count>0
 
     def set_owner(self, idenid, accessid):
         self.check_access(accessid, self.ACCESS_SETPER)(0)
+
         cur = self.db.cursor()
         sqlstr = ('UPDATE "ACCESS" SET "owner_idenid"=%s WHERE "accessid"=%s;')
         sqlarr = (idenid, accessid)

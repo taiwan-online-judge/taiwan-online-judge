@@ -1,3 +1,5 @@
+import traceback
+
 from greenlet import greenlet
 
 from imc import auth
@@ -56,6 +58,7 @@ def caller(f):
             return result
 
         except Exception as err:
+            traceback.print_stack()
             print(err)
             return (False,'Einternal')
 
@@ -79,5 +82,6 @@ def retcall(grid,value = None,err = None):
         auth.current_iden = old_iden
 
     except Exception as err:
+        traceback.print_stack()
         print(err)
         pass

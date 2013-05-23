@@ -186,7 +186,7 @@ class AsyncDB:
                     self._oper_dispatch,
                     tornado.ioloop.IOLoop.ERROR)
 
-            self._oper_dispatch(conn.fileno(),0)
+            self._ioloop.add_callback(self._oper_dispatch,conn.fileno(),0)
 
         for i in range(2):
             conn = self._create_conn()
@@ -196,7 +196,7 @@ class AsyncDB:
                     self._oper_dispatch,
                     tornado.ioloop.IOLoop.ERROR)
 
-            self._oper_dispatch(conn.fileno(),0)
+            self._ioloop.add_callback(self._oper_dispatch,conn.fileno(),0)
         
     def cursor(self):
         return RestrictCursor(self,self._cursor())
@@ -206,7 +206,7 @@ class AsyncDB:
         fd = cur.connection.fileno()
             
         self._pendoper_fdmap[fd].append((self.OPER_EXECUTE,(cur,sql,param),_grid))
-        self._oper_dispatch(fd,0)
+        self._ioloop.add_callback(self._oper_dispatch,fd,0)
 
         imc.async.switchtop()
 
@@ -220,14 +220,14 @@ class AsyncDB:
                     self._oper_dispatch,
                     tornado.ioloop.IOLoop.ERROR)
 
-        return self._cursor()
+        return self._cursor(conn)
 
     def end_transaction(self,conn):
         if len(self._free_connpool) < 16:
             self._free_connpool.append(conn)
 
         else:
-            conn.close()
+            self._close_conn(conn)
 
     @imc.async.callee
     def _cursor(self,conn = None,_grid = None):
@@ -238,7 +238,7 @@ class AsyncDB:
             fd = self._share_connpool[random.randrange(len(self._share_connpool))].fileno()
 
         self._pendoper_fdmap[fd].append((self.OPER_CURSOR,None,_grid))
-        self._oper_dispatch(fd,0)
+        self._ioloop.add_callback(self._oper_dispatch,fd,0)
 
         cur = imc.async.switchtop()
         return cur
@@ -256,9 +256,23 @@ class AsyncDB:
 
         return conn
 
+    def _close_conn(self,conn):
+        fd  = conn.fileno()
+        self._conn_fdmap.pop(fd,None)
+        self._pendoper_fdmap.pop(fd,None)
+        self._opercallback_fdmap.pop(fd,None)
+
+        conn.close()
+
     def _oper_dispatch(self,fd,evt):
         err = None
-        conn = self._conn_fdmap[fd]
+        try:
+            conn = self._conn_fdmap[fd]
+        
+        except KeyError:
+            self._ioloop.remove_handler(fd)
+            return
+        
         try:
             stat = conn.poll()
         
