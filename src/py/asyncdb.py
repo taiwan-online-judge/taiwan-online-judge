@@ -1,5 +1,4 @@
 from collections import deque
-import time
 import random
 
 import tornado.ioloop
@@ -71,29 +70,81 @@ class RestrictCursor:
 
         self._in_transaction = False
 
-    def auto_transaction(self,f):
-        def wrapper(*args,**kwargs):
-            retry = 
-            while True:
-                self.begin()
+    def upsert(self,name,cond,value = None):
+        cond_keys = []
+        cond_vals = []
+        items = cond.items()
+        for key,val in items:
+            cond_keys.append('"' + key + '"')
+            cond_vals.append(val)
 
+        value_keys = []
+        value_vals = []
+        if value != None:
+            items = value.items()
+            for key,val in items:
+                value_keys.append('"' + key + '"')
+                value_vals.append(val)
+
+            query_list = ['UPDATE "' + name + '" SET ']
+            for key in value_keys:
+                query_list.append(key)
+                query_list.append('=%s')
+                query_list.append(',')
+
+            query_list[-1] = ' WHERE '
+
+            for key in cond_keys:
+                query_list.append(key)
+                query_list.append('=%s')
+                query_list.append(' AND ')
+
+            query_list[-1] = ';'
+            update_query = ''.join(query_list)
+
+            update_param = list(value_vals)
+            update_param.extend(cond_vals)
+
+        query_list = ['INSERT INTO "' + name + '" (']
+        for key in cond_keys:
+            query_list.append(key)
+            query_list.append(',')
+        for key in value_keys:
+            query_list.append(key)
+            query_list.append(',')
+
+        count = len(cond)
+        if value != None:
+            count += len(value)
+
+        query_list[-1] = ') VALUES ('
+        query_list.extend(['%s,'] * (count - 1))
+        query_list.append('%s);')
+        insert_query = ''.join(query_list)
+        
+        insert_param = list(cond_vals)
+        insert_param.extend(value_vals)
+
+        while True:
+            self.begin()
+
+            if value != None:
+                self.execute(update_query,update_param)
+
+            if value == None or self.rowcount == 0:
                 try:
-                    ret = f(*args,**kwargs)
+                    self.execute(insert_query,insert_param)
 
-                except psycopg2.Error:
+                except psycopg2.IntegrityError:
                     self.rollback()
-                    continue
+                    if value == None:
+                        break
+                    
+                    else:
+                        continue
 
-                except Exception:
-                    self.rollback()
-                    raise
-
-                if self.commit() == True:
-                    break
-
-            return ret
-
-        return wrapper
+            if self.commit() == True:
+                break
 
     def _init_implement(self):
         self.fetchone = self._cur.fetchone
