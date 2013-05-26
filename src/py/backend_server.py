@@ -140,24 +140,23 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
         def __call_recv_cb(data):
             def ___file_conn_cb():
-                conn = netio.SocketConnection(worker_linkclass,worker_linkid,call_stream,file_stream)
-                Proxy.instance.add_conn(conn)
-                __handle_pend(conn)
-
                 netio.send_pack(file_stream,bytes(json.dumps({
                     'conntype':'file',
                     'linkid':self._linkid
                 }),'utf-8'))
 
+                conn = netio.SocketConnection(worker_linkclass,worker_linkid,call_stream,file_stream)
+                Proxy.instance.add_conn(conn)
+                __handle_pend(conn)
+                
             stat = json.loads(data.decode('utf-8'))
             if stat == True:
-                file_stream = tornado.iostream.IOStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0))
+                file_stream = netio.SocketStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0))
                 file_stream.connect(sock_addr,___file_conn_cb)
 
             else:
                 call_stream.set_close_callback(None)
                 call_stream.close()
-
         
         if self.center_conn == None:
             return None
@@ -224,6 +223,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         
     def _handle_fileconn(self,file_stream,addr,info):
         try:
+            print('ok')
             self._pend_fileconn_linkidmap.pop(info['linkid'])(file_stream)
 
         except KeyError:
@@ -241,14 +241,11 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
     @imc.async.caller
     def _test_dst(self,iden,param):
-        print(auth.current_iden)
         stat,ret = imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dsta',param)
-        print(auth.current_iden)
         return ret + ' Too'
 
     @imc.async.caller
     def _test_dsta(self,iden,param):
-        print(auth.current_iden)
         return param + ' Too'
 
 class WebSocketConnHandler(tornado.websocket.WebSocketHandler):
