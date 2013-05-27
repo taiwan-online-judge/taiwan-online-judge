@@ -1,5 +1,6 @@
 import json
 import uuid
+import os
 
 import tornado.ioloop
 import tornado.stack_context
@@ -46,24 +47,24 @@ class Proxy:
 
         self._conn_linkidmap = {}
         self._conn_retidmap = {self._linkid:{}}
+        self._conn_filekeymap = {self._linkid:{}}
         self._call_pathmap = {}
 
-        self._conn_send_filekeymap = {self._linkid:{}}
-        self._conn_recv_filekeymap = {self._linkid:{}}
+        self._info_filekeymap = {}
 
         self._check_waitcaller_timer = tornado.ioloop.PeriodicCallback(self._check_waitcaller,1000)
         self._check_waitcaller_timer.start()
 
         Proxy.instance = self 
 
+        self.register_call('imc/','pend_recvfile',self._pend_recvfile)
+
     def add_conn(self,conn):
         assert conn.linkid not in self._conn_linkidmap 
 
         self._conn_linkidmap[conn.linkid] = conn
         self._conn_retidmap[conn.linkid] = {}
-
-        self._conn_send_filekeymap[conn.linkid] = {}
-        self._conn_recv_filekeymap[conn.linkid] = {}
+        self._conn_filekeymap[conn.linkid] = {}
 
         conn.add_close_callback(self._conn_close_cb)
         conn.start_recv(self._recv_dispatch)
@@ -100,9 +101,7 @@ class Proxy:
 
         del self._conn_linkidmap[conn.linkid]
         del self._conn_retidmap[conn.linkid]
-
-        del self._conn_send_filekeymap[conn.linkid]
-        del self._conn_recv_filekeymap[conn.linkid]
+        del self._conn_filekeymap[conn.linkid]
 
     def get_conn(self,linkid):
         try:
@@ -116,31 +115,47 @@ class Proxy:
 
     def call(self,caller_grid,timeout,idendesc,dst,func_name,param):
         caller_retid = ''.join([self._linkid,'/',caller_grid])
-        return self._route_call(self._linkclass,self._linkid,caller_retid,timeout,idendesc,dst,func_name,param)
+        return self._route_call(None,caller_retid,timeout,idendesc,dst,func_name,param)
 
-    def sendfile(self,dst_linkid,load_path):
-        conn = self._request_conn(dst_linkid)
+    def sendfile(self,idendesc,dst_link,filepath):
+        @async.callee
+        def _call(_grid):
+            self.call(_grid,
+                    10000,
+                    idendesc,
+                    dst_link + 'imc/','pend_recvfile',
+                    {'filekey':filekey,'filesize':filesize})
 
-        fd = os.open(load_path,os.O_RDONLY)
-        filekey = uuid.uuid4()
-        filesize = os.fstat(fd).st_size
+        filekey = str(uuid.uuid1())
+        filesize = os.stat(filepath).st_size
 
-        self._conn_send_filekeymap[conn.linkid][filekey] = {
-            'fd':fd,
-            'filesize':filesize       
+        self._info_filekeymap[filekey] = {
+            'filesize':filesize,
+            'filepath':filepath
         }
 
-        self._send_msg_sendfile(conn,filekey,filesize)
+        _call()
 
         return filekey
 
-    def recvfile(self,filekey,save_path):
+    def recvfile(self,filekey,filepath):
+        try:
+            info = self._info_filekeymap.pop(filekey)
+            src_linkid = info['src_linkid']
+            filesize = info['filesize']
+
+            in_conn = self._request_conn(src_linkid)
+            in_conn.recv_file(filekey,filesize,filepath)
+            self._send_msg_sendfile(in_conn,src_linkid,filekey,filesize)
+
+        except KeyError:
+            pass
 
         return
 
-    def _route_call(self,conn_linkclass,conn_linkid,caller_retid,timeout,idendesc,dst,func_name,param):
-        def __add_wait_caller(conn_linkid):
-            self._conn_retidmap[conn_linkid][caller_retid] = {
+    def _route_call(self,in_conn,caller_retid,timeout,idendesc,dst,func_name,param):
+        def __add_wait_caller(in_linkid):
+            self._conn_retidmap[in_linkid][caller_retid] = {
                 'caller_linkid':caller_linkid,
                 'timeout':timeout
             }
@@ -154,7 +169,15 @@ class Proxy:
                 if conn != None:
                     self._send_msg_ret(conn,caller_linkid,caller_retid,result)
 
-        iden = self._auth.get_iden(conn_linkclass,conn_linkid,idendesc)
+        if in_conn != None:
+            in_linkclass = in_conn.linkclass
+            in_linkid = in_conn.linkid
+
+        else:
+            in_linkclass = self._linkclass
+            in_linkid = self._linkid
+
+        iden = self._auth.get_iden(in_linkclass,in_linkid,idendesc)
         if iden == None:
             return __ret(False,'Eilliden')
 
@@ -200,6 +223,30 @@ class Proxy:
 
                     return
 
+    def _route_sendfile(self,out_conn,src_linkid,filekey,filesize):
+        def _recv_redirect_cb(data):
+            out_conn.send_filedata(filekey,data)
+
+        if src_linkid == self._linkid:
+            try:
+                info = self._info_filekeymap.pop(filekey)
+                assert info['filesize'] == filesize
+
+                self._conn_filekeymap[out_conn.linkid][filekey] = {}
+                out_conn.send_file(filekey,info['filepath'])
+
+            except KeyError:
+                pass
+
+            except AssertionError:
+                pass
+
+        else:
+            in_conn = self._request_conn(src_linkid) 
+            in_conn.recv_filedata(filekey,filesize,_recv_redirect_cb)
+
+            self._send_msg_sendfile(in_conn,src_linkid,filekey,filesize)
+
     def _ret_call(self,caller_linkid,caller_retid,result):
         @async.caller
         def __ret_remote():
@@ -239,9 +286,6 @@ class Proxy:
         elif msg_type == self.MSGTYPE_SENDFILE:
             self._recv_msg_sendfile(conn,msg)
 
-        elif msg_type == self.MSGTYPE_RECVFILE:
-            self._recv_msg_recvfile(conn,msg)
-
     def _conn_close_cb(self,conn):
         self.del_conn(conn)
         print('connection close')
@@ -276,7 +320,7 @@ class Proxy:
     def _recv_msg_call(self,conn,msg):
         @async.caller
         def __call():
-            self._route_call(conn.linkclass,conn.linkid,caller_retid,timeout,idendesc,dst,func_name,param)
+            self._route_call(conn,caller_retid,timeout,idendesc,dst,func_name,param)
 
         caller_retid = msg['caller_retid']
         timeout = msg['timeout']
@@ -306,9 +350,10 @@ class Proxy:
 
         self._ret_call(caller_linkid,caller_retid,result)
 
-    def _send_msg_sendfile(self,conn,filekey,filesize):
+    def _send_msg_sendfile(self,conn,src_linkid,filekey,filesize):
         msg = {
             'type':self.MSGTYPE_SENDFILE,
+            'src_linkid':src_linkid,
             'filekey':filekey,
             'filesize':filesize
         }
@@ -316,9 +361,25 @@ class Proxy:
         conn.send_msg(bytes(json.dumps(msg),'utf-8'))
 
     def _recv_msg_sendfile(self,conn,msg):
+        @async.caller
+        def __call():
+            self._route_sendfile(conn,src_linkid,filekey,filesize)
+
+        src_linkid = msg['src_linkid']
         filekey = msg['filekey']
         filesize = msg['filesize']
 
+        __call()
+
+    @async.caller
+    def _pend_recvfile(self,iden,param):
+        filekey = param['filekey']
+        filesize = param['filesize']
+
+        self._info_filekeymap[filekey] = {
+            'src_linkid':iden['linkid'],
+            'filesize':filesize
+        }
 
 @async.callee
 def imc_call(idendesc,dst,func_name,param,_grid):

@@ -1,7 +1,10 @@
 import os
+import json
 import struct
 import socket
 from collections import deque
+
+import time
 
 import tornado.ioloop
 import tornado.stack_context
@@ -19,7 +22,7 @@ def recv_pack(stream,callback):
     stream.read_bytes(8,_recv_size)
 
 class SocketStream:
-    def __init__(self,sock):
+    def __init__(self,sock,addr):
         self.DATA_BUF = 0
         self.DATA_FILE = 1
 
@@ -28,6 +31,7 @@ class SocketStream:
 
         self._conning = False
         self._conn_callback = None
+        self._close_callback = None
 
         self._read_queue = deque()
         self._write_queue = deque()
@@ -36,7 +40,9 @@ class SocketStream:
         self._sock.setblocking(False)
         self._ioloop.add_handler(sock.fileno(),self._handle_event,tornado.ioloop.IOLoop.ERROR)
 
-    def connect(self,addr,callback):
+        self.addr = addr
+
+    def connect(self,callback):
         try:
             self._conning = True
             self._conn_callback = tornado.stack_context.wrap(callback)
@@ -44,7 +50,7 @@ class SocketStream:
             self._stat |= tornado.ioloop.IOLoop.WRITE
             self._ioloop.update_handler(self._sock.fileno(),self._stat)
 
-            self._sock.connect(addr)
+            self._sock.connect(self.addr)
 
         except BlockingIOError:
             pass
@@ -64,21 +70,27 @@ class SocketStream:
     def sendfile(self,fd,callback = None):
         size = os.fstat(fd).st_size
 
-        self.write(struct.pack('l',size))
         self._write_queue.append([self.DATA_FILE,size,fd,tornado.stack_context.wrap(callback)])
 
         self._stat |= tornado.ioloop.IOLoop.WRITE
         self._ioloop.update_handler(self._sock.fileno(),self._stat)
 
-    def recvfile(self,fd,callback = None):
-        def _recv_size(data):
-            size, = struct.unpack('l',data)
-            self._read_queue.append([self.DATA_FILE,size,fd,tornado.stack_context.wrap(callback)])
+    def recvfile(self,fd,size,callback = None):
+        self._read_queue.append([self.DATA_FILE,size,fd,tornado.stack_context.wrap(callback)])
 
-            self._stat |= tornado.ioloop.IOLoop.READ
-            self._ioloop.update_handler(self._sock.fileno(),self._stat)
+        self._stat |= tornado.ioloop.IOLoop.READ
+        self._ioloop.update_handler(self._sock.fileno(),self._stat)
 
-        self.read_bytes(8,_recv_size)
+    def set_close_callback(self,callback):
+        if callback == None:
+            self._close_callback = None
+
+        else:
+            self._close_callback = tornado.stack_context.wrap(callback)
+
+    def close(self):
+        if self._close_callback != None:
+            self._close_callback(self)
 
     def _handle_event(self,fd,evt):
         if evt & tornado.ioloop.IOLoop.READ:
@@ -190,61 +202,85 @@ class SocketStream:
             self._ioloop.update_handler(fd,stat)
 
 class SocketConnection(Connection):
-    def __init__(self,linkclass,linkid,call_stream,file_stream = None):
+    def __init__(self,linkclass,linkid,main_stream,add_pend_filestream_fn = None):
         super().__init__(linkclass,linkid)
 
         self._ioloop = tornado.ioloop.IOLoop.current()
-        self.call_stream = call_stream
-        self.call_stream.set_close_callback(self.close)
+        self._stream_filekeymap = {}
 
-        if file_stream == None:
-            self.file_stream = None
-
-        else:
-            self.file_stream = file_stream
-            #self.file_stream.set_close_callback(self.close)
-
+        self.main_stream = main_stream
+        self.main_stream.set_close_callback(self.close)
+        self.add_pend_filestream = add_pend_filestream_fn
+        
         self._start_ping()
 
     def send_msg(self,data):
-        self.call_stream.write(struct.pack('l',len(data)) + data)
+        self.main_stream.write(struct.pack('l',len(data)) + data)
 
-    def send_file(self,filekey,load_path):
-        def _recv_cb(data):
-            stat = json.loads(data.decode('utf-8'))
-            
-            if stat == True:
-                self.file_stream.sendfile(fd,_done_cb)
+    def send_file(self,filekey,filepath):
+        def _conn_cb():
+            self._stream_filekeymap[filekey] = file_stream
 
-            else:
-                os.close(fd)
+            send_pack(file_stream,bytes(json.dumps({
+                'conntype':'file',
+                'filekey':filekey
+            }),'utf-8'))
+
+            file_stream.sendfile(fd,_done_cb)
 
         def _done_cb():
-            print('done')
+            os.close(fd)
+            print('send done')
 
-        fd = os.open(load_path,O_RDONLY)
+        fd = os.open(filepath,os.O_RDONLY)
         filesize = os.fstat(fd).st_size
 
-        send_pack(self.file_stream,bytes(json.dumps({'filekey':filekey,'filesize':filesize}),'utf-8'))
-        recv_pack(self.file_stream,_recv_cb)
+        file_stream = SocketStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0),self.main_stream.addr)
+        file_stream.connect(_conn_cb)
+
+        #send_pack(self.file_stream,bytes(json.dumps({'filekey':filekey,'filesize':filesize}),'utf-8'))
+        #recv_pack(self.file_stream,_recv_cb)
+
+    def recv_file(self,filekey,filesize,filepath):
+        def _conn_cb(file_stream):
+            print(filesize)
+
+            file_stream.recvfile(fd,filesize,_done_cb)
+
+        def _done_cb():
+            os.close(fd)
+            print('recv done')
+            print(time.perf_counter() - st)
+
+        self.add_pend_filestream(filekey,_conn_cb)
+        fd = os.open(filepath,os.O_WRONLY | os.O_CREAT)
+
+        st = time.perf_counter()
+
+    def send_filedata(self,filekey,filesize):
+        pass
+
+    def recv_filedata(self,filekey,filesize):
+        print('test')
+        pass
 
     def start_recv(self,recv_callback):
         def _recv_size(data):
             size, = struct.unpack('l',data)
             if size > 0:
-                self.call_stream.read_bytes(size,_recv_data)
+                self.main_stream.read_bytes(size,_recv_data)
             else:
                 if size == -1:    #pong
                     self._ping_delay = 0
                 
-                self.call_stream.read_bytes(8,_recv_size)
+                self.main_stream.read_bytes(8,_recv_size)
 
         def _recv_data(data):
             self._recv_callback(self,data)
-            self.call_stream.read_bytes(8,_recv_size)
+            self.main_stream.read_bytes(8,_recv_size)
 
         self._recv_callback = tornado.stack_context.wrap(recv_callback)
-        self.call_stream.read_bytes(8,_recv_size)
+        self.main_stream.read_bytes(8,_recv_size)
     
     def close(self):
         try:
@@ -252,15 +288,13 @@ class SocketConnection(Connection):
         except AttributeError:
             pass
 
-        self.call_stream.close()
-        if self.file_stream != None:
-            self.file_stream.close()
+        self.main_stream.close()
 
         super().close()
 
     def _start_ping(self):
         def __check():
-            self.call_stream.write(struct.pack('l',-1))
+            self.main_stream.write(struct.pack('l',-1))
 
             self._ping_delay += 1
             if self._ping_delay > 10:

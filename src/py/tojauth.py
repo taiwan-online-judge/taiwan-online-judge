@@ -23,10 +23,11 @@ class TOJAuth(Auth):
         TOJAuth.db = AsyncDB(config.CORE_DBNAME,config.CORE_DBUSER,
                 config.CORE_DBPASSWORD)
 
-    def create_iden(self,linkclass,linkid):
+    def create_iden(self,linkclass,linkid,idenid):
         iden = {
             'linkclass':linkclass,
-            'linkid':linkid
+            'linkid':linkid,
+            'idenid':idenid
         }
         return self.sign_iden(iden)
 

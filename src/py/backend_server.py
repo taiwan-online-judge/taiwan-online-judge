@@ -33,7 +33,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         self._linkid = None
         self._idendesc = None
         self._pend_callconn_linkidmap = {}
-        self._pend_fileconn_linkidmap = {}
+        self._pend_filestream_filekeymap = {}
         self._client_linkidmap = {}
 
     def start(self):
@@ -49,12 +49,16 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             conntype = info['conntype']
 
             if conntype == 'call':
-                self._handle_callconn(stream,addr,info)
+                self._handle_callconn(sock_stream,addr,info)
 
             elif conntype == 'file':
-                self._handle_fileconn(stream,addr,info)
+                self._handle_fileconn(sock_stream,addr,info)
 
-        netio.recv_pack(stream,_recv_conn_info)
+        fd = stream.fileno()
+        self._ioloop.remove_handler(fd)
+        sock_stream = netio.SocketStream(socket.fromfd(fd,socket.AF_INET,socket.SOCK_STREAM | socket.SOCK_NONBLOCK,0),addr)
+
+        netio.recv_pack(sock_stream,_recv_conn_info)
 
     def add_client(self,linkid,handler):
         self._client_linkidmap[linkid] = {}
@@ -73,7 +77,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         imc_call_async(self._idendesc,'/center/' + self.center_conn.linkid + '/','del_client',linkid)
 
     def _conn_center(self):
-        def __retry():
+        def __retry(conn):
             print('retry connect center')
 
             self.center_conn = None
@@ -92,7 +96,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 Proxy('backend',self._linkid,TOJAuth.instance,self._conn_linkid)
 
                 self.center_conn = netio.SocketConnection('center',info['center_linkid'],stream)
-                self.center_conn.add_close_callback(lambda conn : __retry())
+                self.center_conn.add_close_callback(__retry)
                 Proxy.instance.add_conn(self.center_conn)
 
 
@@ -113,9 +117,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             }),'utf-8'))
             netio.recv_pack(stream,___recv_info_cb)
 
-        stream = tornado.iostream.IOStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0))
+        stream = netio.SocketStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0),self.center_addr)
         stream.set_close_callback(__retry)
-        stream.connect(self.center_addr,__send_worker_info)
+        stream.connect(__send_worker_info)
 
     def _conn_linkid(self,linkid):
         def __handle_pend(conn):
@@ -127,36 +131,37 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             conn = Proxy.instance.get_conn(worker_linkid)
             if conn != None:
                 __handle_pend(conn)
-                call_stream.set_close_callback(None)
-                call_stream.close()
+                main_stream.set_close_callback(None)
+                main_stream.close()
             
             else:
-                netio.send_pack(call_stream,bytes(json.dumps({
+                netio.send_pack(main_stream,bytes(json.dumps({
                     'conntype':'call',
                     'linkclass':'backend',
                     'linkid':self._linkid
                 }),'utf-8'))
-                netio.recv_pack(call_stream,__call_recv_cb)
+                netio.recv_pack(main_stream,__call_recv_cb)
 
         def __call_recv_cb(data):
-            def ___file_conn_cb():
-                netio.send_pack(file_stream,bytes(json.dumps({
-                    'conntype':'file',
-                    'linkid':self._linkid
-                }),'utf-8'))
+            #def ___file_conn_cb():
+            #    netio.send_pack(file_stream,bytes(json.dumps({
+            #        'conntype':'file',
+            #        'linkid':self._linkid
+            #    }),'utf-8'))
 
-                conn = netio.SocketConnection(worker_linkclass,worker_linkid,call_stream,file_stream)
-                Proxy.instance.add_conn(conn)
-                __handle_pend(conn)
+            #    conn = netio.SocketConnection(worker_linkclass,worker_linkid,main_stream,file_stream)
+            #    Proxy.instance.add_conn(conn)
+            #    __handle_pend(conn)
                 
             stat = json.loads(data.decode('utf-8'))
             if stat == True:
-                file_stream = netio.SocketStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0))
-                file_stream.connect(sock_addr,___file_conn_cb)
+                conn = netio.SocketConnection(worker_linkclass,worker_linkid,main_stream,self._add_pend_filestream)
+                Proxy.instance.add_conn(conn)
+                __handle_pend(conn)
 
             else:
-                call_stream.set_close_callback(None)
-                call_stream.close()
+                main_stream.set_close_callback(None)
+                main_stream.close()
         
         if self.center_conn == None:
             return None
@@ -183,22 +188,22 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
                 sock_addr = (ret['sock_ip'],ret['sock_port'])
 
-                call_stream = tornado.iostream.IOStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0))
-                call_stream.set_close_callback(lambda : __handle_pend(None))
-                call_stream.connect(sock_addr,__call_conn_cb)
+                main_stream = netio.SocketStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0),sock_addr)
+                main_stream.set_close_callback(lambda conn : __handle_pend(None))
+                main_stream.connect(__call_conn_cb)
 
                 return imc.async.switchtop()
 
-    def _handle_callconn(self,call_stream,addr,info):
+    def _add_pend_filestream(self,filekey,callback):
+        self._pend_filestream_filekeymap[filekey] = tornado.stack_context.wrap(callback)
+
+    def _handle_callconn(self,main_stream,addr,info):
         def __send_back(stat):
             if stat == True:
-                self._pend_fileconn_linkidmap[linkid] = __file_conn_cb
+                conn = netio.SocketConnection(linkclass,linkid,main_stream,self._add_pend_filestream)
+                Proxy.instance.add_conn(conn)
 
-            netio.send_pack(call_stream,bytes(json.dumps(stat),'utf-8'))
-
-        def __file_conn_cb(file_stream):
-            conn = netio.SocketConnection(linkclass,linkid,call_stream,file_stream)
-            Proxy.instance.add_conn(conn)
+            netio.send_pack(main_stream,bytes(json.dumps(stat),'utf-8'))
 
         linkclass = info['linkclass']
         linkid = info['linkid']
@@ -213,36 +218,43 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         else:
             if self._linkid > linkid:
                 __send_back(True)
-
+                
                 pends = self._pend_callconn_linkidmap.pop(linkid)
                 for callback in pends:
                     callback(conn)
-
+                
             else:
                 __send_back(False)
         
     def _handle_fileconn(self,file_stream,addr,info):
         try:
-            print('ok')
-            self._pend_fileconn_linkidmap.pop(info['linkid'])(file_stream)
+            print('recv conn')
+            self._pend_filestream_filekeymap.pop(info['filekey'])(file_stream)
 
         except KeyError:
             pass
 
     @imc.async.caller
     def _test_call(self,iden,param):
+
+        filekey = Proxy.instance.sendfile(self._idendesc,'/backend/' + param + '/','archlinux-2013.05.01-dual.iso')
+
         print(time.perf_counter())
         dst = '/backend/' + param + '/'
         for i in range(1):
-            ret = imc_call(self._idendesc,dst,'test_dst','Hello')
+            ret = imc_call(self._idendesc,dst,'test_dst',filekey)
         print(time.perf_counter())
 
         print(ret)
 
     @imc.async.caller
     def _test_dst(self,iden,param):
-        stat,ret = imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dsta',param)
-        return ret + ' Too'
+        #stat,ret = imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dsta',param)
+        #return ret + ' Too'
+
+        Proxy.instance.recvfile(param,'data')
+
+        return 'ok'
 
     @imc.async.caller
     def _test_dsta(self,iden,param):

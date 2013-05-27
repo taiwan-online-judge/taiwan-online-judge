@@ -114,9 +114,9 @@ class CenterServer(tornado.tcpserver.TCPServer):
         return (idendesc,backend.linkid,ws_ip,ws_port)
 
     def _create_linkid(self):
-        linkid = uuid.uuid4()
+        linkid = uuid.uuid1()
         while linkid in self._linkid_usemap:
-            linkid = uuid.uuid4()
+            linkid = uuid.uuid1()
         
         linkid = str(linkid)
         self._linkid_usemap[linkid] = True
@@ -126,7 +126,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
         return linkid
 
     def _create_idendesc(self,linkclass,linkid):
-        return TOJAuth.instance.create_iden(linkclass,linkid)
+        return TOJAuth.instance.create_iden(linkclass,linkid,2)
 
     @imc.async.caller
     def _lookup_linkid(self,iden,param):
