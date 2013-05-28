@@ -224,9 +224,6 @@ class Proxy:
                     return
 
     def _route_sendfile(self,out_conn,src_linkid,filekey,filesize):
-        def _recv_redirect_cb(data):
-            out_conn.send_filedata(filekey,data)
-
         if src_linkid == self._linkid:
             try:
                 info = self._info_filekeymap.pop(filekey)
@@ -242,8 +239,11 @@ class Proxy:
                 pass
 
         else:
+            print('test start')
+
             in_conn = self._request_conn(src_linkid) 
-            in_conn.recv_filedata(filekey,filesize,_recv_redirect_cb)
+            send_fn = out_conn.send_filedata(filekey,filesize)
+            in_conn.recv_filedata(filekey,filesize,send_fn)
 
             self._send_msg_sendfile(in_conn,src_linkid,filekey,filesize)
 
@@ -383,7 +383,7 @@ class Proxy:
 
 @async.callee
 def imc_call(idendesc,dst,func_name,param,_grid):
-    return Proxy.instance.call(_grid,1000,idendesc,dst,func_name,param)
+    return Proxy.instance.call(_grid,1000000,idendesc,dst,func_name,param)
 
 def imc_call_async(idendesc,dst,func_name,param,callback = None):
     @async.caller

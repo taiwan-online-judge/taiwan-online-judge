@@ -3,6 +3,7 @@
 import random
 import json
 import uuid
+import socket
 
 import tornado.ioloop
 import tornado.tcpserver
@@ -13,23 +14,23 @@ import imc.async
 from imc.proxy import Proxy,Connection,imc_call,imc_call_async,imc_register_call
 
 import netio
-from netio import SocketConnection
+from netio import SocketStream,SocketConnection
 from tojauth import TOJAuth
 
 class Worker:
-    def __init__(self,stream,linkclass,linkid,idendesc,worker_info,center_linkid):
-        self.stream = stream
+    def __init__(self,main_stream,linkclass,linkid,idendesc,worker_info,center_linkid):
+        self.main_stream = main_stream
         self.linkclass = linkclass
         self.linkid = linkid
         self.idendesc = idendesc
         self.sock_addr = (worker_info['sock_ip'],worker_info['sock_port'])
 
-        netio.send_pack(self.stream,bytes(json.dumps({
+        netio.send_pack(self.main_stream,bytes(json.dumps({
             'idendesc':self.idendesc,
             'center_linkid':center_linkid
         }),'utf-8'))
 
-        conn = SocketConnection(self.linkclass,self.linkid,self.stream)
+        conn = SocketConnection(self.linkclass,self.linkid,self.main_stream)
         conn.add_close_callback(lambda conn : self.close())
         Proxy.instance.add_conn(conn)
 
@@ -37,10 +38,10 @@ class Worker:
         pass
 
 class BackendWorker(Worker):
-    def __init__(self,stream,linkid,idendesc,worker_info,center_linkid):
+    def __init__(self,main_stream,linkid,idendesc,worker_info,center_linkid):
         global center_serv
 
-        super().__init__(stream,'backend',linkid,idendesc,worker_info,center_linkid)
+        super().__init__(main_stream,'backend',linkid,idendesc,worker_info,center_linkid)
         self.ws_addr = (worker_info['ws_ip'],worker_info['ws_port'])
 
         center_serv.add_backend_worker(self)
@@ -55,6 +56,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
     def __init__(self):
         super().__init__()
 
+        self._ioloop = tornado.ioloop.IOLoop.instance()
         self._linkid_usemap = {}
         self._worker_linkidmap = {}
         self._backend_clientmap = {}
@@ -75,7 +77,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
         imc_register_call('','test_dst',self._test_dst)
         imc_register_call('','test_dstb',self._test_dstb)
 
-    def handle_stream(self,stream,address):
+    def handle_stream(self,stream,addr):
         def _recv_worker_info(data):
             worker_info = json.loads(data.decode('utf-8'))
 
@@ -83,9 +85,13 @@ class CenterServer(tornado.tcpserver.TCPServer):
             if linkclass == 'backend':
                 linkid = self._create_linkid()
                 idendesc = self._create_idendesc('backend',linkid)
-                BackendWorker(stream,linkid,idendesc,worker_info,self._linkid)
+                BackendWorker(main_stream,linkid,idendesc,worker_info,self._linkid)
 
-        netio.recv_pack(stream,_recv_worker_info)
+        fd = stream.fileno()
+        self._ioloop.remove_handler(fd)
+        main_stream = SocketStream(socket.fromfd(fd,socket.AF_INET,socket.SOCK_STREAM | socket.SOCK_NONBLOCK,0),addr)
+
+        netio.recv_pack(main_stream,_recv_worker_info)
 
     def add_backend_worker(self,backend):
         backend_linkid = backend.linkid
@@ -133,7 +139,17 @@ class CenterServer(tornado.tcpserver.TCPServer):
         linkid = param
 
         try:
-            worker = self._worker_linkidmap[linkid]
+            #worker = self._worker_linkidmap[linkid]
+
+            a = int(iden['linkid'])
+            b = int(linkid)
+
+            if b > a:
+                worker = self._worker_linkidmap[str(a + 1)]
+
+            else:
+                worker = self._worker_linkidmap[str(a - 1)]
+
             if iden['linkclass'] != 'client':
                 sock_ip,sock_port = worker.sock_addr
                 return {
