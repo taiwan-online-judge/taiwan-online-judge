@@ -104,7 +104,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 time.sleep(1)
 
                 if int(self._linkid) == 2:
-                    self._test_call(None,'4')
+                    self._test_call(None,'9')
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
@@ -225,16 +225,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     @imc.async.caller
     def _test_call(self,iden,param):
 
-        print('start cold test')
-
-        filekey = Proxy.instance.sendfile(self._idendesc,'/backend/' + param + '/','archlinux-2013.05.01-dual.iso')
-
-        dst = '/backend/' + param + '/'
-        ret = imc_call(self._idendesc,dst,'test_dst',filekey)
-
-        time.sleep(10)
-        print('start warm test')
-
+        param = '5'
         filekey = Proxy.instance.sendfile(self._idendesc,'/backend/' + param + '/','archlinux-2013.05.01-dual.iso')
 
         dst = '/backend/' + param + '/'

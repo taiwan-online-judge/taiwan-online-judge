@@ -1,6 +1,7 @@
 import json
 import uuid
 import os
+import datetime
 
 import tornado.ioloop
 import tornado.stack_context
@@ -14,6 +15,7 @@ class Connection:
         self.linkid = linkid
         self.link_linkidmap = {}
         self._close_callback = []
+        self._closed = False
 
     def send_msg(self,data):
         pass
@@ -25,15 +27,20 @@ class Connection:
         self._close_callback.append(tornado.stack_context.wrap(callback))
 
     def close(self):
+        self._closed = True
+
         for callback in self._close_callback:
             callback(self)
+
+    def closed(self):
+        return self._closed
 
 class Proxy:
     def __init__(self,linkclass,linkid,auth_instance,conn_linkid_fn = None):
         self.MSGTYPE_CALL = 'call'
         self.MSGTYPE_RET = 'ret'
         self.MSGTYPE_SENDFILE = 'sendfile'
-        self.MSGTYPE_RECVFILE = 'recvfile'
+        self.MSGTYPE_ABORTFILE = 'abortfile'
 
         self._ioloop = tornado.ioloop.IOLoop.instance()
         self._linkclass = linkclass
@@ -91,6 +98,15 @@ class Proxy:
         for linkid,retid in wait_ret:
             self._ret_call(linkid,retid,(False,'Eclose'))
 
+        fail_map = self._conn_filekeymap[conn.linkid]
+        fails = fail_map.values()
+        fail_cb = []
+        for callback in fails:
+            fail_cb.append(callback)
+
+        for callback in fail_cb:
+            callback('Eclose')
+
         linkids = conn.link_linkidmap.keys()
         link_del = []
         for linkid in linkids:
@@ -139,12 +155,25 @@ class Proxy:
         return filekey
 
     def recvfile(self,filekey,filepath):
+        def _fail_cb(err):
+            try:
+                del self._conn_filekeymap[in_conn.linkid][filekey]
+
+            except KeyError:
+                return
+
+            if not in_conn.closed():
+                in_conn.abort_file(filekey)
+                self._send_msg_abortfile(in_conn,filekey,err)
+
         try:
             info = self._info_filekeymap.pop(filekey)
             src_linkid = info['src_linkid']
             filesize = info['filesize']
 
             in_conn = self._request_conn(src_linkid)
+            self._add_wait_filekey(filekey,filesize,in_conn,None,_fail_cb)
+
             in_conn.recv_file(filekey,filesize,filepath)
             self._send_msg_sendfile(in_conn,src_linkid,filekey,filesize)
 
@@ -224,12 +253,45 @@ class Proxy:
                     return
 
     def _route_sendfile(self,out_conn,src_linkid,filekey,filesize):
+        def _send_fail(err):
+            try:
+                del self._conn_filekeymap[out_conn.linkid][filekey]
+
+            except KeyError:
+                return
+                    
+            if not out_conn.closed():
+                out_conn.abort_file(filekey)
+                self._send_msg_abortfile(out_conn,filekey,err)
+
+        def _bridge_fail(err):
+            try:
+                del self._conn_filekeymap[in_conn.linkid][filekey]
+
+                if not in_conn.closed():
+                    in_conn.abort_file(filekey)
+                    self._send_msg_abortfile(in_conn,filekey,err)
+
+            except KeyError:
+                pass
+
+            try:
+                del self._conn_filekeymap[out_conn.linkid][filekey]
+
+                if not out_conn.closed():
+                    out_conn.abort_file(filekey)
+                    self._send_msg_abortfile(out_conn,filekey,err)
+
+            except KeyError:
+                pass
+
         if src_linkid == self._linkid:
             try:
                 info = self._info_filekeymap.pop(filekey)
                 assert info['filesize'] == filesize
 
-                self._conn_filekeymap[out_conn.linkid][filekey] = {}
+                self._add_wait_filekey(filekey,filesize,None,out_conn,_send_fail)
+
                 out_conn.send_file(filekey,info['filepath'])
 
             except KeyError:
@@ -242,6 +304,8 @@ class Proxy:
             print('test start')
 
             in_conn = self._request_conn(src_linkid) 
+            self._add_wait_filekey(filekey,filesize,in_conn,out_conn,_bridge_fail)
+
             send_fn = out_conn.send_filedata(filekey,filesize)
             in_conn.recv_filedata(filekey,filesize,send_fn)
 
@@ -286,10 +350,28 @@ class Proxy:
         elif msg_type == self.MSGTYPE_SENDFILE:
             self._recv_msg_sendfile(conn,msg)
 
+        elif msg_type == self.MSGTYPE_ABORTFILE:
+            self._recv_msg_abortfile(conn,msg)
+
     def _conn_close_cb(self,conn):
         self.del_conn(conn)
         print('connection close')
+
+    def _add_wait_filekey(self,filekey,filesize,in_conn,out_conn,fail_callback):
+        def __call(err):
+            self._ioloop.remove_timeout(timer)
+            fail_callback(err)
+
+        callback = tornado.stack_context.wrap(__call)
+
+        timer = self._ioloop.add_timeout(datetime.timedelta(milliseconds = filesize),lambda : callback('Etimeout'))
+
+        if in_conn != None:
+            self._conn_filekeymap[in_conn.linkid][filekey] = callback
     
+        if out_conn != None:
+            self._conn_filekeymap[out_conn.linkid][filekey] = callback
+
     def _check_waitcaller(self):
         wait_maps = self._conn_retidmap.values()
         for wait_map in wait_maps:
@@ -368,6 +450,29 @@ class Proxy:
         src_linkid = msg['src_linkid']
         filekey = msg['filekey']
         filesize = msg['filesize']
+
+        __call()
+
+    def _send_msg_abortfile(self,conn,filekey,err):
+        msg = {
+            'type':self.MSGTYPE_ABORTFILE,
+            'filekey':filekey,
+            'error':err
+        }
+
+        conn.send_msg(bytes(json.dumps(msg),'utf-8'))
+
+    def _recv_msg_abortfile(self,conn,msg):
+        @async.caller
+        def __call():
+            try:
+                self._conn_filekeymap[conn.linkid][filekey](err)
+
+            except:
+                pass
+
+        filekey = msg['filekey']
+        err = msg['error']
 
         __call()
 
