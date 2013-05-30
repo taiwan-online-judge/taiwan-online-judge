@@ -289,7 +289,7 @@ class SocketConnection(Connection):
 
         self.main_stream.write(struct.pack('l',len(data)) + data)
 
-    def send_file(self,filekey,filepath):
+    def send_file(self,filekey,filepath,callback):
         def _conn_cb():
             self._add_sendfile(filekey,_fail_cb)
 
@@ -306,7 +306,7 @@ class SocketConnection(Connection):
 
             os.close(fd)
 
-            print('send done')
+            callback()
 
         def _fail_cb():
             try:
@@ -328,7 +328,7 @@ class SocketConnection(Connection):
         file_stream.set_close_callback(lambda stream : _fail_cb())
         file_stream.connect(_conn_cb)
 
-    def recv_file(self,filekey,filesize,filepath):
+    def recv_file(self,filekey,filesize,filepath,callback):
         def _conn_cb(stream):
             nonlocal file_stream
 
@@ -343,8 +343,9 @@ class SocketConnection(Connection):
             file_stream.close()
 
             os.close(fd)
-            print('recv done')
             print(time.perf_counter() - st)
+
+            callback()
 
         def _fail_cb():
             try:

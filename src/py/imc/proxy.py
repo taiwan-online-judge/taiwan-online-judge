@@ -36,7 +36,7 @@ class Connection:
         return self._closed
 
 class Proxy:
-    def __init__(self,linkclass,linkid,auth_instance,conn_linkid_fn = None):
+    def __init__(self,linkclass,linkid,auth_instance,idendesc,conn_linkid_fn = None):
         self.MSGTYPE_CALL = 'call'
         self.MSGTYPE_RET = 'ret'
         self.MSGTYPE_SENDFILE = 'sendfile'
@@ -46,6 +46,7 @@ class Proxy:
         self._linkclass = linkclass
         self._linkid = linkid
         self._auth = auth_instance
+        self._idendesc = idendesc
 
         if conn_linkid_fn == None:
             self._conn_linkid_fn = lambda : None
@@ -65,6 +66,7 @@ class Proxy:
         Proxy.instance = self 
 
         self.register_call('imc/','pend_recvfile',self._pend_recvfile)
+        self.register_call('imc/','cancel_sendfile',self._cancel_sendfile)
 
     def add_conn(self,conn):
         assert conn.linkid not in self._conn_linkidmap 
@@ -133,12 +135,12 @@ class Proxy:
         caller_retid = ''.join([self._linkid,'/',caller_grid])
         return self._route_call(None,caller_retid,timeout,idendesc,dst,func_name,param)
 
-    def sendfile(self,idendesc,dst_link,filepath):
+    def sendfile(self,dst_link,filepath):
         @async.callee
         def _call(_grid):
             self.call(_grid,
                     10000,
-                    idendesc,
+                    self._idendesc,
                     dst_link + 'imc/','pend_recvfile',
                     {'filekey':filekey,'filesize':filesize})
 
@@ -147,7 +149,8 @@ class Proxy:
 
         self._info_filekeymap[filekey] = {
             'filesize':filesize,
-            'filepath':filepath
+            'filepath':filepath,
+            'callback':None
         }
 
         _call()
@@ -155,6 +158,11 @@ class Proxy:
         return filekey
 
     def recvfile(self,filekey,filepath):
+        def _handle_cb(err = None):
+            info = self._info_filekeymap.pop(filekey)
+
+            print('recv done')
+
         def _fail_cb(err):
             try:
                 del self._conn_filekeymap[in_conn.linkid][filekey]
@@ -166,21 +174,40 @@ class Proxy:
                 in_conn.abort_file(filekey)
                 self._send_msg_abortfile(in_conn,filekey,err)
 
+            _handle_cb(err)
+
         try:
-            info = self._info_filekeymap.pop(filekey)
-            src_linkid = info['src_linkid']
-            filesize = info['filesize']
-
-            in_conn = self._request_conn(src_linkid)
-            self._add_wait_filekey(filekey,filesize,in_conn,None,_fail_cb)
-
-            in_conn.recv_file(filekey,filesize,filepath)
-            self._send_msg_sendfile(in_conn,src_linkid,filekey,filesize)
+            info = self._info_filekeymap[filekey]
 
         except KeyError:
-            pass
+            return
 
-        return
+        src_linkid = info['src_linkid']
+        filesize = info['filesize']
+
+        in_conn = self._request_conn(src_linkid)
+        self._add_wait_filekey(filekey,filesize,in_conn,None,_fail_cb)
+
+        in_conn.recv_file(filekey,filesize,filepath,_handle_cb)
+        self._send_msg_sendfile(in_conn,src_linkid,filekey,filesize)
+
+    def cancelfile(self,filekey):
+        @async.callee
+        def _call(_grid):
+            self.call(_grid,
+                    10000,
+                    self._idendesc,
+                    dst_link + 'imc/','cancel_sendfile',
+                    {'filekey':filekey})
+
+        try:
+            info = self._info_filekeymap.pop(filekey)
+
+        except KeyError:
+            return
+
+        dst_link = ''.join(['/',info['src_linkclass'],'/',info['src_linkid'],'/'])
+        _call()
 
     def _route_call(self,in_conn,caller_retid,timeout,idendesc,dst,func_name,param):
         def __add_wait_caller(in_linkid):
@@ -253,7 +280,12 @@ class Proxy:
                     return
 
     def _route_sendfile(self,out_conn,src_linkid,filekey,filesize):
-        def _send_fail(err):
+        def __handle_cb(err = None):
+            info = self._info_filekeymap.pop(filekey)
+
+            print('send done')
+
+        def __send_fail_cb(err):
             try:
                 del self._conn_filekeymap[out_conn.linkid][filekey]
 
@@ -264,7 +296,9 @@ class Proxy:
                 out_conn.abort_file(filekey)
                 self._send_msg_abortfile(out_conn,filekey,err)
 
-        def _bridge_fail(err):
+            __handle_cb(err)
+
+        def __bridge_fail_cb(err):
             try:
                 del self._conn_filekeymap[in_conn.linkid][filekey]
 
@@ -285,26 +319,27 @@ class Proxy:
             except KeyError:
                 pass
 
+            __handle_cb(err)
+
         if src_linkid == self._linkid:
             try:
-                info = self._info_filekeymap.pop(filekey)
+                info = self._info_filekeymap[filekey]
                 assert info['filesize'] == filesize
 
-                self._add_wait_filekey(filekey,filesize,None,out_conn,_send_fail)
-
-                out_conn.send_file(filekey,info['filepath'])
-
             except KeyError:
-                pass
+                return
 
             except AssertionError:
-                pass
+                return
+
+            self._add_wait_filekey(filekey,filesize,None,out_conn,__send_fail_cb)
+            out_conn.send_file(filekey,info['filepath'],__handle_cb)
 
         else:
             print('test start')
 
             in_conn = self._request_conn(src_linkid) 
-            self._add_wait_filekey(filekey,filesize,in_conn,out_conn,_bridge_fail)
+            self._add_wait_filekey(filekey,filesize,in_conn,out_conn,__bridge_fail_cb)
 
             send_fn = out_conn.send_filedata(filekey,filesize)
             in_conn.recv_filedata(filekey,filesize,send_fn)
@@ -482,9 +517,23 @@ class Proxy:
         filesize = param['filesize']
 
         self._info_filekeymap[filekey] = {
+            'src_linkclass':iden['linkclass'],
             'src_linkid':iden['linkid'],
-            'filesize':filesize
+            'filesize':filesize,
+            'callback':None
         }
+    
+    @async.caller
+    def _cancel_sendfile(self,iden,param):
+        filekey = param['filekey']
+
+        try:
+            info = self._info_filekeymap.pop(filekey)
+
+        except KeyError:
+            return
+
+        print('cancel')
 
 @async.callee
 def imc_call(idendesc,dst,func_name,param,_grid):

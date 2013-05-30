@@ -92,7 +92,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 self._idendesc = info['idendesc']
                 iden = TOJAuth.instance.get_iden('backend',self._linkid,self._idendesc)
                 self._linkid = iden['linkid']
-                Proxy('backend',self._linkid,TOJAuth.instance,self._conn_linkid)
+                Proxy('backend',self._linkid,TOJAuth.instance,self._idendesc,self._conn_linkid)
 
                 self.center_conn = SocketConnection('center',info['center_linkid'],stream)
                 self.center_conn.add_close_callback(__retry)
@@ -225,8 +225,8 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     @imc.async.caller
     def _test_call(self,iden,param):
 
-        param = '5'
-        filekey = Proxy.instance.sendfile(self._idendesc,'/backend/' + param + '/','archlinux-2013.05.01-dual.iso')
+        param = '3'
+        filekey = Proxy.instance.sendfile('/backend/' + param + '/','archlinux-2013.05.01-dual.iso')
 
         dst = '/backend/' + param + '/'
         ret = imc_call(self._idendesc,dst,'test_dst',filekey)
@@ -236,7 +236,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         #stat,ret = imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dsta',param)
         #return ret + ' Too'
 
-        Proxy.instance.recvfile(param,'data')
+        Proxy.instance.cancelfile(param)
 
         return 'ok'
 

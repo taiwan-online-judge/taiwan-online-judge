@@ -68,7 +68,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         self._linkid = self._create_linkid()
         self._idendesc = self._create_idendesc('center',self._linkid)
-        Proxy('center',self._linkid,TOJAuth.instance)
+        Proxy('center',self._linkid,TOJAuth.instance,self._idendesc)
 
         imc_register_call('','lookup_linkid',self._lookup_linkid)
         imc_register_call('','add_client',self._add_client)
