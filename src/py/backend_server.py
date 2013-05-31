@@ -226,17 +226,19 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     def _test_call(self,iden,param):
 
         param = '3'
-        filekey = Proxy.instance.sendfile('/backend/' + param + '/','archlinux-2013.05.01-dual.iso')
+        fileresult = Proxy.instance.sendfile('/backend/' + param + '/','archlinux-2013.05.01-dual.iso')
 
         dst = '/backend/' + param + '/'
-        ret = imc_call(self._idendesc,dst,'test_dst',filekey)
+        ret = imc_call(self._idendesc,dst,'test_dst',fileresult.filekey)
+        print(fileresult.wait())
 
     @imc.async.caller
     def _test_dst(self,iden,param):
         #stat,ret = imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dsta',param)
         #return ret + ' Too'
 
-        Proxy.instance.cancelfile(param)
+        fileresult = Proxy.instance.recvfile(param,'data')
+        print(fileresult.wait())
 
         return 'ok'
 

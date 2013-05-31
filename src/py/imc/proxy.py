@@ -35,6 +35,27 @@ class Connection:
     def closed(self):
         return self._closed
 
+class FileResult():
+    def __init__(self,filekey):
+        self.filekey = filekey
+        self._gr = None
+        self._result = None
+
+    def ret_result(self,res):
+        if self._result != None:
+            return
+
+        self._result = res
+        if self._gr != None:
+            self._gr.switch()
+
+    def wait(self):
+        if self._result == None:
+            self._gr = async.current()
+            async.switchtop()
+
+        return self._result
+
 class Proxy:
     def __init__(self,linkclass,linkid,auth_instance,idendesc,conn_linkid_fn = None):
         self.MSGTYPE_CALL = 'call'
@@ -66,7 +87,7 @@ class Proxy:
         Proxy.instance = self 
 
         self.register_call('imc/','pend_recvfile',self._pend_recvfile)
-        self.register_call('imc/','cancel_sendfile',self._cancel_sendfile)
+        self.register_call('imc/','reject_sendfile',self._reject_sendfile)
 
     def add_conn(self,conn):
         assert conn.linkid not in self._conn_linkidmap 
@@ -147,22 +168,20 @@ class Proxy:
         filekey = str(uuid.uuid1())
         filesize = os.stat(filepath).st_size
 
+        fileresult = FileResult(filekey)
+
         self._info_filekeymap[filekey] = {
             'filesize':filesize,
             'filepath':filepath,
-            'callback':None
+            'fileresult':fileresult,
+            'timer':self._ioloop.add_timeout(datetime.timedelta(days = 1),lambda : self._ret_sendfile('Etimeout'))
         }
 
         _call()
 
-        return filekey
+        return fileresult
 
     def recvfile(self,filekey,filepath):
-        def _handle_cb(err = None):
-            info = self._info_filekeymap.pop(filekey)
-
-            print('recv done')
-
         def _fail_cb(err):
             try:
                 del self._conn_filekeymap[in_conn.linkid][filekey]
@@ -174,7 +193,7 @@ class Proxy:
                 in_conn.abort_file(filekey)
                 self._send_msg_abortfile(in_conn,filekey,err)
 
-            _handle_cb(err)
+            self._ret_sendfile(filekey,err)
 
         try:
             info = self._info_filekeymap[filekey]
@@ -188,16 +207,18 @@ class Proxy:
         in_conn = self._request_conn(src_linkid)
         self._add_wait_filekey(filekey,filesize,in_conn,None,_fail_cb)
 
-        in_conn.recv_file(filekey,filesize,filepath,_handle_cb)
+        in_conn.recv_file(filekey,filesize,filepath,lambda : self._ret_sendfile(filekey))
         self._send_msg_sendfile(in_conn,src_linkid,filekey,filesize)
 
-    def cancelfile(self,filekey):
+        return info['fileresult']
+
+    def rejectfile(self,filekey):
         @async.callee
         def _call(_grid):
             self.call(_grid,
                     10000,
                     self._idendesc,
-                    dst_link + 'imc/','cancel_sendfile',
+                    dst_link + 'imc/','reject_sendfile',
                     {'filekey':filekey})
 
         try:
@@ -278,13 +299,22 @@ class Proxy:
                     self._send_msg_call(conn,caller_retid,timeout,idendesc,dst,func_name,param)
 
                     return
+    
+    def _ret_call(self,caller_linkid,caller_retid,result):
+        @async.caller
+        def __ret_remote():
+            conn = self._request_conn(caller_linkid)
+            if conn != None:
+                self._send_msg_ret(conn,caller_linkid,caller_retid,result)
+
+        if caller_linkid == self._linkid:
+            grid = caller_retid.split('/',1)[1]
+            async.retcall(grid,result)
+
+        else:
+            __ret_remote()
 
     def _route_sendfile(self,out_conn,src_linkid,filekey,filesize):
-        def __handle_cb(err = None):
-            info = self._info_filekeymap.pop(filekey)
-
-            print('send done')
-
         def __send_fail_cb(err):
             try:
                 del self._conn_filekeymap[out_conn.linkid][filekey]
@@ -296,7 +326,7 @@ class Proxy:
                 out_conn.abort_file(filekey)
                 self._send_msg_abortfile(out_conn,filekey,err)
 
-            __handle_cb(err)
+            self._ret_sendfile(filekey,err)
 
         def __bridge_fail_cb(err):
             try:
@@ -319,21 +349,21 @@ class Proxy:
             except KeyError:
                 pass
 
-            __handle_cb(err)
-
         if src_linkid == self._linkid:
             try:
                 info = self._info_filekeymap[filekey]
                 assert info['filesize'] == filesize
 
             except KeyError:
+                self._ret_sendfile(filekey,'Enoexist')
                 return
 
             except AssertionError:
+                self._ret_sendfile(filekey,'Efilesize')
                 return
 
             self._add_wait_filekey(filekey,filesize,None,out_conn,__send_fail_cb)
-            out_conn.send_file(filekey,info['filepath'],__handle_cb)
+            out_conn.send_file(filekey,info['filepath'],lambda : self._ret_sendfile(filekey))
 
         else:
             print('test start')
@@ -346,19 +376,21 @@ class Proxy:
 
             self._send_msg_sendfile(in_conn,src_linkid,filekey,filesize)
 
-    def _ret_call(self,caller_linkid,caller_retid,result):
-        @async.caller
-        def __ret_remote():
-            conn = self._request_conn(caller_linkid)
-            if conn != None:
-                self._send_msg_ret(conn,caller_linkid,caller_retid,result)
+    def _ret_sendfile(self,filekey,err = None):
+        try:
+            info = self._info_filekeymap.pop(filekey)
 
-        if caller_linkid == self._linkid:
-            grid = caller_retid.split('/',1)[1]
-            async.retcall(grid,result)
+        except KeyError:
+            return
+
+        self._ioloop.remove_timeout(info['timer'])
+                
+        fileresult = info['fileresult']
+        if err == None:
+            self._ioloop.add_callback(lambda : fileresult.ret_result('Success'))
 
         else:
-            __ret_remote()
+            self._ioloop.add_callback(lambda : fileresult.ret_result(err))
 
     def _request_conn(self,linkid):
         try:
@@ -398,7 +430,6 @@ class Proxy:
             fail_callback(err)
 
         callback = tornado.stack_context.wrap(__call)
-
         timer = self._ioloop.add_timeout(datetime.timedelta(milliseconds = filesize),lambda : callback('Etimeout'))
 
         if in_conn != None:
@@ -520,20 +551,14 @@ class Proxy:
             'src_linkclass':iden['linkclass'],
             'src_linkid':iden['linkid'],
             'filesize':filesize,
-            'callback':None
+            'fileresult':FileResult(filekey),
+            'timer':self._ioloop.add_timeout(datetime.timedelta(days = 1),lambda : self._ret_sendfile('Etimeout'))
         }
     
     @async.caller
-    def _cancel_sendfile(self,iden,param):
+    def _reject_sendfile(self,iden,param):
         filekey = param['filekey']
-
-        try:
-            info = self._info_filekeymap.pop(filekey)
-
-        except KeyError:
-            return
-
-        print('cancel')
+        self._ret_sendfile(filekey,'Ereject')
 
 @async.callee
 def imc_call(idendesc,dst,func_name,param,_grid):
