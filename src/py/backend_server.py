@@ -103,8 +103,8 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 #imc_register_call('','test_dsta',self._test_dsta)
                 time.sleep(1)
 
-                if int(self._linkid) == 2:
-                    self._test_call(None,'9')
+                #if int(self._linkid) == 2:
+                self._test_call(None,'9')
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
@@ -122,9 +122,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
     def _conn_linkid(self,linkid):
         def __handle_pend(conn):
-            pends = self._pend_mainconn_linkidmap.pop(worker_linkid)
-            for gr in pends:
-                gr.switch(conn)
+            retids = self._pend_mainconn_linkidmap.pop(worker_linkid)
+            for retid in retids:
+                imc.async.ret(retid,conn)
 
         def __conn_cb():
             conn = Proxy.instance.get_conn(worker_linkid)
@@ -169,11 +169,11 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 return conn
 
             elif worker_linkid in self._pend_mainconn_linkidmap:
-                self._pend_mainconn_linkidmap[worker_linkid].append(imc.async.current())
-                return imc.async.switchtop()
+                self._pend_mainconn_linkidmap[worker_linkid].append(imc.async.get_retid())
+                return imc.async.switch_top()
 
             else:
-                self._pend_mainconn_linkidmap[worker_linkid] = [imc.async.current()]
+                self._pend_mainconn_linkidmap[worker_linkid] = [imc.async.get_retid()]
 
                 sock_addr = (ret['sock_ip'],ret['sock_port'])
 
@@ -181,7 +181,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 main_stream.set_close_callback(lambda conn : __handle_pend(None))
                 main_stream.connect(__conn_cb)
 
-                return imc.async.switchtop()
+                return imc.async.switch_top()
 
     def _add_pend_filestream(self,filekey,callback):
         self._pend_filestream_filekeymap[filekey] = tornado.stack_context.wrap(callback)
@@ -208,9 +208,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             if self._linkid > linkid:
                 __send_back(True)
                 
-                pends = self._pend_mainconn_linkidmap.pop(linkid)
-                for callback in pends:
-                    callback(conn)
+                retids = self._pend_mainconn_linkidmap.pop(linkid)
+                for retid in retids:
+                    imc.async.ret(retid,conn)
                 
             else:
                 __send_back(False)
@@ -225,20 +225,32 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     @imc.async.caller
     def _test_call(self,iden,param):
 
-        param = '3'
-        fileresult = Proxy.instance.sendfile('/backend/' + param + '/','archlinux-2013.05.01-dual.iso')
+        param = '6'
 
-        dst = '/backend/' + param + '/'
-        ret = imc_call(self._idendesc,dst,'test_dst',fileresult.filekey)
-        print(fileresult.wait())
+        pend = []
+        for i in range(0,8):
+            if str((i % 8) + 2) == self._linkid:
+                continue
+
+            fileres = Proxy.instance.sendfile('/backend/' + str((i % 8) + 2) + '/','archlinux-2013.05.01-dual.iso')
+            
+            dst = '/backend/' + str((i % 8) + 2) + '/'
+            ret = imc_call(self._idendesc,dst,'test_dst',fileres.filekey)
+
+            pend.append(fileres)
+
+        for p in pend:
+            print(p.wait())
+
+        print(self._linkid)
 
     @imc.async.caller
     def _test_dst(self,iden,param):
         #stat,ret = imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dsta',param)
         #return ret + ' Too'
 
-        fileresult = Proxy.instance.recvfile(param,'data')
-        print(fileresult.wait())
+        fileres = Proxy.instance.recvfile(param,'data')
+        #print(fileres.wait())
 
         return 'ok'
 

@@ -79,13 +79,13 @@ class TOJAuth(Auth):
 
         return wrapper
 
-    def create_access(self):
+    def create_access(self, owner_idenid):
         self.check_access(self.auth_accessid, self.ACCESS_EXECUTE)(0)
 
         cur = self.db.cursor()
         sqlstr = ('INSERT INTO "ACCESS" ("owner_idenid") VALUES (%s) '
                 'RETURNING "accessid";')
-        sqlarr = (self.current_iden['idenid'], )
+        sqlarr = (owner_idenid, )
         cur.execute(sqlstr, sqlarr)
 
         for data in cur:

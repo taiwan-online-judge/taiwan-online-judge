@@ -3,7 +3,7 @@ import json
 import binascii
 
 from Crypto.PublicKey import RSA
-from Crypto.Hash import SHA,SHA512
+from Crypto.Hash import SHA512
 from Crypto.Signature import PKCS1_v1_5
 
 current_iden = None

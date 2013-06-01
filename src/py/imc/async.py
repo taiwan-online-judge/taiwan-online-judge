@@ -1,17 +1,20 @@
 import traceback
+import uuid
+import ssl
 
+from Crypto.Hash import SHA512
 from greenlet import greenlet
 
 from imc import auth
 
-gr_waitmap = {}
+gr_idmap = {}
+ret_idmap = {}
 gr_main = greenlet.getcurrent()
 
-def current():
-    return greenlet.getcurrent()
-
-def switchtop():
+def switch_top():
     global gr_main
+
+    assert greenlet.getcurrent() != gr_main
 
     old_iden = auth.current_iden
     auth.current_iden = None
@@ -22,29 +25,27 @@ def switchtop():
 
     return result
 
-def callee(f):
-    def wrapper(*args,**kwargs):
-        kwargs['_grid'] = str(id(greenlet.getcurrent()))
-        return f(*args,**kwargs)
-
-    return wrapper
-
 def caller(f):
     def wrapper(*args,**kwargs):
         global gr_main
-        global gr_waitmap
+        global gr_idmap
+        global ret_idmap
 
         def _call(*args,**kwargs):
             ret = f(*args,**kwargs)
-            del gr_waitmap[grid]
+            retids = gr_idmap[grid]
+            for retid in retids:
+                del ret_idmap[retid] 
+
+            del gr_idmap[grid]
 
             return (True,ret)
         
         try:
             gr = greenlet(_call)
-            grid = str(id(gr))
+            grid = id(gr)
+            gr_idmap[grid] = set()
             old_iden = auth.current_iden
-            gr_waitmap[grid] = (gr,old_iden)
 
             result = gr.switch(*args,**kwargs)
             auth.current_iden = old_iden
@@ -64,14 +65,35 @@ def caller(f):
 
     return wrapper
 
-def retcall(grid,value = None,err = None):
-    global gr_waitmap
+def get_retid():
+    global gr_idmap
+    global ret_idmap
+
+    gr = greenlet.getcurrent()
+    grid = id(gr)
+    retid = SHA512.new(uuid.uuid1().bytes + ssl.RAND_bytes(64)).hexdigest()
+
+    gr_idmap[grid].add(retid)
+    ret_idmap[retid] = gr
+
+    return retid
+
+def ret(retid,value = None,err = None):
+    global gr_main
+    global gr_idmap
+    global ret_idmap
+
+    assert greenlet.getcurrent() == gr_main
 
     try:
-        gr,iden = gr_waitmap[grid]
+        gr = ret_idmap.pop(retid)
+        gr_idmap[id(gr)].remove(retid)
 
+    except KeyError:
+        return
+
+    try:
         old_iden = auth.current_iden
-        auth.current_iden = iden
 
         if err == None:
             gr.switch(value)
@@ -81,7 +103,6 @@ def retcall(grid,value = None,err = None):
 
         auth.current_iden = old_iden
 
-    except Exception as err:
+    except TypeError as err:
         traceback.print_stack()
         print(err)
-        pass

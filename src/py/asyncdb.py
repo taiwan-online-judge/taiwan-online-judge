@@ -19,7 +19,7 @@ class RestrictCursor:
     def __iter__(self):
         return self._cur
 
-    def execute(self,sql,param = None,_grid = None):
+    def execute(self,sql,param = None):
         self._db.execute(self._cur,sql,param) 
 
         self.arraysize = self._cur.arraysize
@@ -201,14 +201,13 @@ class AsyncDB:
     def cursor(self):
         return RestrictCursor(self,self._cursor())
 
-    @imc.async.callee
-    def execute(self,cur,sql,param = None,_grid = None):
+    def execute(self,cur,sql,param = None):
         fd = cur.connection.fileno()
             
-        self._pendoper_fdmap[fd].append((self.OPER_EXECUTE,(cur,sql,param),_grid))
+        self._pendoper_fdmap[fd].append((self.OPER_EXECUTE,(cur,sql,param),imc.async.get_retid()))
         self._ioloop.add_callback(self._oper_dispatch,fd,0)
 
-        imc.async.switchtop()
+        imc.async.switch_top()
 
     def begin_transaction(self):
         if len(self._free_connpool) > 0:
@@ -229,18 +228,17 @@ class AsyncDB:
         else:
             self._close_conn(conn)
 
-    @imc.async.callee
-    def _cursor(self,conn = None,_grid = None):
+    def _cursor(self,conn = None):
         if conn != None:
             fd = conn.fileno()
 
         else:
             fd = self._share_connpool[random.randrange(len(self._share_connpool))].fileno()
 
-        self._pendoper_fdmap[fd].append((self.OPER_CURSOR,None,_grid))
+        self._pendoper_fdmap[fd].append((self.OPER_CURSOR,None,imc.async.get_retid()))
         self._ioloop.add_callback(self._oper_dispatch,fd,0)
 
-        cur = imc.async.switchtop()
+        cur = imc.async.switch_top()
         return cur
 
     def _create_conn(self):
@@ -302,7 +300,7 @@ class AsyncDB:
 
         else:
             try:
-                oper,data,grid = self._pendoper_fdmap[fd].popleft()
+                oper,data,retid = self._pendoper_fdmap[fd].popleft()
 
             except IndexError:
                 return
@@ -310,20 +308,20 @@ class AsyncDB:
             if oper == self.OPER_CURSOR:
                 def _ret_cursor(err = None):
                     if err == None:
-                        imc.async.retcall(grid,conn.cursor())
+                        imc.async.ret(retid,conn.cursor())
 
                     else:
-                        imc.async.retcall(grid,err = err)
+                        imc.async.ret(retid,err = err)
 
                 self._opercallback_fdmap[fd] = _ret_cursor
 
             elif oper == self.OPER_EXECUTE:
                 def _ret_execute(err = None):
                     if err == None:
-                        imc.async.retcall(grid,None)
+                        imc.async.ret(retid)
                     
                     else:
-                        imc.async.retcall(grid,err = err)
+                        imc.async.ret(retid,err = err)
 
                 cur,sql,param = data
 
