@@ -37,8 +37,10 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
     def start(self):
         sock_port = random.randrange(4096,8192)
-        self.listen(sock_port)
         self.sock_addr = ('127.0.0.1',sock_port)
+
+        self.bind(sock_port,'',socket.AF_INET,65536)
+        super().start()
 
         self._conn_center()
 
@@ -55,7 +57,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
         fd = stream.fileno()
         self._ioloop.remove_handler(fd)
-        sock_stream = SocketStream(socket.fromfd(fd,socket.AF_INET,socket.SOCK_STREAM | socket.SOCK_NONBLOCK,0),addr)
+        sock_stream = SocketStream(socket.fromfd(fd,socket.AF_INET,socket.SOCK_STREAM | socket.SOCK_NONBLOCK,0))
 
         netio.recv_pack(sock_stream,_recv_conn_info)
 
@@ -94,14 +96,13 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 self._linkid = iden['linkid']
                 Proxy('backend',self._linkid,TOJAuth.instance,self._idendesc,self._conn_linkid)
 
-                self.center_conn = SocketConnection('center',info['center_linkid'],stream)
+                self.center_conn = SocketConnection('center',info['center_linkid'],stream,self.center_addr)
                 self.center_conn.add_close_callback(__retry)
                 Proxy.instance.add_conn(self.center_conn)
 
-
                 imc_register_call('','test_dst',self._test_dst)
                 #imc_register_call('','test_dsta',self._test_dsta)
-                time.sleep(1)
+                time.sleep(2)
 
                 #if int(self._linkid) == 2:
                 self._test_call(None,'9')
@@ -116,13 +117,18 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             }),'utf-8'))
             netio.recv_pack(stream,___recv_info_cb)
 
-        stream = SocketStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0),self.center_addr)
+        stream = SocketStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0))
         stream.set_close_callback(__retry)
-        stream.connect(__send_worker_info)
+        stream.connect(self.center_addr,__send_worker_info)
 
     def _conn_linkid(self,linkid):
         def __handle_pend(conn):
-            retids = self._pend_mainconn_linkidmap.pop(worker_linkid)
+            try:
+                retids = self._pend_mainconn_linkidmap.pop(worker_linkid)
+            
+            except KeyError:
+                return
+
             for retid in retids:
                 imc.async.ret(retid,conn)
 
@@ -134,17 +140,20 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 main_stream.close()
             
             else:
+                sock_ip,sock_port = self.sock_addr
                 netio.send_pack(main_stream,bytes(json.dumps({
                     'conntype':'main',
                     'linkclass':'backend',
-                    'linkid':self._linkid
+                    'linkid':self._linkid,
+                    'sock_ip':sock_ip,
+                    'sock_port':sock_port
                 }),'utf-8'))
                 netio.recv_pack(main_stream,__recv_cb)
 
         def __recv_cb(data):
             stat = json.loads(data.decode('utf-8'))
             if stat == True:
-                conn = SocketConnection(worker_linkclass,worker_linkid,main_stream,self._add_pend_filestream)
+                conn = SocketConnection(worker_linkclass,worker_linkid,main_stream,sock_addr,self._add_pend_filestream)
                 Proxy.instance.add_conn(conn)
                 __handle_pend(conn)
 
@@ -177,9 +186,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
                 sock_addr = (ret['sock_ip'],ret['sock_port'])
 
-                main_stream = SocketStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0),sock_addr)
+                main_stream = SocketStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0))
                 main_stream.set_close_callback(lambda conn : __handle_pend(None))
-                main_stream.connect(__conn_cb)
+                main_stream.connect(sock_addr,__conn_cb)
 
                 return imc.async.switch_top()
 
@@ -187,33 +196,28 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         self._pend_filestream_filekeymap[filekey] = tornado.stack_context.wrap(callback)
 
     def _handle_mainconn(self,main_stream,addr,info):
-        def __send_back(stat):
-            if stat == True:
-                conn = SocketConnection(linkclass,linkid,main_stream,self._add_pend_filestream)
-                Proxy.instance.add_conn(conn)
-
-            netio.send_pack(main_stream,bytes(json.dumps(stat),'utf-8'))
-
         linkclass = info['linkclass']
         linkid = info['linkid']
+        sock_ip = info['sock_ip']
+        sock_port = info['sock_port']
 
         conn = Proxy.instance.get_conn(linkid)
         if conn != None:
             return
 
-        if linkid not in self._pend_mainconn_linkidmap:
-            __send_back(True)
+        if (linkid not in self._pend_mainconn_linkidmap) or self._linkid > linkid:
+            conn = SocketConnection(linkclass,linkid,main_stream,(sock_ip,sock_port),self._add_pend_filestream)
+            Proxy.instance.add_conn(conn)
 
-        else:
-            if self._linkid > linkid:
-                __send_back(True)
-                
+            netio.send_pack(main_stream,bytes(json.dumps(True),'utf-8'))
+            
+            if linkid in self._pend_mainconn_linkidmap:
                 retids = self._pend_mainconn_linkidmap.pop(linkid)
                 for retid in retids:
                     imc.async.ret(retid,conn)
-                
-            else:
-                __send_back(False)
+
+        else:
+            netio.send_pack(main_stream,bytes(json.dumps(False),'utf-8'))
         
     def _handle_fileconn(self,file_stream,addr,info):
         try:
@@ -232,7 +236,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             if str((i % 8) + 2) == self._linkid:
                 continue
 
-            fileres = Proxy.instance.sendfile('/backend/' + str((i % 8) + 2) + '/','archlinux-2013.05.01-dual.iso')
+            fileres = Proxy.instance.sendfile('/backend/' + str((i % 8) + 2) + '/','test.py')
             
             dst = '/backend/' + str((i % 8) + 2) + '/'
             ret = imc_call(self._idendesc,dst,'test_dst',fileres.filekey)
@@ -240,7 +244,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             pend.append(fileres)
 
         for p in pend:
-            print(p.wait())
+            self._linkid + ' ' + p.wait()
 
         print(self._linkid)
 

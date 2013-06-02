@@ -30,7 +30,7 @@ class Worker:
             'center_linkid':center_linkid
         }),'utf-8'))
 
-        conn = SocketConnection(self.linkclass,self.linkid,self.main_stream)
+        conn = SocketConnection(self.linkclass,self.linkid,self.main_stream,self.sock_addr)
         conn.add_close_callback(lambda conn : self.close())
         Proxy.instance.add_conn(conn)
 
@@ -89,7 +89,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         fd = stream.fileno()
         self._ioloop.remove_handler(fd)
-        main_stream = SocketStream(socket.fromfd(fd,socket.AF_INET,socket.SOCK_STREAM | socket.SOCK_NONBLOCK,0),addr)
+        main_stream = SocketStream(socket.fromfd(fd,socket.AF_INET,socket.SOCK_STREAM | socket.SOCK_NONBLOCK,0))
 
         netio.recv_pack(main_stream,_recv_worker_info)
 
@@ -139,16 +139,16 @@ class CenterServer(tornado.tcpserver.TCPServer):
         linkid = param
 
         try:
-            worker = self._worker_linkidmap[linkid]
+            #worker = self._worker_linkidmap[linkid]
 
-            #a = int(iden['linkid'])
-            #b = int(linkid)
+            a = int(iden['linkid'])
+            b = int(linkid)
 
-            #if b > a:
-            #    worker = self._worker_linkidmap[str(a + 1)]
+            if b > a:
+                worker = self._worker_linkidmap[str(a + 1)]
 
-            #else:
-            #    worker = self._worker_linkidmap[str(a - 1)]
+            else:
+                worker = self._worker_linkidmap[str(a - 1)]
 
             if iden['linkclass'] != 'client':
                 sock_ip,sock_port = worker.sock_addr
