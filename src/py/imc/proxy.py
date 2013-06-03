@@ -22,7 +22,22 @@ class Connection:
     def send_msg(self,data):
         pass
 
+    def send_file(self,filekey,filepath,callback):
+        pass
+
+    def recv_file(self,filekey,filesize,filepath,callback):
+        pass
+
+    def send_filedata(self,filekey,filesize,callback):
+        pass
+
+    def recv_filedata(self,filekey,filesize,send_fn):
+        pass
+
     def start_recv(self,recv_callback):
+        pass
+
+    def abort_file(self,filekey):
         pass
 
     def add_close_callback(self,callback):
@@ -153,9 +168,8 @@ class Proxy:
             'timer':self._ioloop.add_timeout(datetime.timedelta(days = 1),lambda : self._ret_sendfile('Etimeout'))
         }
 
-        stat,ret = self.call(1000000,self._idendesc,dst_link + 'imc/','pend_recvfile',{'filekey':filekey,'filesize':filesize})
+        stat,ret = self.call(65536,self._idendesc,dst_link + 'imc/','pend_recvfile',{'filekey':filekey,'filesize':filesize})
         if stat == False:
-            print('err close ' + ret)
             raise ConnectionError(ret)
 
         return fileresult
@@ -200,7 +214,7 @@ class Proxy:
             return
 
         dst_link = ''.join(['/',info['src_linkclass'],'/',info['src_linkid'],'/'])
-        self.call(1000000,self._idendesc,dst_link + 'imc/','reject_sendfile',{'filekey':filekey})
+        self.call(65536,self._idendesc,dst_link + 'imc/','reject_sendfile',{'filekey':filekey})
 
     def _route_call(self,in_conn,caller_retid,timeout,idendesc,dst,func_name,param):
         def __add_wait_caller(conn_linkid):
@@ -249,7 +263,7 @@ class Proxy:
                 self._auth.change_iden(old_iden)
 
             except KeyError:
-                result = (False,'Enoexist1')
+                result = (False,'Enoexist')
 
             __del_wait_caller(self._linkid)
 
@@ -258,7 +272,7 @@ class Proxy:
         else:
             conn = self._request_conn(dst_linkid)
             if conn == None:
-                return __ret((False,'Enoexist2'))
+                return __ret((False,'Enoexist'))
 
             else:
                 if caller_linkid == self._linkid:
@@ -351,9 +365,10 @@ class Proxy:
             self._send_msg_sendfile(in_conn,src_linkid,filekey,filesize)
     
     def _add_wait_filekey(self,conn_linkid,filekey,filesize,callback):
+        callback = tornado.stack_context.wrap(callback)
         self._conn_filekeymap[conn_linkid][filekey] = {
             'timer':self._ioloop.add_timeout(datetime.timedelta(milliseconds = filesize),lambda : callback('Etimeout')),
-            'callback':tornado.stack_context.wrap(callback)
+            'callback':callback
         }
     
     def _del_wait_filekey(self,conn_linkid,filekey):
@@ -393,7 +408,12 @@ class Proxy:
         print('connection close')
 
     def _recv_dispatch(self,conn,data):
-        msg = json.loads(data.decode('utf-8'))
+        try:
+            msg = json.loads(data.decode('utf-8'))
+        
+        except:
+            return
+        
         msg_type = msg['type']
 
         if msg_type == self.MSGTYPE_CALL:
@@ -517,7 +537,7 @@ class Proxy:
         self._ioloop.add_callback(self._ret_sendfile,filekey,'Ereject')
 
 def imc_call(idendesc,dst,func_name,param):
-    return Proxy.instance.call(1000000,idendesc,dst,func_name,param)
+    return Proxy.instance.call(65536,idendesc,dst,func_name,param)
 
 def imc_call_async(idendesc,dst,func_name,param,callback = None):
     @async.caller

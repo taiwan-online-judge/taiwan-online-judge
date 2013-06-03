@@ -37,7 +37,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
     def start(self):
         sock_port = random.randrange(4096,8192)
-        self.sock_addr = ('127.0.0.1',sock_port)
+        self.sock_addr = ('10.8.0.6',sock_port)
 
         self.bind(sock_port,'',socket.AF_INET,65536)
         super().start()
@@ -104,8 +104,8 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 #imc_register_call('','test_dsta',self._test_dsta)
                 time.sleep(2)
 
-                #if int(self._linkid) == 2:
-                self._test_call(None,'9')
+                if int(self._linkid) == 2:
+                    self._test_call(None,'9')
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
@@ -228,15 +228,15 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
     @imc.async.caller
     def _test_call(self,iden,param):
-
         param = '6'
 
         pend = []
-        for i in range(0,8):
+        for i in range(0,3):
             if str((i % 8) + 2) == self._linkid:
                 continue
 
-            fileres = Proxy.instance.sendfile('/backend/' + str((i % 8) + 2) + '/','test.py')
+            fileres = Proxy.instance.sendfile('/backend/' + str((i % 8) + 2) +
+                    '/','test.py')
             
             dst = '/backend/' + str((i % 8) + 2) + '/'
             ret = imc_call(self._idendesc,dst,'test_dst',fileres.filekey)
@@ -244,7 +244,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             pend.append(fileres)
 
         for p in pend:
-            self._linkid + ' ' + p.wait()
+            print(self._linkid + ' ' + p.wait())
 
         print(self._linkid)
 
@@ -253,7 +253,8 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         #stat,ret = imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dsta',param)
         #return ret + ' Too'
 
-        fileres = Proxy.instance.recvfile(param,'data')
+        Proxy.instance.rejectfile(param)
+        #fileres = Proxy.instance.recvfile(param,'data')
         #print(fileres.wait())
 
         return 'ok'
@@ -294,7 +295,7 @@ def start_backend_worker(ws_port):
     ]))
     http_serv.listen(ws_port)
 
-    backend_worker = BackendWorker(('localhost',5730),ws_port)
+    backend_worker = BackendWorker(('10.8.0.6',5730),ws_port)
     backend_worker.start()
 
     tornado.ioloop.IOLoop.instance().start()

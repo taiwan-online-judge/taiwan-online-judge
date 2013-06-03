@@ -152,6 +152,10 @@ class SocketStream:
                         iocb[1] = size
                         break
 
+                    except Exception:
+                        self.close()
+                        return
+
                 elif datatype == self.DATA_NOBUF:
                     size = iocb[1]
                     
@@ -172,6 +176,10 @@ class SocketStream:
                     except BlockingIOError:
                         iocb[1] = size
                         break
+
+                    except Exception:
+                        self.close()
+                        return
 
                 elif datatype == self.DATA_FILE:
                     size = iocb[1]
@@ -196,6 +204,10 @@ class SocketStream:
                     except BlockingIOError:
                         iocb[1] = size
                         break
+
+                    except Exception:
+                        self.close()
+                        return
 
         if evt & tornado.ioloop.IOLoop.WRITE:
             if self._conning == True:
@@ -232,6 +244,10 @@ class SocketStream:
                         iocb[1] = off
                         break
 
+                    except Exception:
+                        self.close()
+                        return
+
                 elif datatype == self.DATA_FILE:
                     size = iocb[1]
                     filefd = iocb[2]
@@ -256,6 +272,10 @@ class SocketStream:
                     except BlockingIOError:
                         iocb[1] = size
                         break
+
+                    except Exception:
+                        self.close()
+                        return
 
         if self._closed == True:
             return

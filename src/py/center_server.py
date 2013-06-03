@@ -139,16 +139,16 @@ class CenterServer(tornado.tcpserver.TCPServer):
         linkid = param
 
         try:
-            #worker = self._worker_linkidmap[linkid]
+            worker = self._worker_linkidmap[linkid]
 
-            a = int(iden['linkid'])
-            b = int(linkid)
+            #a = int(iden['linkid'])
+            #b = int(linkid)
 
-            if b > a:
-                worker = self._worker_linkidmap[str(a + 1)]
+            #if b > a:
+            #    worker = self._worker_linkidmap[str(a + 1)]
 
-            else:
-                worker = self._worker_linkidmap[str(a - 1)]
+            #else:
+            #    worker = self._worker_linkidmap[str(a - 1)]
 
             if iden['linkclass'] != 'client':
                 sock_ip,sock_port = worker.sock_addr
