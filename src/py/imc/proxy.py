@@ -9,7 +9,7 @@ import tornado.ioloop
 import tornado.stack_context
 
 from imc import async
-from imc import auth
+from imc.auth import Auth
 
 class Connection:
     def __init__(self,linkclass,linkid):
@@ -152,8 +152,17 @@ class Proxy:
     def register_call(self,path,func_name,func):
         self._call_pathmap[''.join([path,func_name])] = func
 
-    def call(self,timeout,idendesc,dst,func_name,param):
-        return self._route_call(None,async.get_retid(),timeout,idendesc,dst,func_name,param)
+    def call(self,idendesc,dst,func_name,timeout,*args):
+        return self._route_call(None,async.get_retid(),idendesc,dst,func_name,timeout,list(args))
+
+    def call_async(self,idendesc,dst,func_name,timeout,callback,*args):
+        @async.caller
+        def _call():
+            result = self._route_call(None,async.get_retid(),idendesc,dst,func_name,timeout,list(args))
+            if callback != None:
+                callback(result)
+
+        self._ioloop.add_callback(tornado.stack_context.wrap(_call))
 
     def sendfile(self,dst_link,filepath):
         filekey = SHA512.new(uuid.uuid1().bytes + ssl.RAND_bytes(64)).hexdigest()
@@ -168,7 +177,7 @@ class Proxy:
             'timer':self._ioloop.add_timeout(datetime.timedelta(days = 1),lambda : self._ret_sendfile('Etimeout'))
         }
 
-        stat,ret = self.call(65536,self._idendesc,dst_link + 'imc/','pend_recvfile',{'filekey':filekey,'filesize':filesize})
+        stat,ret = self.call(self._idendesc,dst_link + 'imc/','pend_recvfile',{'filekey':filekey,'filesize':filesize},655360)
         if stat == False:
             raise ConnectionError(ret)
 
@@ -214,13 +223,14 @@ class Proxy:
             return
 
         dst_link = ''.join(['/',info['src_linkclass'],'/',info['src_linkid'],'/'])
-        self.call(65536,self._idendesc,dst_link + 'imc/','reject_sendfile',{'filekey':filekey})
+        self.call(self._idendesc,dst_link + 'imc/','reject_sendfile',{'filekey':filekey},65536)
 
-    def _route_call(self,in_conn,caller_retid,timeout,idendesc,dst,func_name,param):
+    def _route_call(self,in_conn,caller_retid,idendesc,dst,func_name,timeout,param):
         def __add_wait_caller(conn_linkid):
+            callback = tornado.stack_context.wrap(lambda result : self._ret_call(caller_linkid,caller_retid,result))
             self._conn_retidmap[conn_linkid][caller_retid] = {
-                'timer':self._ioloop.add_timeout(datetime.timedelta(milliseconds= timeout),lambda : callback(('False','Etimeout'))),
-                'callback':tornado.stack_context.wrap(lambda result : self._ret_call(caller_linkid,caller_retid,result))
+                'timer':self._ioloop.add_timeout(datetime.timedelta(milliseconds = timeout),lambda : callback((False,'Etimeout'))),
+                'callback':callback
             }
 
         def __del_wait_caller(conn_linkid):
@@ -248,9 +258,13 @@ class Proxy:
         if iden == None:
             return __ret(False,'Eilliden')
 
-        dst_part = dst.split('/',3)
-        dst_linkid = dst_part[2]
-        dst_path = dst_part[3]
+        try:
+            dst_part = dst.split('/',3)
+            dst_linkid = dst_part[2]
+            dst_path = dst_part[3]
+
+        except Exception:
+            return __ret(False,'Enoexist')
 
         caller_linkid = iden['linkid']
 
@@ -258,9 +272,8 @@ class Proxy:
             __add_wait_caller(self._linkid)
 
             try:
-                old_iden = self._auth.change_iden(iden)
-                result = self._call_pathmap[''.join([dst_path,func_name])](iden,param)
-                self._auth.change_iden(old_iden)
+                with Auth.change_current_iden(iden):
+                    result = self._call_pathmap[''.join([dst_path,func_name])](*param)
 
             except KeyError:
                 result = (False,'Enoexist')
@@ -277,7 +290,7 @@ class Proxy:
             else:
                 if caller_linkid == self._linkid:
                     __add_wait_caller(conn.linkid)
-                    self._send_msg_call(conn,caller_retid,timeout,idendesc,dst,func_name,param)
+                    self._send_msg_call(conn,caller_retid,idendesc,dst,func_name,timeout,param)
 
                     result = async.switch_top()
 
@@ -286,7 +299,7 @@ class Proxy:
                     return __ret(result)
 
                 else:
-                    self._send_msg_call(conn,caller_retid,timeout,idendesc,dst,func_name,param)
+                    self._send_msg_call(conn,caller_retid,idendesc,dst,func_name,timeout,param)
 
                     return
     
@@ -367,7 +380,7 @@ class Proxy:
     def _add_wait_filekey(self,conn_linkid,filekey,filesize,callback):
         callback = tornado.stack_context.wrap(callback)
         self._conn_filekeymap[conn_linkid][filekey] = {
-            'timer':self._ioloop.add_timeout(datetime.timedelta(milliseconds = filesize),lambda : callback('Etimeout')),
+            'timer':self._ioloop.add_timeout(datetime.timedelta(milliseconds = min(filesize,1000)),lambda : callback('Etimeout')),
             'callback':callback
         }
     
@@ -428,14 +441,14 @@ class Proxy:
         elif msg_type == self.MSGTYPE_ABORTFILE:
             self._recv_msg_abortfile(conn,msg)
 
-    def _send_msg_call(self,conn,caller_retid,timeout,idendesc,dst,func_name,param):
+    def _send_msg_call(self,conn,caller_retid,idendesc,dst,func_name,timeout,param):
         msg = {
             'type':self.MSGTYPE_CALL,
             'caller_retid':caller_retid,
-            'timeout':timeout,
             'idendesc':idendesc,
             'dst':dst,
             'func_name':func_name,
+            'timeout':timeout,
             'param':param
         }
 
@@ -444,13 +457,13 @@ class Proxy:
     def _recv_msg_call(self,conn,msg):
         @async.caller
         def __call():
-            self._route_call(conn,caller_retid,timeout,idendesc,dst,func_name,param)
+            self._route_call(conn,caller_retid,idendesc,dst,func_name,timeout,param)
 
         caller_retid = msg['caller_retid']
-        timeout = msg['timeout']
         idendesc = msg['idendesc']
         dst = msg['dst']
         func_name = msg['func_name']
+        timeout = msg['timeout']
         param = msg['param']
 
         __call()
@@ -536,17 +549,11 @@ class Proxy:
         filekey = param['filekey']
         self._ioloop.add_callback(self._ret_sendfile,filekey,'Ereject')
 
-def imc_call(idendesc,dst,func_name,param):
-    return Proxy.instance.call(65536,idendesc,dst,func_name,param)
+def imc_call(idendesc,dst,func_name,*args):
+    return Proxy.instance.call(idendesc,dst,func_name,65536,*args)
 
-def imc_call_async(idendesc,dst,func_name,param,callback = None):
-    @async.caller
-    def func():
-        ret = imc_call(idendesc,dst,func_name,param)
-        if callback != None:
-            callback(ret)
-
-    func()
+def imc_call_async(idendesc,dst,func_name,callback,*args):
+    Proxy.instance.call_async(idendesc,dst,func_name,65536,callback,*args)
 
 def imc_register_call(path,func_name,func):
     Proxy.instance.register_call(path,func_name,func)

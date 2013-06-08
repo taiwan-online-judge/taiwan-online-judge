@@ -67,10 +67,12 @@ class CenterServer(tornado.tcpserver.TCPServer):
         TOJAuth(pubkey,privkey)
 
         self._linkid = self._create_linkid()
-        self._idendesc = self._create_idendesc('center',self._linkid)
+
+        self._idendesc = TOJAuth.instance.create_iden('center',self._linkid,1,TOJAuth.ROLETYPE_TOJ)
         Proxy('center',self._linkid,TOJAuth.instance,self._idendesc)
 
         imc_register_call('','lookup_linkid',self._lookup_linkid)
+        imc_register_call('','create_iden',self._create_iden)
         imc_register_call('','add_client',self._add_client)
         imc_register_call('','del_client',self._del_client)
 
@@ -84,7 +86,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
             linkclass = worker_info['linkclass']
             if linkclass == 'backend':
                 linkid = self._create_linkid()
-                idendesc = self._create_idendesc('backend',linkid)
+                idendesc = TOJAuth.instance.create_iden('backend',linkid,1,TOJAuth.ROLETYPE_TOJ)
                 BackendWorker(main_stream,linkid,idendesc,worker_info,self._linkid)
 
         fd = stream.fileno()
@@ -113,7 +115,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
             return None
 
         linkid = self._create_linkid()
-        idendesc = self._create_idendesc('client',linkid)
+        idendesc = TOJAuth.instance.create_iden('client',linkid,2,TOJAuth.ROLETYPE_GUEST)
         backend = self._backend_workerlist[random.randrange(size)]
         ws_ip,ws_port = backend.ws_addr
 
@@ -131,13 +133,8 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         return linkid
 
-    def _create_idendesc(self,linkclass,linkid):
-        return TOJAuth.instance.create_iden(linkclass,linkid,2)
-
     @imc.async.caller
-    def _lookup_linkid(self,iden,param):
-        linkid = param
-
+    def _lookup_linkid(self,linkid):
         try:
             worker = self._worker_linkidmap[linkid]
 
@@ -150,7 +147,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
             #else:
             #    worker = self._worker_linkidmap[str(a - 1)]
 
-            if iden['linkclass'] != 'client':
+            if TOJAuth.get_current_iden()['linkclass'] != 'client':
                 sock_ip,sock_port = worker.sock_addr
                 return {
                     'worker_linkclass':worker.linkclass,
@@ -161,9 +158,14 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         except KeyError:
             return None
+
+    @imc.async.caller
+    @TOJAuth.check_access(1,TOJAuth.ACCESS_EXECUTE)
+    def _create_iden(self,linkclass,linkid,idenid,roletype,payload):
+        return TOJAuth.instance.create_iden(linkclass,linkid,idenid,roletype,payload)
         
     @imc.async.caller
-    def _add_client(self,iden,param):
+    def _add_client(self,param):
         backend_linkid = iden['linkid']
         client_linkid = param['client_linkid']
 
@@ -173,10 +175,8 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         print(client_linkid);
 
-        #imc_call_async(self._idendesc,'/client/' + client_linkid + '/','test_call','Hello Client',lambda result:print(result))
-
     @imc.async.caller
-    def _del_client(self,iden,param):
+    def _del_client(self,param):
         backend_linkid = iden['linkid']
         client_linkid = param
 
@@ -188,7 +188,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
     
     @imc.async.caller
-    def _test_dst(self,iden,param):
+    def _test_dst(self,param):
         linkidlist = []
         clientmaps = self._backend_clientmap.values()
         for clientmap in clientmaps:
@@ -199,7 +199,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
         return linkidlist
 
     @imc.async.caller
-    def _test_dstb(self,iden,param):
+    def _test_dstb(self,param):
         return param + ' World'
 
 class WebConnHandler(tornado.web.RequestHandler):

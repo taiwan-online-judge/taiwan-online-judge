@@ -2,6 +2,7 @@ import traceback
 import uuid
 import ssl
 
+import tornado.stack_context
 from Crypto.Hash import SHA512
 from greenlet import greenlet
 
@@ -17,10 +18,12 @@ def switch_top():
     assert greenlet.getcurrent() != gr_main
 
     old_iden = auth.current_iden
+    old_contexts = tornado.stack_context._state.contexts
     auth.current_iden = None
 
     result =  gr_main.switch(None)
 
+    tornado.stack_context._state.contexts = old_contexts
     auth.current_iden = old_iden
 
     return result
@@ -46,8 +49,11 @@ def caller(f):
             grid = id(gr)
             gr_idmap[grid] = set()
             old_iden = auth.current_iden
+            old_contexts = tornado.stack_context._state.contexts
 
             result = gr.switch(*args,**kwargs)
+
+            tornado.stack_context._state.contexts = old_contexts
             auth.current_iden = old_iden
 
             if result == None:
@@ -57,6 +63,11 @@ def caller(f):
                 gr.parent = gr_main
 
             return result
+
+        except TypeError as err:
+            traceback.print_stack()
+            print(err)
+            return (False,'Eparameter')
 
         except Exception as err:
             traceback.print_stack()
@@ -94,6 +105,7 @@ def ret(retid,value = None,err = None):
 
     try:
         old_iden = auth.current_iden
+        old_contexts = tornado.stack_context._state.contexts
 
         if err == None:
             gr.switch(value)
@@ -101,6 +113,7 @@ def ret(retid,value = None,err = None):
         else:
             gr.throw(err)
 
+        tornado.stack_context._state.contexts = old_contexts
         auth.current_iden = old_iden
 
     except TypeError as err:

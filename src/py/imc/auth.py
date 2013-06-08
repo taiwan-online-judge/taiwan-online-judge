@@ -1,7 +1,9 @@
 import time
 import json
 import binascii
+import contextlib
 
+import tornado.stack_context
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA512
 from Crypto.Signature import PKCS1_v1_5
@@ -13,17 +15,30 @@ class Auth:
         global current_iden
 
         self._cache_hashmap = {}
-
         current_iden = None
-        Auth.instance = self
 
-    def change_iden(self,iden):
+    @staticmethod
+    def get_current_iden():
         global current_iden
 
-        old_iden = current_iden
-        current_iden = iden
+        return current_iden
 
-        return old_iden
+    @staticmethod
+    def change_current_iden(iden):
+        @contextlib.contextmanager
+        def context():
+            global current_iden
+
+            old_iden = current_iden
+            current_iden = iden
+            
+            try:
+                yield
+
+            finally:
+                current_iden = old_iden
+
+        return tornado.stack_context.StackContext(context)
 
     def set_signkey(self,key):
         self._signer = PKCS1_v1_5.new(RSA.importKey(key))

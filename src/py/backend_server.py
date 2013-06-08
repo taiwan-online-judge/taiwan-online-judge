@@ -37,7 +37,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
     def start(self):
         sock_port = random.randrange(4096,8192)
-        self.sock_addr = ('10.8.0.6',sock_port)
+        self.sock_addr = ('10.8.0.10',sock_port)
 
         self.bind(sock_port,'',socket.AF_INET,65536)
         super().start()
@@ -68,14 +68,14 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         conn.add_close_callback(lambda conn : self.del_client(conn.linkid))
         Proxy.instance.add_conn(conn)
 
-        imc_call_async(self._idendesc,'/center/' + self.center_conn.linkid + '/','add_client',{'backend_linkid':self._linkid,'client_linkid':linkid})
+        #imc_call_async(self._idendesc,'/center/' + self.center_conn.linkid + '/','add_client',{'backend_linkid':self._linkid,'client_linkid':linkid})
 
         return conn
 
     def del_client(self,linkid):
         del self._client_linkidmap[linkid]
 
-        imc_call_async(self._idendesc,'/center/' + self.center_conn.linkid + '/','del_client',linkid)
+        #imc_call_async(self._idendesc,'/center/' + self.center_conn.linkid + '/','del_client',linkid)
 
     def _conn_center(self):
         def __retry(conn):
@@ -102,10 +102,10 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
                 imc_register_call('','test_dst',self._test_dst)
                 #imc_register_call('','test_dsta',self._test_dsta)
-                time.sleep(2)
+                #time.sleep(2)
 
                 if int(self._linkid) == 2:
-                    self._test_call(None,'9')
+                    self._test_call('9')
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
@@ -227,18 +227,24 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             pass
 
     @imc.async.caller
-    def _test_call(self,iden,param):
-        param = '6'
+    def _test_call(self,param):
+        dst = '/backend/' + '3' + '/'
+        ret = imc_call_async(self._idendesc,dst,'test_dst',lambda result : print(result),'test',113)
+        print(ret)
+
+        ret = imc_call(self._idendesc,'/center/1/','create_iden','client','1234',1221,TOJAuth.ROLETYPE_USER,{'uid':31})
+        print(ret)
+
+        return
 
         pend = []
-        for i in range(0,3):
-            if str((i % 8) + 2) == self._linkid:
+        for i in range(0,32):
+            if str((i % 16) + 2) == self._linkid:
                 continue
 
-            fileres = Proxy.instance.sendfile('/backend/' + str((i % 8) + 2) +
-                    '/','test.py')
+            fileres = Proxy.instance.sendfile('/backend/' + str((i % 16) + 2) + '/','Fedora-18-x86_64-DVD.iso')
             
-            dst = '/backend/' + str((i % 8) + 2) + '/'
+            dst = '/backend/' + str((i % 16) + 2) + '/'
             ret = imc_call(self._idendesc,dst,'test_dst',fileres.filekey)
 
             pend.append(fileres)
@@ -249,13 +255,18 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         print(self._linkid)
 
     @imc.async.caller
-    def _test_dst(self,iden,param):
+    def _test_dst(self,param,sdfsdf):
         #stat,ret = imc_call(self._idendesc,'/backend/' + self._linkid + '/','test_dsta',param)
         #return ret + ' Too'
 
-        Proxy.instance.rejectfile(param)
+        print(param)
+        print(sdfsdf)
+        print(TOJAuth.get_current_iden())
+
+        #Proxy.instance.rejectfile(param)
+        #print('recv ' + iden['linkid'] + ' > ' + self._linkid)
         #fileres = Proxy.instance.recvfile(param,'data')
-        #print(fileres.wait())
+        #print('recv ' + fileres.wait())
 
         return 'ok'
 
@@ -295,7 +306,7 @@ def start_backend_worker(ws_port):
     ]))
     http_serv.listen(ws_port)
 
-    backend_worker = BackendWorker(('10.8.0.6',5730),ws_port)
+    backend_worker = BackendWorker(('10.8.0.10',5730),ws_port)
     backend_worker.start()
 
     tornado.ioloop.IOLoop.instance().start()
@@ -305,12 +316,12 @@ if __name__ == '__main__':
 
     worker_list.append(Process(target = start_backend_worker,args = (81, )))
     worker_list.append(Process(target = start_backend_worker,args = (82, )))
-    worker_list.append(Process(target = start_backend_worker,args = (181, )))
-    worker_list.append(Process(target = start_backend_worker,args = (182, )))
-    worker_list.append(Process(target = start_backend_worker,args = (183, )))
-    worker_list.append(Process(target = start_backend_worker,args = (184, )))
-    worker_list.append(Process(target = start_backend_worker,args = (185, )))
-    worker_list.append(Process(target = start_backend_worker,args = (186, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (181, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (182, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (183, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (184, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (185, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (186, )))
 
     for proc in worker_list:
         proc.start()
