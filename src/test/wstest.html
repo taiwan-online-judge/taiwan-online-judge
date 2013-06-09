@@ -1,0 +1,97 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
+
+<link href="/wstest.css" rel="stylesheet">
+
+<script src="/jquery-2.0.0.min.js"></script>
+<script src="/bootstrap/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/imc.js"></script>
+<script type="text/javascript" src="/wstest.js"></script>
+
+<script type="text/javascript">
+
+$(document).ready(function(){
+    conn_backend();
+
+    index.init();
+});
+
+</script>
+</head>
+<body>
+
+<div id="index_head" class="navbar navbar-inverse navbar-fixed-top head">
+    <div class="navbar-inner"> 
+        <div class="container">
+            <a class="brand span2" href="#">Taiwan OJ</a>
+            <ul class="nav bar">
+                <li class="active"><a href="#">Profile</a></li>
+                <li><a href="#">Edit Profile</a></li>
+            </ul>
+            <p class="navbar-text span3 title">Taiwan Online Judge Test Page</p>
+        </div>
+
+        <ul id="index_head_rightnavbar" class="nav bar right_navbar">
+            <li><a id="index_head_nickname" href="#">Elisha</a></li>
+            <li><div id="index_head_notice" class="notice notice_h"><div class="box">2</div></div></li>
+            <li><div id="index_head_menu" class="menu"><i class="icon-chevron-left icon-white"></i></div></li>
+        </ul>
+    </div>
+</div>
+
+<div id="index_panel" class="panel_container">
+    <div class="menu_container">
+        <ul id="index_panel_menu" class="nav nav-list menu">
+            <li><a href="#"><i class="icon-home"></i> Home</a></li>
+            <li class="active"><a href="#"><i class="icon-exclamation-sign"></i> Test</a></li>
+            <li><a href="#"><i class="icon-th-large"></i> Square</a></li>
+            <ul class="nav nav-list sq_list">
+                <li class="nav-header">Coming</li>
+                <li><a href="#">Test1</a></li>
+                <li><a href="#">Test2</a></li>
+                <li class="nav-header">Running</li>
+                <li><a href="#">Normal Test</a></li>
+                <li class="nav-header">Ended</li>
+                <li><a href="#">End Test</a></li>
+            </ul>
+
+            <li style="margin-top:30px;"><a href="#"><i class="icon-circle-arrow-left"></i> Logout</a></li>
+        </ul>
+    </div>
+
+    <div class="notice_container">
+        <ul id="index_panel_menu" class="nav nav-list notice">
+            <li><a href="#"><div><h5>Problem:573</h5>Wrong Answer</div></a></li>
+            <li><a href="#"><div><h5>Problem:573</h5>Runtime Error</div></a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="container" style="padding:60px 0px 32px 0px;">
+    <div class="row">
+        <div class="span2 slide">
+            
+        </div>
+        <div class="span10 main">
+            <button class="btn btn-primary" onclick="$('div.test_modal').modal('show');">Test Dialog</button>
+            <div class="modal hide fade test_modal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h3>Test Dialog</h3>
+                </div>
+                <div class="modal-body">
+                    Hello, my name is Elisha.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
