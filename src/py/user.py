@@ -7,7 +7,7 @@ import imc.proxy
 import config
 
 class User:
-    auth_accessid = 2
+    _accessid = 2
 
     USERNAME_LEN_MIN = 5
     USERNAME_LEN_MAX = 50
@@ -22,11 +22,12 @@ class User:
     ABOUTME_LEN_MIN = 0
     ABOUTME_LEN_MAX = 1000
 
-    def __init__(self, mod_iden):
+    def __init__(self, mod_idendesc, get_link):
         User.instance = self
         User.db = AsyncDB(config.CORE_DBNAME, config.CORE_DBUSER, 
                 config.CORE_DBPASSWORD)
-        User.mod_iden = mod_iden
+        User._idendesc = mod_idendesc
+        self.get_link = get_link
 
     @imc.async.caller
     def register(self, username, password, nickname, email, avatar, aboutme):
@@ -67,7 +68,7 @@ class User:
 
         passhash = self._password_hash(password)
 
-        with TOJAuth.change_current_iden(self.mod_iden):
+        with TOJAuth.change_current_iden(self._idendesc):
             try:
                 uid = self._create_user(
                     username, passhash, nickname, email, avatar, aboutme)
@@ -76,7 +77,7 @@ class User:
 
         return {'uid' : uid}
 
-    @TOJAuth.check_access(auth_accessid, TOJAuth.ACCESS_EXECUTE)
+    @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def _create_user(self, username, passhash, nickname, email, avatar, 
             aboutme):
         roleid = TOJAuth.instance.create_role(username, TOJAuth.ROLETYPE_USER)
@@ -118,13 +119,10 @@ class User:
 
         if idenid == None:
             return 'Ewrong_password'
-
-        linkclass = TOJAuth.get_current_iden()['linkclass']
-        linkid = TOJAuth.get_current_iden()['linkid']
-
-        with TOJAuth.change_current_iden(self.mod_iden):
+        
+        with TOJAuth.change_current_iden(self._idendesc):
             idendesc = TOJAuth.instance.create_iden(
-                linkclass, linkid, idenid, TOJAuth.ROLETYPE_USER, {'uid' : uid}
+                TOJAuth.get_current_iden()['link'], idenid, TOJAuth.ROLETYPE_USER, {'uid' : uid}
             )
 
         ret = {
@@ -161,12 +159,9 @@ class User:
         if real_uphash != uphash:
             return 'Ewrong_uphash'
 
-        linkclass = TOJAuth.get_current_iden()['linkclass']
-        linkid = TOJAuth.get_current_iden()['linkid']
-
-        with TOJAuth.change_current_iden(self.mod_iden):
+        with TOJAuth.change_current_iden(self._idendesc):
             idendesc = TOJAuth.instance.create_iden(
-                linkclass, linkid, idenid, TOJAuth.ROLETYPE_USER, {'uid' : uid}
+                TOJAuth.get_current_iden()['link'], idenid, TOJAuth.ROLETYPE_USER, {'uid' : uid}
             )
 
         ret = {
@@ -224,7 +219,7 @@ class User:
 
         if idenid != TOJAuth.get_current_iden()['idenid']:
             TOJAuth.check_access(
-                self.auth_accessid, TOJAuth.ACCESS_EXECUTE)(lambda x:x)(0)
+                self._accessid, TOJAuth.ACCESS_EXECUTE)(lambda x:x)(0)
 
         cur = self.db.cursor()
         sqlstr = ('UPDATE "USER" SET "nickname" = %s, "email" = %s, '
@@ -252,7 +247,7 @@ class User:
 
         if idenid != TOJAuth.get_current_iden()['idenid']:
             TOJAuth.check_access(
-                self.auth_accessid, TOJAuth.ACCESS_EXECUTE)(lambda x:x)(0)
+                self._accessid, TOJAuth.ACCESS_EXECUTE)(lambda x:x)(0)
 
         old_passhash = self._password_hash(old_password)
 

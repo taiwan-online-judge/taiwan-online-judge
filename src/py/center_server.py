@@ -18,19 +18,19 @@ from netio import SocketStream,SocketConnection
 from tojauth import TOJAuth
 
 class Worker:
-    def __init__(self,main_stream,linkclass,linkid,idendesc,worker_info,center_linkid):
+    def __init__(self,main_stream,link,idendesc,worker_info,center_link):
         self.main_stream = main_stream
-        self.linkclass = linkclass
-        self.linkid = linkid
+        self.link = link
         self.idendesc = idendesc
         self.sock_addr = (worker_info['sock_ip'],worker_info['sock_port'])
 
         netio.send_pack(self.main_stream,bytes(json.dumps({
             'idendesc':self.idendesc,
-            'center_linkid':center_linkid
+            'worker_link':self.link,
+            'center_link':center_link
         }),'utf-8'))
 
-        conn = SocketConnection(self.linkclass,self.linkid,self.main_stream,self.sock_addr)
+        conn = SocketConnection(self.link,self.main_stream,self.sock_addr)
         conn.add_close_callback(lambda conn : self.close())
         Proxy.instance.add_conn(conn)
 
@@ -38,10 +38,10 @@ class Worker:
         pass
 
 class BackendWorker(Worker):
-    def __init__(self,main_stream,linkid,idendesc,worker_info,center_linkid):
+    def __init__(self,main_stream,link,idendesc,worker_info,center_link):
         global center_serv
 
-        super().__init__(main_stream,'backend',linkid,idendesc,worker_info,center_linkid)
+        super().__init__(main_stream,link,idendesc,worker_info,center_link)
         self.ws_addr = (worker_info['ws_ip'],worker_info['ws_port'])
 
         center_serv.add_backend_worker(self)
@@ -58,7 +58,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         self._ioloop = tornado.ioloop.IOLoop.instance()
         self._linkid_usemap = {}
-        self._worker_linkidmap = {}
+        self._worker_linkmap = {}
         self._backend_clientmap = {}
         self._backend_workerlist = []
 
@@ -66,18 +66,15 @@ class CenterServer(tornado.tcpserver.TCPServer):
         privkey = open('privkey.pem','r').read()
         TOJAuth(pubkey,privkey)
 
-        self._linkid = self._create_linkid()
+        self._link = self._create_link('center')
 
-        self._idendesc = TOJAuth.instance.create_iden('center',self._linkid,1,TOJAuth.ROLETYPE_TOJ)
-        Proxy('center',self._linkid,TOJAuth.instance,self._idendesc)
+        self._idendesc = TOJAuth.instance.create_iden(self._link,1,TOJAuth.ROLETYPE_TOJ)
+        Proxy(self._link,TOJAuth.instance,self._idendesc)
 
-        imc_register_call('','lookup_linkid',self._lookup_linkid)
+        imc_register_call('','lookup_link',self._lookup_link)
         imc_register_call('','create_iden',self._create_iden)
-        imc_register_call('','add_client',self._add_client)
-        imc_register_call('','del_client',self._del_client)
-
-        imc_register_call('','test_dst',self._test_dst)
-        imc_register_call('','test_dstb',self._test_dstb)
+        #imc_register_call('','add_client',self._add_client)
+        #imc_register_call('','del_client',self._del_client)
 
     def handle_stream(self,stream,addr):
         def _recv_worker_info(data):
@@ -85,9 +82,9 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
             linkclass = worker_info['linkclass']
             if linkclass == 'backend':
-                linkid = self._create_linkid()
-                idendesc = TOJAuth.instance.create_iden('backend',linkid,1,TOJAuth.ROLETYPE_TOJ)
-                BackendWorker(main_stream,linkid,idendesc,worker_info,self._linkid)
+                link = self._create_link('backend')
+                idendesc = TOJAuth.instance.create_iden(link,1,TOJAuth.ROLETYPE_TOJ)
+                BackendWorker(main_stream,link,idendesc,worker_info,self._link)
 
         fd = stream.fileno()
         self._ioloop.remove_handler(fd)
@@ -96,17 +93,17 @@ class CenterServer(tornado.tcpserver.TCPServer):
         netio.recv_pack(main_stream,_recv_worker_info)
 
     def add_backend_worker(self,backend):
-        backend_linkid = backend.linkid
+        backend_link = backend.link
 
-        self._worker_linkidmap[backend_linkid] = backend
-        self._backend_clientmap[backend_linkid] = {}
+        self._worker_linkmap[backend_link] = backend
+        self._backend_clientmap[backend_link] = {}
         self._backend_workerlist.append(backend)
     
     def del_backend_worker(self,backend):
-        backend_linkid = backend.linkid
+        backend_link = backend.link
 
-        del self._worker_linkidmap[backend_linkid]
-        del self._backend_clientmap[backend_linkid]
+        del self._worker_linkmap[backend_link]
+        del self._backend_clientmap[backend_link]
         self._backend_workerlist.remove(backend)
 
     def dispatch_client(self):
@@ -114,14 +111,14 @@ class CenterServer(tornado.tcpserver.TCPServer):
         if size == 0:
             return None
 
-        linkid = self._create_linkid()
-        idendesc = TOJAuth.instance.create_iden('client',linkid,2,TOJAuth.ROLETYPE_GUEST)
+        link = self._create_link()
+        idendesc = TOJAuth.instance.create_iden('client',link,2,TOJAuth.ROLETYPE_GUEST)
         backend = self._backend_workerlist[random.randrange(size)]
         ws_ip,ws_port = backend.ws_addr
 
-        return (idendesc,backend.linkid,ws_ip,ws_port)
+        return (idendesc,backend.link,ws_ip,ws_port)
 
-    def _create_linkid(self):
+    def _create_link(self,linkclass):
         linkid = uuid.uuid1()
         while linkid in self._linkid_usemap:
             linkid = uuid.uuid1()
@@ -129,16 +126,14 @@ class CenterServer(tornado.tcpserver.TCPServer):
         linkid = str(linkid)
         self._linkid_usemap[linkid] = True
 
-        linkid = str(len(self._linkid_usemap))
-
-        return linkid
+        return ''.join(['/',linkclass,'/',str(len(self._linkid_usemap)),'/'])
 
     @imc.async.caller
-    def _lookup_linkid(self,linkid):
+    def _lookup_link(self,link):
         try:
-            worker = self._worker_linkidmap[linkid]
+            worker = self._worker_linkmap[link]
 
-            #a = int(iden['linkid'])
+            #a = int(TOJAuth.get_current_iden()['linkid'])
             #b = int(linkid)
 
             #if b > a:
@@ -147,11 +142,11 @@ class CenterServer(tornado.tcpserver.TCPServer):
             #else:
             #    worker = self._worker_linkidmap[str(a - 1)]
 
-            if TOJAuth.get_current_iden()['linkclass'] != 'client':
+            linkclass = TOJAuth.get_current_iden()['link'].split('/',1)
+            if linkclass != 'client':
                 sock_ip,sock_port = worker.sock_addr
                 return {
-                    'worker_linkclass':worker.linkclass,
-                    'worker_linkid':worker.linkid,
+                    'worker_link':worker.link,
                     'sock_ip':sock_ip,
                     'sock_port':sock_port
                 }
@@ -161,47 +156,32 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
     @imc.async.caller
     @TOJAuth.check_access(1,TOJAuth.ACCESS_EXECUTE)
-    def _create_iden(self,linkclass,linkid,idenid,roletype,payload):
-        return TOJAuth.instance.create_iden(linkclass,linkid,idenid,roletype,payload)
+    def _create_iden(self,link,idenid,roletype,payload):
+        return TOJAuth.instance.create_iden(link,idenid,roletype,payload)
         
-    @imc.async.caller
-    def _add_client(self,param):
-        backend_linkid = iden['linkid']
-        client_linkid = param['client_linkid']
+    #@imc.async.caller
+    #def _add_client(self,param):
+    #    backend_linkid = iden['linkid']
+    #    client_linkid = param['client_linkid']
 
-        self._backend_clientmap[backend_linkid][client_linkid] = True
-        conn = Proxy.instance.get_conn(backend_linkid)
-        Proxy.instance.link_conn(client_linkid,conn)
+    #    self._backend_clientmap[backend_linkid][client_linkid] = True
+    #    conn = Proxy.instance.get_conn(backend_linkid)
+    #    Proxy.instance.link_conn(client_linkid,conn)
 
-        print(client_linkid);
+    #    print(client_linkid);
 
-    @imc.async.caller
-    def _del_client(self,param):
-        backend_linkid = iden['linkid']
-        client_linkid = param
+    #@imc.async.caller
+    #def _del_client(self,param):
+    #    backend_linkid = iden['linkid']
+    #    client_linkid = param
 
-        del self._backend_clientmap[backend_linkid][client_linkid]
-        conn = Proxy.instance.get_conn(client_linkid)
-        Proxy.instance.unlink_conn(client_linkid)
+    #    del self._backend_clientmap[backend_linkid][client_linkid]
+    #    conn = Proxy.instance.get_conn(client_linkid)
+    #    Proxy.instance.unlink_conn(client_linkid)
 
 
 
     
-    @imc.async.caller
-    def _test_dst(self,param):
-        linkidlist = []
-        clientmaps = self._backend_clientmap.values()
-        for clientmap in clientmaps:
-            linkids = clientmap.keys()
-            for linkid in linkids:
-                linkidlist.append(linkid)
-
-        return linkidlist
-
-    @imc.async.caller
-    def _test_dstb(self,param):
-        return param + ' World'
-
 class WebConnHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header('Access-Control-Allow-Origin','*')
@@ -213,10 +193,10 @@ class WebConnHandler(tornado.web.RequestHandler):
         if data == None:
             self.write('Eno_backend')
         else:
-            client_idendesc,backend_linkid,ip,port = data
+            client_idendesc,backend_link,ip,port = data
             self.write(json.dumps({
                 'client_idendesc':client_idendesc,
-                'backend_linkid':backend_linkid,
+                'backend_link':backend_link,
                 'ip':ip,
                 'port':port
             }))

@@ -17,7 +17,7 @@ class TOJAuth(Auth):
     ROLETYPE_GROUP  = 5
     ROLETYPE_GUEST  = 6
 
-    auth_accessid = 1
+    _accessid = 1
 
     def __init__(self, pubkey, privkey = None):
         super().__init__()
@@ -30,26 +30,25 @@ class TOJAuth(Auth):
         TOJAuth.db = AsyncDB(config.CORE_DBNAME, config.CORE_DBUSER,
                 config.CORE_DBPASSWORD)
 
-    def create_iden(self, linkclass, linkid, idenid, roletype, payload = {}):
+    def create_iden(self, link, idenid, roletype, payload = {}):
         iden = payload
         iden.update({
-            'linkclass' : linkclass,
-            'linkid' : linkid,
+            'link' : link,
             'idenid' : idenid,
             'roletype' : roletype
         })
 
         return self.sign_iden(iden)
 
-    def get_iden(self, conn_linkclass, conn_linkid, idendesc):
-        iden = super().get_iden(idendesc) 
+    def verify_iden(self, conn_link, idendesc):
+        iden = self.get_iden(idendesc) 
         if iden == None:
-            return None
+            return False
 
-        if conn_linkclass == 'client' and conn_linkid != iden['linkid']:
-            return None
+        if conn_link != iden['link']:
+            return False
 
-        return iden
+        return True
     
     @staticmethod
     def check_access(accessid, access_mask):
@@ -95,7 +94,7 @@ class TOJAuth(Auth):
 
     def create_access(self, owner_idenid):
         self.check_access(
-            self.auth_accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
+            self._accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
 
         cur = self.db.cursor()
         sqlstr = ('INSERT INTO "ACCESS" ("owner_idenid") VALUES (%s) '
@@ -132,7 +131,7 @@ class TOJAuth(Auth):
 
     def create_role(self, rolename, roletype):
         self.check_access(
-            self.auth_accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
+            self._accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
 
         cur = self.db.cursor()    
         sqlstr = ('INSERT INTO "ROLE" ("rolename", "roletype") VALUES (%s, %s)'
@@ -149,7 +148,7 @@ class TOJAuth(Auth):
 
     def set_role_relation(self, idenid, roleid):
         self.check_access(
-            self.auth_accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
+            self._accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
 
         cur = self.db.cursor()
         table = 'IDEN_ROLE'
@@ -161,7 +160,7 @@ class TOJAuth(Auth):
 
     def del_role_relation(self, idenid, roleid):
         self.check_access(
-            self.auth_accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
+            self._accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
 
         cur = self.db.cursor()
         sqlstr = ('DELETE FROM "IDEN_ROLE" WHERE "idenid"=%s '

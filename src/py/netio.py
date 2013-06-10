@@ -294,8 +294,8 @@ class SocketStream:
             self._ioloop.update_handler(fd,stat)
 
 class SocketConnection(Connection):
-    def __init__(self,linkclass,linkid,main_stream,file_addr,add_pend_filestream_fn = None):
-        super().__init__(linkclass,linkid)
+    def __init__(self,link,main_stream,file_addr,add_pend_filestream_fn = None):
+        super().__init__(link)
 
         self._ioloop = tornado.ioloop.IOLoop.current()
         self._sendfile_filekeymap = {}
@@ -489,8 +489,8 @@ class SocketConnection(Connection):
         del self._sendfile_filekeymap[filekey]
 
 class WebSocketConnection(Connection):
-    def __init__(self,linkclass,linkid,handler):
-        super().__init__(linkclass,linkid)
+    def __init__(self,link,handler):
+        super().__init__(link)
 
         self._ioloop = tornado.ioloop.IOLoop.current()
         self.handler = handler

@@ -8,35 +8,49 @@ from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA512
 from Crypto.Signature import PKCS1_v1_5
 
-current_iden = None
+current_idendata = (None,None)
 
 class Auth:
     def __init__(self):
-        global current_iden
+        global current_idendata
 
         self._cache_hashmap = {}
-        current_iden = None
+        current_idendata = (None,None)
+
+        Auth.instance = self
 
     @staticmethod
     def get_current_iden():
-        global current_iden
+        global current_idendata
 
-        return current_iden
+        iden,idendesc = current_idendata
+        return iden
+    
+    @staticmethod
+    def get_current_idendesc():
+        global current_idendata
+
+        iden,idendesc = current_idendata
+        return idendesc
 
     @staticmethod
-    def change_current_iden(iden):
+    def change_current_iden(idendesc):
         @contextlib.contextmanager
         def context():
-            global current_iden
+            global current_idendata
 
-            old_iden = current_iden
-            current_iden = iden
+            iden = Auth.instance.get_iden(idendesc)
+            if iden == None:
+                raise ValueError('Illegal idendesc')
+
+            old_idendata = current_idendata
+            current_idendata = (iden,idendesc)
             
             try:
                 yield
 
             finally:
-                current_iden = old_iden
+                current_idendata = old_idendata
 
         return tornado.stack_context.StackContext(context)
 
@@ -51,6 +65,13 @@ class Auth:
         sign = binascii.hexlify(self._sign(bytes(data,'utf-8'))).decode('utf-8')
 
         return json.dumps([data,sign])
+
+    def verify_iden(self,conn_link,idendesc):
+        pair = json.loads(idendesc)
+        data = pair[0]
+        sign = pair[1]
+
+        return self._verify(bytes(data,'utf-8'),binascii.unhexlify(sign))
 
     def get_iden(self,idendesc):
         pair = json.loads(idendesc)

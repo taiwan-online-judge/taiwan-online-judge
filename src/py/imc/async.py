@@ -17,14 +17,14 @@ def switch_top():
 
     assert greenlet.getcurrent() != gr_main
 
-    old_iden = auth.current_iden
+    old_idendata = auth.current_idendata
     old_contexts = tornado.stack_context._state.contexts
-    auth.current_iden = None
+    auth.current_idendata = None
 
     result =  gr_main.switch(None)
 
     tornado.stack_context._state.contexts = old_contexts
-    auth.current_iden = old_iden
+    auth.current_idendata = old_idendata
 
     return result
 
@@ -48,13 +48,13 @@ def caller(f):
             gr = greenlet(_call)
             grid = id(gr)
             gr_idmap[grid] = set()
-            old_iden = auth.current_iden
+            old_idendata = auth.current_idendata
             old_contexts = tornado.stack_context._state.contexts
 
             result = gr.switch(*args,**kwargs)
 
             tornado.stack_context._state.contexts = old_contexts
-            auth.current_iden = old_iden
+            auth.current_idendata = old_idendata
 
             if result == None:
                 return (False,None)
@@ -104,7 +104,7 @@ def ret(retid,value = None,err = None):
         return
 
     try:
-        old_iden = auth.current_iden
+        old_idendata = auth.current_idendata
         old_contexts = tornado.stack_context._state.contexts
 
         if err == None:
@@ -114,7 +114,7 @@ def ret(retid,value = None,err = None):
             gr.throw(err)
 
         tornado.stack_context._state.contexts = old_contexts
-        auth.current_iden = old_iden
+        auth.current_idendata = old_idendata
 
     except TypeError as err:
         traceback.print_stack()
