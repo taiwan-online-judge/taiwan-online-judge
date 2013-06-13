@@ -62,16 +62,30 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         netio.recv_pack(sock_stream,_recv_conn_info)
 
     def add_client(self,link,handler):
+        @imc.async.caller
+        def _call():
+            with TOJAuth.change_current_iden(self._idendesc):
+                Proxy.instance.call(self.center_conn.link,'add_client',10000,link,self._link)
+
         self._client_linkmap[link] = {}
 
-        conn = netio.WebSocketConnection('client',link,handler)
+        conn = netio.WebSocketConnection(link,handler)
         conn.add_close_callback(lambda conn : self.del_client(conn.link))
         Proxy.instance.add_conn(conn)
+
+        _call()
 
         return conn
 
     def del_client(self,link):
+        @imc.async.caller
+        def _call():
+            with TOJAuth.change_current_iden(self._idendesc):
+                Proxy.instance.call(self.center_conn.link,'del_client',10000,link,self._link)
+
         del self._client_linkmap[link]
+
+        _call()
 
     def _conn_center(self):
         def __retry(conn):
@@ -94,12 +108,14 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 self.center_conn.add_close_callback(__retry)
                 Proxy.instance.add_conn(self.center_conn)
 
+                Proxy.instance.register_call('test/','get_client_list',self._test_get_client_list)
                 imc_register_call('','test_dst',self._test_dst)
+
                 #imc_register_call('','test_dsta',self._test_dsta)
-                time.sleep(1)
+                #$time.sleep(1)
 
                 #if self._link == '/backend/2/':
-                self._test_call(None)
+                #self._test_call(None)
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
@@ -218,6 +234,14 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         except KeyError:
             pass
 
+    def _get_link(linkclass):
+        if linkclass == 'center':
+            return self.center_conn.link
+
+    @imc.async.caller
+    def _test_get_client_list(self,talk,talk2):
+        return list(self._client_linkmap.items())
+
     @imc.async.caller
     def _test_call(self,param):
         with TOJAuth.change_current_iden(self._idendesc):
@@ -282,6 +306,7 @@ class WebSocketConnHandler(tornado.websocket.WebSocketHandler):
         else:
             try:
                 info = json.loads(msg)
+                print(info)
                 self.backend_conn = backend_worker.add_client(info['client_link'],self)
 
             except Exception:
@@ -311,12 +336,12 @@ if __name__ == '__main__':
 
     worker_list.append(Process(target = start_backend_worker,args = (81, )))
     worker_list.append(Process(target = start_backend_worker,args = (82, )))
-    worker_list.append(Process(target = start_backend_worker,args = (181, )))
-    worker_list.append(Process(target = start_backend_worker,args = (182, )))
-    worker_list.append(Process(target = start_backend_worker,args = (183, )))
-    worker_list.append(Process(target = start_backend_worker,args = (184, )))
-    worker_list.append(Process(target = start_backend_worker,args = (185, )))
-    worker_list.append(Process(target = start_backend_worker,args = (186, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (181, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (182, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (183, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (184, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (185, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (186, )))
 
     for proc in worker_list:
         proc.start()

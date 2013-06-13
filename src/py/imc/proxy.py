@@ -73,7 +73,7 @@ class FileResult():
         return self._result
 
 class Proxy:
-    def __init__(self,link,auth_instance,idendesc,conn_link_fn = lambda : None):
+    def __init__(self,link,auth,idendesc,conn_link_fn = lambda link : None):
         self.MSGTYPE_CALL = 'call'
         self.MSGTYPE_RET = 'ret'
         self.MSGTYPE_SENDFILE = 'sendfile'
@@ -81,7 +81,7 @@ class Proxy:
 
         self._ioloop = tornado.ioloop.IOLoop.instance()
         self._link = link
-        self._auth = auth_instance
+        self._auth = auth
         self._idendesc = idendesc
 
         self._conn_link_fn = conn_link_fn
@@ -173,7 +173,7 @@ class Proxy:
             'timer':self._ioloop.add_timeout(datetime.timedelta(days = 1),lambda : self._ret_sendfile('Etimeout'))
         }
 
-        with Auth.change_current_iden(self._idendesc):
+        with Auth.change_current_iden(self._idendesc,self._auth):
             stat,ret = self.call(dst_link + 'imc/','pend_recvfile',65536,self._link,filekey,filesize)
         
         if stat == False:
@@ -220,7 +220,7 @@ class Proxy:
         except KeyError:
             return
 
-        with Auth.change_current_iden(self._idendesc):
+        with Auth.change_current_iden(self._idendesc,self._auth):
             self.call(info['src_link'] + 'imc/','reject_sendfile',65536,filekey)
 
     def _route_call(self,in_conn,caller_link,caller_retid,idendesc,dst,func_name,timeout,param):
@@ -250,9 +250,9 @@ class Proxy:
         else:
             in_link = self._link
 
-        #iden = self._auth.get_iden(in_linkclass,in_linkid,idendesc)
-        #if iden == None:
-        #    return __ret((False,'Eilliden'))
+        iden = self._auth.verify_iden(in_link,idendesc)
+        if iden == None:
+            return __ret((False,'Eilliden'))
 
         try:
             dst_part = dst.split('/',3)
@@ -270,7 +270,7 @@ class Proxy:
                     result = self._call_pathmap[''.join([dst_path,func_name])](*param)
 
                 else:
-                    with Auth.change_current_iden(idendesc):
+                    with Auth.change_current_iden(idendesc,self._auth):
                         result = self._call_pathmap[''.join([dst_path,func_name])](*param)
 
             except KeyError:
@@ -283,7 +283,6 @@ class Proxy:
         else:
             conn = self._request_conn(dst_link)
             if conn == None:
-                print(dst_link)
                 return __ret((False,'Enoexist'))
 
             else:

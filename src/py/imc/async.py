@@ -21,10 +21,17 @@ def switch_top():
     old_contexts = tornado.stack_context._state.contexts
     auth.current_idendata = None
 
-    result =  gr_main.switch(None)
+    try:
+        result =  gr_main.switch(None)
 
-    tornado.stack_context._state.contexts = old_contexts
-    auth.current_idendata = old_idendata
+    except Exception as err:
+        traceback.print_stack()
+        print(err)
+        return (False,'Einternal')
+
+    finally:
+        tornado.stack_context._state.contexts = old_contexts
+        auth.current_idendata = old_idendata
 
     return result
 
@@ -44,17 +51,15 @@ def caller(f):
 
             return (True,ret)
         
+        old_idendata = auth.current_idendata
+        old_contexts = tornado.stack_context._state.contexts
+
         try:
             gr = greenlet(_call)
             grid = id(gr)
             gr_idmap[grid] = set()
-            old_idendata = auth.current_idendata
-            old_contexts = tornado.stack_context._state.contexts
 
             result = gr.switch(*args,**kwargs)
-
-            tornado.stack_context._state.contexts = old_contexts
-            auth.current_idendata = old_idendata
 
             if result == None:
                 return (False,None)
@@ -73,6 +78,10 @@ def caller(f):
             traceback.print_stack()
             print(err)
             return (False,'Einternal')
+
+        finally:
+            tornado.stack_context._state.contexts = old_contexts
+            auth.current_idendata = old_idendata
 
     return wrapper
 
@@ -103,19 +112,20 @@ def ret(retid,value = None,err = None):
     except KeyError:
         return
 
-    try:
-        old_idendata = auth.current_idendata
-        old_contexts = tornado.stack_context._state.contexts
+    old_idendata = auth.current_idendata
+    old_contexts = tornado.stack_context._state.contexts
 
+    try:
         if err == None:
             gr.switch(value)
         
         else:
             gr.throw(err)
 
-        tornado.stack_context._state.contexts = old_contexts
-        auth.current_idendata = old_idendata
-
-    except TypeError as err:
+    except Exception as err:
         traceback.print_stack()
         print(err)
+
+    finally:
+        tornado.stack_context._state.contexts = old_contexts
+        auth.current_idendata = old_idendata

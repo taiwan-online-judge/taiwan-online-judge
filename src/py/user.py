@@ -6,7 +6,7 @@ from asyncdb import AsyncDB
 import imc.proxy
 import config
 
-class User:
+class UserMg:
     _accessid = 2
 
     USERNAME_LEN_MIN = 5
@@ -23,10 +23,10 @@ class User:
     ABOUTME_LEN_MAX = 1000
 
     def __init__(self, mod_idendesc, get_link):
-        User.instance = self
-        User.db = AsyncDB(config.CORE_DBNAME, config.CORE_DBUSER, 
+        UserMg.instance = self
+        UserMg.db = AsyncDB(config.CORE_DBNAME, config.CORE_DBUSER, 
                 config.CORE_DBPASSWORD)
-        User._idendesc = mod_idendesc
+        UserMg._idendesc = mod_idendesc
         self.get_link = get_link
 
     @imc.async.caller
@@ -73,7 +73,7 @@ class User:
                 uid = self._create_user(
                     username, passhash, nickname, email, avatar, aboutme)
             except psycopg2.IntegrityError:
-                return 'Eusername_already_exists'
+                return 'Eusername_exists'
 
         return {'uid' : uid}
 
@@ -122,7 +122,10 @@ class User:
         
         with TOJAuth.change_current_iden(self._idendesc):
             idendesc = TOJAuth.instance.create_iden(
-                TOJAuth.get_current_iden()['link'], idenid, TOJAuth.ROLETYPE_USER, {'uid' : uid}
+                TOJAuth.get_current_iden()['link'],
+                idenid,
+                TOJAuth.ROLETYPE_USER,
+                {'uid' : uid}
             )
 
         ret = {
@@ -161,7 +164,10 @@ class User:
 
         with TOJAuth.change_current_iden(self._idendesc):
             idendesc = TOJAuth.instance.create_iden(
-                TOJAuth.get_current_iden()['link'], idenid, TOJAuth.ROLETYPE_USER, {'uid' : uid}
+                TOJAuth.get_current_iden()['link'],
+                idenid,
+                TOJAuth.ROLETYPE_USER,
+                {'uid' : uid}
             )
 
         ret = {
@@ -179,7 +185,7 @@ class User:
         ):
             return 'Eparameter'
 
-        ret = self._get_user_info_by_uid(uid)
+        ret = self.get_user_info_by_uid(uid)
         if ret == None:
             return 'Eno_such_uid'
         
@@ -282,7 +288,7 @@ class User:
         return self._password_hash(
             'GENGJIAN_WEISUO_KING^^' + str(uid) + '@E__E@' + passhash + 'Yo!')
 
-    def _get_user_info_by_uid(self, uid):
+    def get_user_info_by_uid(self, uid):
         cur = self.db.cursor()
         sqlstr = ('SELECT * FROM "USER" WHERE "uid" = %s;')
         sqlarr = (uid, )
@@ -328,4 +334,9 @@ class User:
         uid = self.get_uid_by_username(username)
 
         return uid != None
+
+    def does_uid_exist(self, uid):
+        idenid = self.get_idenid_by_uid(uid)
+
+        return idenid != None
 
