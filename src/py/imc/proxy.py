@@ -3,6 +3,7 @@ import uuid
 import os
 import datetime
 import ssl
+from collections import deque
 
 from Crypto.Hash import SHA512
 import tornado.ioloop
@@ -89,7 +90,7 @@ class Proxy:
         self._conn_linkmap = {}
         self._conn_retidmap = {self._link:{}}
         self._conn_filekeymap = {self._link:{}}
-        self._call_pathmap = {}
+        self._callpath_root = ({},{},[])
 
         self._info_filekeymap = {}
 
@@ -145,7 +146,48 @@ class Proxy:
             return None
 
     def register_call(self,path,func_name,func):
-        self._call_pathmap[''.join([path,func_name])] = func
+        parts = path.split('/')[:-1] 
+        child,name,filt = self._callpath_root
+        i = 0
+        size = len(parts)
+        while i < size:
+            try:
+                child,name,filt = child[parts[i]]
+                i += 1
+
+            except KeyError:
+                while i < size:
+                    part = parts[i]
+                    node = ({},{},[])
+                    child[part] = node
+                    child,name,filt = node
+                    i += 1
+
+                break
+
+        name[func_name] = func
+
+    def register_filter(self,path,func):
+        parts = path.split('/')[:-1] 
+        child,name,filt = self._callpath_root
+        i = 0
+        size = len(parts)
+        while i < size:
+            try:
+                child,name,filt = child[parts[i]]
+                i += 1
+
+            except KeyError:
+                while i < size:
+                    part = parts[i]
+                    node = ({},{},[])
+                    child[part] = node
+                    child,name,filt = node
+                    i += 1
+
+                break
+
+        filt.append(func)
 
     def call(self,dst,func_name,timeout,*args):
         return self._route_call(None,self._link,async.get_retid(),Auth.get_current_idendesc(),dst,func_name,timeout,list(args))
@@ -255,9 +297,9 @@ class Proxy:
             return __ret((False,'Eilliden'))
 
         try:
-            dst_part = dst.split('/',3)
+            dst_part = dst.split('/')
             dst_link = ''.join(['/',dst_part[1],'/',dst_part[2],'/'])
-            dst_path = dst_part[3]
+            dst_path = dst_part[3:-1]
 
         except Exception:
             return __ret((False,'Enoexist'))
@@ -266,15 +308,30 @@ class Proxy:
             __add_wait_caller(self._link)
 
             try:
-                if Auth.get_current_idendesc() == idendesc:
-                    result = self._call_pathmap[''.join([dst_path,func_name])](*param)
+                with Auth.change_current_iden(None,self._auth):
+                    dpart = deque(dst_path)
+                    child,name,filt = self._callpath_root
+                    for func in filt:
+                        func(dpart,func_name)
 
-                else:
-                    with Auth.change_current_iden(idendesc,self._auth):
-                        result = self._call_pathmap[''.join([dst_path,func_name])](*param)
+                    for part in dst_path:
+                        child,name,filt = child[part]
+
+                        dpart.popleft()
+                        for func in filt:
+                            func(dpart,func_name)
+
+                    func = name[func_name]
 
             except KeyError:
-                result = (False,'Enoexist')
+                return __ret((False,'Enoexist'))
+
+            if Auth.get_current_idendesc() == idendesc:
+                result = func(*param)
+
+            else:
+                with Auth.change_current_iden(idendesc,self._auth):
+                    result = func(*param)
 
             __del_wait_caller(self._link)
 

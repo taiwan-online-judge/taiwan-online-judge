@@ -34,7 +34,7 @@ class Auth:
         return idendesc
 
     @staticmethod
-    def change_current_iden(idendesc,auth = None):
+    def change_current_iden(idendesc = None,auth = None):
         @contextlib.contextmanager
         def context():
             global current_idendata
@@ -44,9 +44,13 @@ class Auth:
             if auth == None:
                 auth = Auth.instance
 
-            iden = auth.get_iden(idendesc)
-            if iden == None:
-                raise ValueError('Illegal idendesc')
+            if idendesc == None:
+                iden = None
+
+            else:
+                iden = auth.get_iden(idendesc)
+                if iden == None:
+                    raise ValueError('Illegal idendesc')
 
             old_idendata = current_idendata
             current_idendata = (iden,idendesc)

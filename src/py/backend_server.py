@@ -109,13 +109,14 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 Proxy.instance.add_conn(self.center_conn)
 
                 Proxy.instance.register_call('test/','get_client_list',self._test_get_client_list)
-                imc_register_call('','test_dst',self._test_dst)
+                imc_register_call('test/','test_dst',self._test_dst)
+                Proxy.instance.register_filter('test/',self._test_filter)
 
                 #imc_register_call('','test_dsta',self._test_dsta)
                 #$time.sleep(1)
 
-                #if self._link == '/backend/2/':
-                #self._test_call(None)
+                if self._link == '/backend/2/':
+                    self._test_call(None)
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
@@ -243,15 +244,20 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         return list(self._client_linkmap.items())
 
     @imc.async.caller
+    def _test_filter(self,dpart,func_name):
+        print(dpart)
+        print(func_name)
+
+    @imc.async.caller
     def _test_call(self,param):
         with TOJAuth.change_current_iden(self._idendesc):
             for i in range(0,1024):
-                dst = '/backend/' + str((i % 8) + 2) + '/'
+                dst = '/backend/' + str((i % 2) + 2) + '/'
                 if dst == self._link:
                     continue
 
                 fileres = Proxy.instance.sendfile(dst,'test.py')
-                ret = imc_call(dst,'test_dst',fileres.filekey)
+                ret = imc_call(dst + 'test/','test_dst',fileres.filekey)
                 print(fileres.wait())
 
             print(self._link)
@@ -282,7 +288,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
     @imc.async.caller
     def _test_dst(self,filekey):
-        #print(filekey)
+        print(filekey)
 
         fileres = Proxy.instance.recvfile(filekey,'data')
         #print('recv ' + fileres.wait())
