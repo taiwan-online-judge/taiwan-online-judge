@@ -1,0 +1,110 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="/bootstrap-toj/css/bootstrap.min.css" rel="stylesheet">
+<link href="/toj/css/style.css" rel="stylesheet" type="text/css">
+
+<script src="/jquery-2.0.2.min.js"></script>
+<script src="/bootstrap-toj/js/bootstrap.min.js"></script>
+<script src="/toj/js/imc.js" type="text/javascript"></script>
+<script src="/toj/js/com.js" type="text/javascript"></script>
+<script src="/toj/js/index.js" type="text/javascript"></script>
+<script src="/toj/js/user.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+
+$(document).ready(function(){
+    var j_win = $(window); 
+
+    com.ready();
+    index.ready();
+    user.ready();
+
+    com.conn_backend();
+
+    j_win.on('resize',com.exheight);
+    j_win.on('popstat',function(e){
+        if(location.href != com.url_curr){
+            com.url_prev = com.url_curr;
+            com.url_curr = location.href;
+            com.url_chg();
+        } 
+    });
+
+    com.exheight();
+    com.url_chg();
+});
+</script>
+</head>
+<body>
+
+<div id="index_header" class="navbar navbar-fixed-top navbar-inverse">
+    <div class="navbar-inner">
+        <div class="container">
+            <p class="offset1 span2 navbar-text">TOJ Server Status</p>
+            <ul class="nav">
+                <li class="active"><a href="#">Home</a></li>
+                <li><a href="#">Profile</a></li>
+            </ul>
+        </div>
+        <div style="position:absolute; top:0px; right:0px;">
+            <ul class="nav">
+                <li><a href="#">Cuvelia</a></li>
+                <li><a href="#">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="index_menutag" class="active">
+    <div class="menu">Status</div>
+</div>
+<div id="index_menu" exheight=true>
+    <div class="tagblock"></div>
+    <div class="menu">
+        <ul class="nav nav-list">
+            <li><a href="#">Home</a></li>
+            <li class="active"><a href="#">Status</a></li>
+            <li><a href="#">Mail</a></li>
+        </ul>
+    </div>
+</div>
+
+<div id="index_paneltag" class="active">
+    <div class="notice notice_hl">[5]</div>
+</div>
+<div id="index_panel" exheight=true>
+    <div class="tagblock"></div>
+    <div class="notice" exheight=true extop=41px>
+        <ul class="nav nav-list">
+            <li><a href="#">
+                <h5>Mail From Alice</h5>
+                Hey, don't challenge me!
+            </a></li>
+            <li><a href="#">
+                <h5>Challenge Success</h5>
+                You get +50 points
+            </a></li>
+            <li><a href="#">
+                <h5>Submit 573</h5>
+                Result:WA Score:37
+            </a></li>
+            <li><a href="#">
+                <h5>Submit 570</h5>
+                Result:WA Score:23
+            </a></li>
+            <li><a href="#">
+                <h5>Submit 565</h5>
+                Result:AC Score:100
+            </a></li>
+        </ul>
+    </div>
+</div>
+
+<div id="index_page" class="container"></div>
+
+</body>
+</html>

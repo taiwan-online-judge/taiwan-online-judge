@@ -1,0 +1,120 @@
+@import 'color.less';
+@import 'mixin.less';
+
+body{
+    overflow-y:scroll;
+}
+
+#index_header{
+    z-index:1;
+    position:relative;
+}
+.index_tag{
+    height:32px;
+    line-height:32px;
+    opacity:0.2;
+    transition:opacity @fast;
+
+    &.active,&:hover{
+        height:41px;
+        line-height:41px;
+        opacity:1;
+    }
+    
+    div{
+        height:100%;
+        font-size:@NormalFontSize;
+        color:@white;
+        font-weight:bold;
+        float:left;
+        cursor:pointer;
+    }
+}
+#index_menutag{
+    .index_tag;
+    .pos_left(fixed,0px,0px,2);
+
+    div.menu{
+        width:80px;
+        padding-left:16px;
+        background-color:@darkgray;
+        text-align:left;
+    }
+}
+#index_paneltag{
+    .index_tag;
+    .pos_right(fixed,0px,206px,2);
+
+    div.notice{
+        width:70px;
+        text-align:center;
+    }
+    div.notice_hl{
+        background-color:@orange;
+    }
+}
+    
+#index_menu{
+    width:0px;
+    background-color:@white;
+    .pos_left(fixed,0px,0px,1);
+    box-shadow:0px 0px 6px fade(@black,30%);
+    opacity:0;
+    transition:width 0ms linear @fast,opacity @fast;
+    
+    &.active{
+        width:230px;
+        opacity:1;
+        transition:width @fast,opacity @fast;
+    }
+   
+    div.tagblock{
+        width:100%;
+        height:41px;
+        box-shadow:0px 3px 2px -2px fade(@black,10%);
+    }
+    div.menu{
+        li > a{
+            height:48px; 
+            padding-left:16px;
+            font-size:@NormalFontSize;
+            font-weight:bold;
+            line-height:48px;
+        }
+    }
+}
+#index_panel{
+    width:0px;
+    background-color:@white;
+    .pos_right(fixed,0px,@SmallPad,1);
+    box-shadow:0px 0px 6px fade(@black,30%);
+    opacity:0;
+    transition:opacity @fast;
+
+    &.active{
+        width:270px;
+        opacity:1;
+    }
+
+    div.tagblock{
+        width:100%;
+        height:41px;
+        box-shadow:0px 3px 2px -2px fade(@black,10%);
+    }
+    div.notice{
+        overflow-y:auto;
+        
+        li > a{
+            height:64px; 
+            padding-left:@SmallPad;
+            font-size:@NormalFontSize;
+        }
+    }
+}
+#index_page{
+    padding-top:@MediumPad;
+
+    div.page{
+
+    }
+}

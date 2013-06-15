@@ -126,7 +126,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
         backend = self._backend_workerlist[random.randrange(size)]
         ws_ip,ws_port = backend.ws_addr
 
-        return (idendesc,backend.link,ws_ip,ws_port)
+        return (link,idendesc,backend.link,ws_ip,ws_port)
 
     def _create_link(self,linkclass):
         linkid = uuid.uuid1()
@@ -215,8 +215,9 @@ class WebConnHandler(tornado.web.RequestHandler):
             self.write('Eno_backend')
 
         else:
-            client_idendesc,backend_link,ip,port = data
+            client_link,client_idendesc,backend_link,ip,port = data
             self.write(json.dumps({
+                'client_link':client_link,
                 'client_idendesc':client_idendesc,
                 'backend_link':backend_link,
                 'ip':ip,

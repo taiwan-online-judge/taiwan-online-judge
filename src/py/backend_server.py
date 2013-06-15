@@ -115,8 +115,8 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 #imc_register_call('','test_dsta',self._test_dsta)
                 #$time.sleep(1)
 
-                if self._link == '/backend/2/':
-                    self._test_call(None)
+                #if self._link == '/backend/2/':
+                #    self._test_call(None)
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
@@ -241,6 +241,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
     @imc.async.caller
     def _test_get_client_list(self,talk,talk2):
+        stat,ret = Proxy.instance.call(TOJAuth.get_current_iden()['link'] + 'test/route/','80s',1000,'attation','mega')
+        print(ret)
+
         return list(self._client_linkmap.items())
 
     @imc.async.caller

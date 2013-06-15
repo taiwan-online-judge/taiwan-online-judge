@@ -146,47 +146,11 @@ class Proxy:
             return None
 
     def register_call(self,path,func_name,func):
-        parts = path.split('/')[:-1] 
-        child,name,filt = self._callpath_root
-        i = 0
-        size = len(parts)
-        while i < size:
-            try:
-                child,name,filt = child[parts[i]]
-                i += 1
-
-            except KeyError:
-                while i < size:
-                    part = parts[i]
-                    node = ({},{},[])
-                    child[part] = node
-                    child,name,filt = node
-                    i += 1
-
-                break
-
+        child,name,filt = self._walk_path(path,True)
         name[func_name] = func
 
     def register_filter(self,path,func):
-        parts = path.split('/')[:-1] 
-        child,name,filt = self._callpath_root
-        i = 0
-        size = len(parts)
-        while i < size:
-            try:
-                child,name,filt = child[parts[i]]
-                i += 1
-
-            except KeyError:
-                while i < size:
-                    part = parts[i]
-                    node = ({},{},[])
-                    child[part] = node
-                    child,name,filt = node
-                    i += 1
-
-                break
-
+        child,name,filt = self._walk_path(path,True)
         filt.append(func)
 
     def call(self,dst,func_name,timeout,*args):
@@ -264,6 +228,32 @@ class Proxy:
 
         with Auth.change_current_iden(self._idendesc,self._auth):
             self.call(info['src_link'] + 'imc/','reject_sendfile',65536,filekey)
+
+    def _walk_path(self,path,create = False):
+        parts = path.split('/')[:-1] 
+        child,name,filt = self._callpath_root
+        i = 0
+        size = len(parts)
+        while i < size:
+            try:
+                child,name,filt = child[parts[i]]
+                i += 1
+
+            except KeyError:
+                if create == False:
+                    raise
+
+                else:
+                    while i < size:
+                        part = parts[i]
+                        node = ({},{},[])
+                        child[part] = node
+                        child,name,filt = node
+                        i += 1
+
+                    break
+
+        return (child,name,filt)
 
     def _route_call(self,in_conn,caller_link,caller_retid,idendesc,dst,func_name,timeout,param):
         def __add_wait_caller(conn_link):
