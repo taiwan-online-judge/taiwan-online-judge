@@ -19,6 +19,7 @@ from imc.proxy import Proxy,Connection,imc_call,imc_call_async,imc_register_call
 import netio
 from netio import SocketStream,SocketConnection,WebSocketConnection
 from tojauth import TOJAuth
+import mod
 
 class BackendWorker(tornado.tcpserver.TCPServer):
     def __init__(self,center_addr,ws_port):
@@ -109,11 +110,11 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 Proxy.instance.add_conn(self.center_conn)
 
                 Proxy.instance.register_call('test/','get_client_list',self._test_get_client_list)
-                imc_register_call('test/','test_dst',self._test_dst)
-                Proxy.instance.register_filter('test/',self._test_filter)
+                Proxy.instance.register_call('test/','test_dst',self._test_dst)
+                #Proxy.instance.register_filter('test/',self._test_filter)
 
-                #imc_register_call('','test_dsta',self._test_dsta)
-                #$time.sleep(1)
+                mod.load('core_user','user',self._idendesc,self._get_link)
+                mod.load('core_mail','mail',self._idendesc,self._get_link)
 
                 #if self._link == '/backend/2/':
                 #    self._test_call(None)
@@ -235,7 +236,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         except KeyError:
             pass
 
-    def _get_link(linkclass):
+    def _get_link(self,linkclass):
         if linkclass == 'center':
             return self.center_conn.link
 
@@ -254,15 +255,18 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     @imc.async.caller
     def _test_call(self,param):
         with TOJAuth.change_current_iden(self._idendesc):
-            for i in range(0,1024):
+            st = time.perf_counter()
+            for i in range(0,2):
                 dst = '/backend/' + str((i % 2) + 2) + '/'
                 if dst == self._link:
                     continue
 
-                fileres = Proxy.instance.sendfile(dst,'test.py')
-                ret = imc_call(dst + 'test/','test_dst',fileres.filekey)
+                fileres = Proxy.instance.sendfile(dst,'Fedora-18-x86_64-DVD.iso')
+                ret = imc_call_async(dst + 'test/','test_dst',lambda result: print('ok'),fileres.filekey)
+                
                 print(fileres.wait())
 
+            print(time.perf_counter() - st)
             print(self._link)
 
         #imc_call_async(dst,'test_dst',lambda result : print(result),'test',113)
@@ -293,7 +297,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     def _test_dst(self,filekey):
         print(filekey)
 
-        fileres = Proxy.instance.recvfile(filekey,'data')
+        self._ioloop.add_timeout(datetime.timedelta(milliseconds = 2000),lambda : Proxy.instance.abortfile(filekey))
+        Proxy.instance.abortfile(filekey)
+        #fileres = Proxy.instance.recvfile(filekey,'data')
         #print('recv ' + fileres.wait())
 
         return 'ok'

@@ -1,6 +1,7 @@
 from tojauth import TOJAuth
 from asyncdb import AsyncDB
 from user import UserMg
+from imc.proxy import Proxy
 import imc.proxy
 import config
 
@@ -18,17 +19,28 @@ class Mail:
 
     LIST_ITEM_PER_PAGE = 20
 
-    def __init__(self, mod_idendesc, get_link):
+    def __init__(self, mod_idendesc, get_link_fn):
         Mail.instance = self
         Mail.db = AsyncDB(config.CORE_DBNAME, config.CORE_DBUSER, 
                 config.CORE_DBPASSWORD)
         Mail._idendesc = mod_idendesc
-        self.get_link = get_link
+        self.get_link = get_link_fn
+
+        Proxy.instance.register_call(
+            'core/mail/', 'send_mail', self.send_mail)
+        Proxy.instance.register_call(
+            'core/mail/', 'recv_mail', self.recv_mail)
+        Proxy.instance.register_call(
+            'core/mail/', 'list_mail', self.list_mail)
+        Proxy.instance.register_call(
+            'core/mail/', 'del_mail', self.del_mail)
+        Proxy.instance.register_call(
+            'core/mail/', 'get_mail_count', self.get_mail_count)
 
     @imc.async.caller
-    def send_mail(self, to_uid, title, content):
+    def send_mail(self, to_username, title, content):
         if(
-            type(to_uid) != int or
+            type(to_username) != str or
             type(title) != str or
             type(content) != str
         ):
@@ -43,14 +55,13 @@ class Mail:
         elif len(content) > self.CONTENT_LEN_MAX:
             return 'Econtent_too_long'
 
-        user_iden = TOJAuth.get_current_iden()
-        try:
-            uid = user_iden['uid']
-        except KeyError:
-            return 'Euid_error'
+        to_uid = UserMg.instance.get_uid_by_username(to_username) 
+        if to_uid == None:
+            return 'Eto_username'
 
-        if not UserMg.instance.does_uid_exist(to_uid):
-            return 'Eto_uid_not_exist'
+        uid = UserMg.get_current_uid()
+        if uid == None:
+            return 'Euid'
 
         with TOJAuth.change_current_iden(self._idendesc):
             self._add_mail(
@@ -83,11 +94,9 @@ class Mail:
         ):
             return 'Eparameter'
 
-        user_iden = TOJAuth.get_current_iden()
-        try:
-            uid = user_iden['uid']
-        except KeyError:
-            return 'Euid_error'
+        uid = UserMg.get_current_uid()
+        if uid == None:
+            return 'Eno_uid'
 
         with TOJAuth.change_current_iden(self._idendesc):
             mail = self._get_mail(mailid)
@@ -144,11 +153,9 @@ class Mail:
         ):
             return 'Eparameter'
 
-        user_iden = TOJAuth.get_current_iden()
-        try:
-            uid = user_iden['uid']
-        except KeyError:
-            return 'Euid_error'
+        uid = UserMg.get_current_uid()
+        if uid == None:
+            return 'Eno_uid'
         
         with TOJAuth.change_current_iden(self._idendesc):
             maillist = self._get_maillist(
@@ -189,11 +196,9 @@ class Mail:
         ):
             return 'Eparameter'
 
-        user_iden = TOJAuth.get_current_iden()
-        try:
-            uid = user_iden['uid']
-        except KeyError:
-            return 'Euid_error'
+        uid = UserMg.get_current_uid()
+        if uid == None:
+            return 'Eno_uid'
 
         with TOJAuth.change_current_iden(self._idendesc):
             mail = self._get_mail(mailid)
@@ -214,3 +219,42 @@ class Mail:
         sqlarr = (mailid, )
         cur.execute(sqlstr, sqlarr)
 
+    @imc.async.caller
+    def get_mail_count(self):
+        uid = UserMg.get_current_uid()
+        if uid == None:
+            return 'Eno_uid'
+
+        with TOJAuth.change_current_iden(self._idendesc):
+            tot_count = self._get_mail_count(uid)
+            unread_count = self._get_mail_count(uid, True)
+
+        ret = {
+            'tot_count': tot_count,
+            'unread_count': unread_count
+        }
+
+        return ret
+
+    @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
+    def _get_mail_count(self, uid, unread = None):
+        cur = self.db.cursor()
+        if unread == None:
+            sqlstr = ('SELECT COUNT(*) FROM "MAIL" WHERE "uid" = %s;')
+            sqlarr = (uid, )
+        else:
+            sqlstr = ('SELECT COUNT(*) FROM "MAIL" WHERE "uid" = %s AND '
+                      '"unread" = %s;')
+            sqlarr = (uid, unread)
+        cur.execute(sqlstr, sqlarr)
+
+        for data in cur:
+            count = data[0]
+
+        return count
+    
+def load(mod_idendesc, get_link_fn):
+    Mail(mod_idendesc, get_link_fn)
+
+def unload():
+    pass

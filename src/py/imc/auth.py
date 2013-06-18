@@ -14,7 +14,7 @@ class Auth:
     def __init__(self):
         global current_idendata
 
-        self._cache_hashmap = {}
+        self._cache_hashmap = set()
         current_idendata = (None,None)
 
         Auth.instance = self
@@ -98,12 +98,14 @@ class Auth:
 
     def _verify(self,data,sig):
         h = SHA512.new(data)
-        if h in self._cache_hashmap:
+        hs = h.hexdigest()
+        if hs in self._cache_hashmap:
             return True
 
         if self._verifier.verify(h,sig) == True:
-            self._cache_hashmap[h] = True
+            self._cache_hashmap.add(hs)
 
             return True
+
         else:
             return False

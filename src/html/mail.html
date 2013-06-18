@@ -1,0 +1,73 @@
+<link href="/toj/css/mail.css" rel="stylesheet">
+<div class="modal hide fade medium_modal newmail">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>寫新郵件</h3>
+    </div>
+    <div class="modal-body container-fluid">
+        <div class="row-fluid">
+            <div class="span13"> 
+                <div class="input-prepend">
+                    <span class="add-on">收件人</span>
+                    <input class="to_username" type="text" placeholder="使用者名稱">
+                </div>
+                <div class="input-prepend">
+                    <span class="add-on">標題</span>
+                    <input class="title" type="text">
+                </div>
+                <div class="content"></div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary submit">寄出</button>
+        <button class="btn cancel">取消</button>
+    </div>
+</div>
+<div class="modal hide fade medium_modal readmail">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>範例郵件</h3>
+    </div>
+    <div class="modal-body container-fluid">
+        <div class="row-fluid">
+            <div class="span13"> 
+                <div class="input-prepend">
+                    <span class="add-on">收件人</span>
+                    <input class="uneditable-input from_username" type="text" value="Alice">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn cancel">刪除</button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="span2 offset1 oper">
+        <ul class="nav nav-tabs nav-stacked">
+            <li class="newmail"><a href="">寫新郵件</a></li>
+            <li><a href="">寄件備份</a></li>
+        </ul>
+    </div>
+    <div class="span7 mail">
+        <table class="table table-hover maillist">
+            <thead>
+                <tr>
+                    <th class="span2">發信者</th>
+                    <th class="span3">標題</th>
+                    <th class="span2">時間</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="pagination">
+            <ul>
+                <li><a href="#">←</a></li>
+                <li class="disabled"><a href="#">1</a></li>
+                <li><a href="#">→</a></li>
+            </ul>
+        </div>
+    </div>
+</div>

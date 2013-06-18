@@ -278,8 +278,7 @@ class AsyncDB:
             err = e
 
         if err != None or stat == psycopg2.extensions.POLL_OK:
-            self._ioloop.update_handler(fd,
-                    tornado.ioloop.IOLoop.ERROR)
+            self._ioloop.update_handler(fd,tornado.ioloop.IOLoop.ERROR)
 
         elif stat == psycopg2.extensions.POLL_READ:
             self._ioloop.update_handler(fd,

@@ -36,7 +36,7 @@ body{
 
     div.menu{
         width:80px;
-        padding-left:16px;
+        padding-left:32px;
         background-color:@darkgray;
         text-align:left;
     }
@@ -74,9 +74,11 @@ body{
         box-shadow:0px 3px 2px -2px fade(@black,10%);
     }
     div.menu{
+        overflow-x:hidden;
         li > a{
             height:48px; 
-            padding-left:16px;
+            padding-left:32px;
+            padding-right:-32px;
             font-size:@NormalFontSize;
             font-weight:bold;
             line-height:48px;
@@ -110,6 +112,12 @@ body{
             font-size:@NormalFontSize;
         }
     }
+}
+#index_alert{
+    width:370px;
+    position:fixed;
+    bottom:@MediumPad;
+    right:@MediumPad;
 }
 #index_page{
     padding-top:@MediumPad;

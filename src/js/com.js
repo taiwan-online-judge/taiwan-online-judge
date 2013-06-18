@@ -2,15 +2,17 @@
 
 var WebSocketConnection = function(link,ws){
     var that = this;
-    var reader = new FileReader;
 
     that.__super__(link);
 
     that.send_msg = function(data){
+        console.log(ws.readyState);
         ws.send(new Blob([data],{'type':'application/octet-stream'}))
     };
     that.start_recv = function(recv_callback){
         ws.onmessage = function(e){
+            var reader = new FileReader;
+            
             reader.onload = function(e){
                 recv_callback(that,e.target.result);
             };
@@ -106,8 +108,8 @@ return true;
     that.url_pbox = null;
 
     that.link = null;
-    that.idendesc = null;
     that.backend_link = null;
+    that.conn_callback = $.Callbacks();
 
     that.ready = function(){
         var i;
@@ -174,8 +176,6 @@ return true;
     };
     that.url_pull_pbox = function(){
         that.url_update(that.url_pbox);
-        //window.history.back();
-        //    
     };
     that.url_chg = function(){
         var i;
@@ -409,10 +409,12 @@ return true;
         urlchg_reen = false;
     };
 
-    that.loadpage = function(htmlurl,callback){
+    that.loadpage = function(menu,htmlurl){
         var j_index_page = $('#index_page');
         var defer = $.Deferred();
 
+        index.set_menu(menu);
+        index.set_title('');
         j_index_page.empty();
         j_index_page.load(htmlurl,function(data,stat,xhr){
             defer.resolve();
@@ -436,25 +438,68 @@ return true;
             extop = extop.match('(.*)px')[1];
             j_e.height(winheight - extop);
         }
-    }
+    };
+    that.get_cookie = function(){
+        var ret;
+        var i;
+        var part;
+        var subpart;
+
+        ret = new Object();
+        part = document.cookie.split(';');
+        if(part.length == 0){
+            return null;
+        }
+        for(i = 0;i < part.length;i++){
+            part[i] = part[i].replace(' ','').replace(/\+/g,' ');
+            subpart = part[i].split('=');
+            ret[decodeURIComponent(subpart[0])] = decodeURIComponent(subpart[1]);
+        }
+
+        return ret;
+    };
+    that.create_codebox = function(j_div,mode){
+        var codebox = CodeMirror(j_div[0],{
+            'mode':mode,
+            'theme':'lesser-dark',
+            'lineNumbers':true,
+            'matchBrackets':true,
+            'indentUnit':4
+        });
+
+        codebox.getWrapperElement().style.width = '100%';
+        codebox.getWrapperElement().style.height = '100%';
+        codebox.getScrollerElement().style.width = '100%';
+        codebox.getScrollerElement().style.height = '100%';
+
+        return codebox;
+    };
+    that.is_callerr = function(result){
+        if(result.stat == false || typeof(result.data) == 'string'){
+            return true;
+        } 
+
+        return false;
+    };
 
     that.conn_backend = function(){
         $.post('http://toj.tfcis.org:83/conn',{},function(res){
             var reto;
-            var iden;
+            var idendesc;
             var ws;
 
             if(res[0] != 'E'){
                 reto = JSON.parse(res)
 
                 that.link = reto.client_link;
-                that.idendesc = reto.client_idendesc;
                 that.backend_link = reto.backend_link;
+                idendesc = reto.client_idendesc;
 
                 ws = new WebSocket('ws://' + reto.ip + ':' + reto.port + '/conn');
                 ws.onopen = function(){
                     var i;
                     var conn;
+                    var cookie;
 
                     console.log('open');
 
@@ -470,13 +515,36 @@ return true;
                     });
                     imc.Proxy.instance.add_conn(conn);
 
-                    imc.Auth.change_current_iden(that.idendesc)
+                    imc.Auth.change_current_iden(idendesc)
+
+                    if((cookie = com.get_cookie()) != null){
+                        com.call_backend('core/user/','cookie_login',function(result){
+                            if(com.is_callerr(result)){
+                                //TODO GE
+                            }else{
+                                imc.Auth.change_current_iden(result.data.idendesc);
+                            }
+                            
+                            that.conn_callback.fire();
+                        },parseInt(cookie.uid),cookie.hash);
+                    }else{
+                        that.conn_callback.fire();
+                    }
                 };
             }else{
                 setTimeout(conn_backend,5000);
             }
         });
     }
+    that.call_backend = function(path,func_name,callback){
+        var i;
+        var params = new Array()
+
+        params = [com.backend_link + path,func_name,1000,callback]
+        for(i = 3;i < arguments.length;i++){
+            params.push(arguments[i]); 
+        }
+
+        imc.Proxy.instance.call.apply(undefined,params);
+    }
 };
-
-

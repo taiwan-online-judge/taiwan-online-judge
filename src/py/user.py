@@ -3,7 +3,8 @@ from Crypto.Hash import SHA512
 
 from tojauth import TOJAuth
 from asyncdb import AsyncDB
-import imc.proxy
+import imc.async
+from imc.proxy import Proxy
 import config
 
 class UserMg:
@@ -22,12 +23,23 @@ class UserMg:
     ABOUTME_LEN_MIN = 0
     ABOUTME_LEN_MAX = 1000
 
-    def __init__(self, mod_idendesc, get_link):
+    def __init__(self, mod_idendesc, get_link_fn):
         UserMg.instance = self
         UserMg.db = AsyncDB(config.CORE_DBNAME, config.CORE_DBUSER, 
                 config.CORE_DBPASSWORD)
         UserMg._idendesc = mod_idendesc
-        self.get_link = get_link
+        self.get_link = get_link_fn
+
+        Proxy.instance.register_call(
+            'core/user/', 'register', self.register)
+        Proxy.instance.register_call(
+            'core/user/', 'login', self.login)
+        Proxy.instance.register_call(
+            'core/user/', 'cookie_login', self.cookie_login)
+        Proxy.instance.register_call(
+            'core/user/', 'get_user_info', self.get_user_info)
+        Proxy.instance.register_call(
+            'core/user/', 'set_user_info', self.set_user_info)
 
     @imc.async.caller
     def register(self, username, password, nickname, email, avatar, aboutme):
@@ -103,7 +115,7 @@ class UserMg:
 
         uid = self.get_uid_by_username(username)
         if uid == None:
-            return 'Eno_such_uid'
+            return 'Elogin_failed'
 
         passhash = self._password_hash(password)
 
@@ -118,18 +130,22 @@ class UserMg:
             idenid = data[0]
 
         if idenid == None:
-            return 'Ewrong_password'
+            return 'Elogin_faild'
         
         with TOJAuth.change_current_iden(self._idendesc):
-            idendesc = TOJAuth.instance.create_iden(
-                TOJAuth.get_current_iden()['link'],
-                idenid,
-                TOJAuth.ROLETYPE_USER,
-                {'uid' : uid}
-            )
+            stat,data = Proxy.instance.call(self.get_link('center'),
+                                            'create_iden',
+                                            10000,
+                                            TOJAuth.get_current_iden()['link'],
+                                            idenid,
+                                            TOJAuth.ROLETYPE_USER,
+                                            {'uid' : uid})
+
+        if stat == False:
+            return 'Einternal'
 
         ret = {
-            'idendesc' : idendesc,
+            'idendesc' : data,
             'uid' : uid,
             'hash' : self._uid_passhash_hash(uid, passhash)
         }
@@ -157,21 +173,25 @@ class UserMg:
             real_uphash = self._uid_passhash_hash(uid, data[1])
 
         if idenid == None:
-            return 'Eno_such_uid'
+            return 'Elogin_failed'
 
         if real_uphash != uphash:
-            return 'Ewrong_uphash'
+            return 'Elogin_failed'
 
         with TOJAuth.change_current_iden(self._idendesc):
-            idendesc = TOJAuth.instance.create_iden(
-                TOJAuth.get_current_iden()['link'],
-                idenid,
-                TOJAuth.ROLETYPE_USER,
-                {'uid' : uid}
-            )
+            stat,data = Proxy.instance.call(self.get_link('center'),
+                                            'create_iden',
+                                            10000,
+                                            TOJAuth.get_current_iden()['link'],
+                                            idenid,
+                                            TOJAuth.ROLETYPE_USER,
+                                            {'uid' : uid})
+
+        if stat == False:
+            return 'Einternal'
 
         ret = {
-            'idendesc' : idendesc,
+            'idendesc' : data,
             'uid' : uid,
             'hash' : uphash
         }
@@ -340,3 +360,17 @@ class UserMg:
 
         return idenid != None
 
+    @staticmethod
+    def get_current_uid():
+        user_iden = TOJAuth.get_current_iden()
+        try:
+            uid = user_iden['uid']
+        except KeyError:
+            return None
+        return uid
+
+def load(mod_idendesc, get_link_fn):
+    UserMg(mod_idendesc, get_link_fn)
+
+def unload():
+    pass

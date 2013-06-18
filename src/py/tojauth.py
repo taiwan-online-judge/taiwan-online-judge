@@ -10,12 +10,20 @@ class TOJAuth(Auth):
     ACCESS_SETPER   = 0x10
     ACCESS_EXECUTE  = 0x20
 
+    ACCESS_ALL      = -1
+
     ROLETYPE_USER   = 1
     ROLETYPE_3RD    = 2
     ROLETYPE_MOD    = 3
     ROLETYPE_TOJ    = 4
     ROLETYPE_GROUP  = 5
     ROLETYPE_GUEST  = 6
+
+    ROLEID_TOJ      = 1
+    ROLEID_MOD      = 2
+    ROLEID_GUEST    = 99
+
+    ROLEID_SQUARE_ADMIN_GROUP    = 101
 
     _accessid = 1
 
@@ -92,6 +100,10 @@ class TOJAuth(Auth):
 
         return wrapper
 
+    @staticmethod
+    def check_access_func(accessid, access_mask):
+        TOJAuth.check_access(accessid, access_mask)(lambda x:x)(0)
+
     def create_access(self, owner_idenid):
         self.check_access(
             self._accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
@@ -105,6 +117,18 @@ class TOJAuth(Auth):
         for data in cur:
             accessid = data[0]
         return accessid
+
+    def del_access(self, accessid):
+        self.check_access(accessid, self.ACCESS_SETPER)(lambda x:x)(0)
+
+        cur = self.db.cursor()
+        sqlstr = ('DELETE FROM "ACCESS_ROLE" WHERE "accessid" = %s;')
+        sqlarr = (accessid, )
+        cur.execute()
+        
+        sqlstr = ('DELETE FROM "ACCESS" WHERE "accessid" = %s;')
+        sqlarr = (accessid, )
+        cur.execute()
         
     def set_access_list(self, accessid, roleid, permission):
         self.check_access(accessid, self.ACCESS_SETPER)(lambda x:x)(0)
@@ -124,8 +148,8 @@ class TOJAuth(Auth):
         self.check_access(accessid, self.ACCESS_SETPER)(lambda x:x)(0)
 
         cur = self.db.cursor()
-        sqlstr = ('DELETE FROM "ACCESS_ROLE" WHERE "accessid"=%s '
-                'AND "roleid"=%s;')
+        sqlstr = ('DELETE FROM "ACCESS_ROLE" WHERE "accessid" = %s '
+                'AND "roleid" = %s;')
         sqlarr = (accessid, roleid)
         cur.execute(sqlstr, sqlarr)        
 

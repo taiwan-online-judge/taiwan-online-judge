@@ -24,10 +24,8 @@ def switch_top():
     try:
         result =  gr_main.switch(None)
 
-    except Exception as err:
-        traceback.print_stack()
-        print(err)
-        return (False,'Einternal')
+    except Exception:
+        raise
 
     finally:
         tornado.stack_context._state.contexts = old_contexts

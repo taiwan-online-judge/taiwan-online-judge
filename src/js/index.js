@@ -2,48 +2,58 @@
 
 var index = new function(){
     var that = this;
-    var active_menutag = function(){
-        $('#index_menutag').addClass('active');
+    var j_win;
+    var j_menutag;
+    var j_menu;
+    var j_paneltag;
+    var j_panel;
+    var j_header;
+    var j_alertbox;
+
+    function active_menutag(){
+        j_menutag.addClass('active');
     };
-    var inactive_menutag = function(){
-        if($(window).scrollTop() > 8 && !$('#index_menu').hasClass('active')){
-            $('#index_menutag').removeClass('active');
+    function inactive_menutag(){
+        if(j_win.scrollTop() > 8 && !j_menu.hasClass('active')){
+            j_menutag.removeClass('active');
         }
     };
-    var active_paneltag = function(){
-        $('#index_paneltag').addClass('active');
+    function active_paneltag(){
+        j_paneltag.addClass('active');
     };
-    var inactive_paneltag = function(){
-        if($(window).scrollTop() > 8 && !$('#index_panel').hasClass('active')){
-            $('#index_paneltag').removeClass('active');
+    function inactive_paneltag(){
+        if(j_win.scrollTop() > 8 && !j_panel.hasClass('active')){
+            j_paneltag.removeClass('active');
         }
     };
-    var active_menu = function(){
-        $('#index_menu').addClass('active');
+    function active_menu(){
+        j_menu.addClass('active');
         active_menutag();
     };
-    var inactive_menu = function(){
-        $('#index_menu').removeClass('active');
+    function inactive_menu(){
+        j_menu.removeClass('active');
         inactive_menutag();
     };
-    var active_panel = function(){
-        $('#index_panel').addClass('active');
+    function active_panel(){
+        j_panel.addClass('active');
         active_paneltag();
     };
-    var inactive_panel = function(){
-        $('#index_panel').removeClass('active');
+    function inactive_panel(){
+        j_panel.removeClass('active');
         inactive_paneltag();
     };
     
     that.ready = function(){
-        var j_win = $(window);
-        var j_menutag = $('#index_menutag');
-        var j_menu = $('#index_menu');
-        var j_paneltag = $('#index_paneltag');
-        var j_panel = $('#index_panel');
-
+        j_win = $(window);
+        j_menutag = $('#index_menutag');
+        j_menu = $('#index_menu');
+        j_paneltag = $('#index_paneltag');
+        j_panel = $('#index_panel');
+        j_header = $('#index_header');
+        j_alertbox = $('#index_alert');
+        
         j_win.on('scroll',function(e){
-            if($(window).scrollTop() <= 8){
+            if(j_win.scrollTop() <= 8){
                 active_menutag();
                 active_paneltag();
             }else{
@@ -76,12 +86,44 @@ var index = new function(){
             active_menu();
         });
         j_paneltag.find('div.notice').on('click',function(e){
-            if($('#index_panel').hasClass('active')){
+            if(j_panel.hasClass('active')){
                 inactive_panel();
             }else{
                 active_panel();
             }   
         });
 
+        user.login_callback.add(function(){
+            var j_li;
+            
+            j_li = j_menu.find('div.menu li.profile')
+            j_li.find('a').attr('href','/toj/user:' + user.uid + '/main/'); 
+            j_li.show();
+
+            j_menu.find('div.menu li.mail').show();
+        });
+    };
+    that.set_title = function(title){
+        j_header.find('p.title').text(title); 
+    };
+    that.set_menu = function(tag){
+        j_menutag.find('div.menu').text(tag); 
+    };
+    that.add_alert = function(type,title,content,autofade){
+        var j_alert;
+
+        j_alert = $('<div class="alert fade in"><button type="button" class="close" data-dismiss="alert">&times;</button><strong></strong>&nbsp&nbsp<span></span></div>');
+
+        j_alert.addClass(type);
+        j_alert.find('strong').text(title);
+        j_alert.find('span').text(content);
+
+        if(autofade != false){
+            setTimeout(function(){
+                j_alert.alert('close');
+            },10000);
+        }
+
+        j_alertbox.prepend(j_alert);
     };
 };
