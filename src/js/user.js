@@ -76,14 +76,39 @@ var user = new function(){
         };
         com.vus_root.child_set(user_node);
 
+        function _tmp(y){
+            var now = 0;
+            var ay = 50;
+            
+            function __ani(){
+                if(y <= now){
+                    $(window).scrollTop(y);
+                    return;
+                }
+                $(window).scrollTop(now);
+
+                now = now + ay;
+                ay = Math.max(5,ay * 0.87);
+                setTimeout(__ani,10);
+            }
+
+            __ani();
+        }
+
         main_node.url_chg = function(direct,url_upart,url_dpart,param){
             if(direct == 'in'){
+                index.set_menu('使用者');
+                index.set_title('');
+                index.clear_tabnav();
+
                 $.when(
                     _get_user_info(user_node_uid),
-                    com.loadpage('使用者','/toj/html/user_main.html')
+                    com.loadpage('/toj/html/user_main.html')
                 ).done(function(data){
                     j_index_page.find('h3.name').text(data.nickname + '(' + data.username + ')');
                     j_index_page.find('p.aboutme').text(data.aboutme);
+
+                    _tmp(560);
                 });
             }
         };
@@ -91,7 +116,11 @@ var user = new function(){
 
         login_node.url_chg = function(direct,url_upart,url_dpart,param){
             if(direct == 'in'){
-                com.loadpage('登入','/toj/html/login.html').done(function(){
+                index.set_menu('登入');
+                index.set_title('');
+                index.clear_tabnav();
+
+                com.loadpage('/toj/html/login.html').done(function(){
                     var j_alert = j_index_page.find('div.alert');
                     var j_submit = j_index_page.find('button.submit');
 
@@ -128,7 +157,11 @@ var user = new function(){
         
         register_node.url_chg = function(direct,url_upart,url_dpart,param){
             if(direct == 'in'){
-                com.loadpage('註冊','/toj/html/register.html').done(function(){
+                index.set_menu('註冊');
+                index.set_title('');
+                index.clear_tabnav();
+
+                com.loadpage('/toj/html/register.html').done(function(){
                     var j_alert = j_index_page.find('div.alert');
 
                     j_index_page.find('[name="username"]').focus();

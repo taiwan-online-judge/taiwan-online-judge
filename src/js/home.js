@@ -6,9 +6,10 @@ var home = new function(){
 
         home_node.url_chg = function(direct,url_upart,url_dpart,param){
             if(direct == 'in'){
-                com.loadpage('首頁','/toj/html/home.html').done(function(){
-                    index.set_title('Taiwan Online Judge');
-                });
+                index.set_menu('首頁');
+                index.set_title('Taiwan Online Judge');
+                index.clear_tabnav();
+                com.loadpage('/toj/html/home.html');
             }
         };
         com.vus_root.child_set(home_node);

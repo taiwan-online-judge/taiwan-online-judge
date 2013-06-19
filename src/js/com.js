@@ -6,7 +6,6 @@ var WebSocketConnection = function(link,ws){
     that.__super__(link);
 
     that.send_msg = function(data){
-        console.log(ws.readyState);
         ws.send(new Blob([data],{'type':'application/octet-stream'}))
     };
     that.start_recv = function(recv_callback){
@@ -63,7 +62,6 @@ var vus = new function(){
         that.child_del = function(node){
             node.parent = null;
             delete that.child[node.name];
-
         };
         that.lookup = function(url,close_flag){
             var i;
@@ -409,14 +407,14 @@ return true;
         urlchg_reen = false;
     };
 
-    that.loadpage = function(menu,htmlurl){
+    that.loadpage = function(htmlurl){
         var j_index_page = $('#index_page');
         var defer = $.Deferred();
 
-        index.set_menu(menu);
-        index.set_title('');
         j_index_page.empty();
         j_index_page.load(htmlurl,function(data,stat,xhr){
+            that.exheight();
+
             defer.resolve();
         });
 
@@ -427,17 +425,26 @@ return true;
         var es = $('[exheight="true"]');
         var j_e;
         var winheight = $(window).innerHeight();
+        var exratio;
         var extop;
 
         for(i = 0;i < es.length;i++){
             j_e = $(es[i]);
 
-            if((extop = j_e.attr('extop')) == undefined){
-                extop = j_e.css('top');
+            if((exratio = j_e.attr('exratio')) != undefined){
+                exratio = parseInt(exratio.match('(.*)%')[1]) / 100;
+                j_e.height(winheight * exratio);
+            }else{
+                if((extop = j_e.attr('extop')) == undefined){
+                    extop = j_e.css('top');
+                }
+
+                extop = extop.match('(.*)px')[1];
+                j_e.height(winheight - extop);
             }
-            extop = extop.match('(.*)px')[1];
-            j_e.height(winheight - extop);
         }
+
+        $('.modal-body').css('max-height',(winheight * 0.5) + 'px');
     };
     that.get_cookie = function(){
         var ret;
@@ -458,13 +465,51 @@ return true;
 
         return ret;
     };
-    that.create_codebox = function(j_div,mode){
-        var codebox = CodeMirror(j_div[0],{
+    that.get_timestring = function(data,sec){
+        var date;
+        var ret;
+        var hr;
+        var min;
+        var sec;
+
+        function fix(num){
+            if(num < 10){
+                return '0' + num;
+            }
+            return num;
+        }
+
+        if(typeof(data) == 'string'){
+            date = new Date(data);
+        }else{
+            date = data;
+        }
+
+        ret =  date.getFullYear() + '/' + date.getMonth() + '/' + date.getDate() + ' ' + 
+            fix(date.getHours()) + ':' + fix(date.getMinutes());
+
+        if(sec == true){
+            ret += ':' + fix(date.getSeconds());
+        }
+
+        return ret;
+    };
+    that.create_codebox = function(j_div,mode,readonly){
+        var codebox;
+        
+        if(readonly != true){
+            readonly = false;
+        }
+
+        j_div.empty();
+
+        codebox = CodeMirror(j_div[0],{
             'mode':mode,
             'theme':'lesser-dark',
             'lineNumbers':true,
             'matchBrackets':true,
-            'indentUnit':4
+            'indentUnit':4,
+            'readOnly':readonly
         });
 
         codebox.getWrapperElement().style.width = '100%';
@@ -473,6 +518,73 @@ return true;
         codebox.getScrollerElement().style.height = '100%';
 
         return codebox;
+    };
+    that.create_pagination = function(j_div,start,end,curr,step){
+        var i;
+        var j_ul;
+        var j_li;
+        var off;
+        var offs = new Array;
+
+        start = Math.floor(start / step);
+        end = Math.floor((end - 1)/ step);
+        curr = Math.floor(curr / step);
+
+        j_div.empty();
+
+        j_div.addClass('pagination');
+        j_div.append('<ul></ul>');
+        j_ul = j_div.find('ul')
+
+        j_li = $('<li class="prev"><a href="">←</a></li>');
+        if(curr == 0){
+            j_li.find('a').on('click',function(e){
+                return false
+            });
+
+            j_li.addClass('disabled');
+            off = curr * step;
+        }else{
+            off = (curr - 1) * step;
+        }
+        offs.push(off);
+        j_li.attr('off',off);
+        j_ul.append(j_li);
+        
+        for(i = start;i <= end;i++){
+            j_li = $('<li><a href=""></a></li>');
+            off = i * step;
+            offs.push(off);
+            j_li.attr('off',off);
+            j_li.find('a').text(i + 1);
+
+            if(i == curr){
+                j_li.find('a').on('click',function(e){
+                    return false;
+                });
+
+                j_li.addClass('active');
+            }
+
+            j_ul.append(j_li);
+        }
+
+        j_li = $('<li class="next"><a href="">→</a></li>');
+        if(curr == end){
+            j_li.find('a').on('click',function(e){
+                return false;
+            });
+            
+            j_li.addClass('disabled');
+            off = curr * step; 
+        }else{
+            off = (curr + 1) * step;
+        }
+        offs.push(off);
+        j_li.attr('off',off);
+        j_ul.append(j_li);
+
+        return offs;
     };
     that.is_callerr = function(result){
         if(result.stat == false || typeof(result.data) == 'string'){
@@ -532,7 +644,7 @@ return true;
                     }
                 };
             }else{
-                setTimeout(conn_backend,5000);
+                setTimeout(that.conn_backend,5000);
             }
         });
     }

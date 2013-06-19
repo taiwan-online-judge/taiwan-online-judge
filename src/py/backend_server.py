@@ -38,7 +38,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
     def start(self):
         sock_port = random.randrange(4096,8192)
-        self.sock_addr = ('10.8.0.10',sock_port)
+        self.sock_addr = ('10.8.0.6',sock_port)
 
         self.bind(sock_port,'',socket.AF_INET,65536)
         super().start()
@@ -341,7 +341,7 @@ def start_backend_worker(ws_port):
     ]))
     http_serv.listen(ws_port)
 
-    backend_worker = BackendWorker(('10.8.0.10',5730),ws_port)
+    backend_worker = BackendWorker(('10.8.0.6',5730),ws_port)
     backend_worker.start()
 
     tornado.ioloop.IOLoop.instance().start()

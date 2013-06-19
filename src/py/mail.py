@@ -168,8 +168,8 @@ class Mail:
         cur = self.db.cursor()
         sqlstr = ('SELECT "mailid", "from_uid", "unread", "title", '
                   '"send_time" FROM "MAIL" WHERE "uid" = %s AND "mail_type" = '
-                  '%s ORDER BY "mailid" ASC LIMIT %s OFFSET %s;')
-        sqlarr = (uid, mail_type, end_index - start_index + 1, start_index - 1)
+                  '%s ORDER BY "mailid" DESC LIMIT %s OFFSET %s;')
+        sqlarr = (uid, mail_type, end_index - start_index, start_index)
         cur.execute(sqlstr, sqlarr)
 
         ret = []
@@ -220,14 +220,14 @@ class Mail:
         cur.execute(sqlstr, sqlarr)
 
     @imc.async.caller
-    def get_mail_count(self):
+    def get_mail_count(self, mail_type = None):
         uid = UserMg.get_current_uid()
         if uid == None:
             return 'Eno_uid'
 
         with TOJAuth.change_current_iden(self._idendesc):
-            tot_count = self._get_mail_count(uid)
-            unread_count = self._get_mail_count(uid, True)
+            tot_count = self._get_mail_count(uid, None, mail_type)
+            unread_count = self._get_mail_count(uid, True, mail_type)
 
         ret = {
             'tot_count': tot_count,
@@ -237,15 +237,17 @@ class Mail:
         return ret
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
-    def _get_mail_count(self, uid, unread = None):
+    def _get_mail_count(self, uid, unread = None, mail_type = None):
         cur = self.db.cursor()
-        if unread == None:
-            sqlstr = ('SELECT COUNT(*) FROM "MAIL" WHERE "uid" = %s;')
-            sqlarr = (uid, )
-        else:
-            sqlstr = ('SELECT COUNT(*) FROM "MAIL" WHERE "uid" = %s AND '
-                      '"unread" = %s;')
-            sqlarr = (uid, unread)
+        sqlstr = ('SELECT COUNT(*) FROM "MAIL" WHERE "uid" = %s')
+        sqlarr = [uid]
+        if unread != None:
+            sqlstr = sqlstr + (' AND "unread" = %s')
+            sqlarr.append(unread)
+        if mail_type != None:
+            sqlstr = sqlstr + (' AND "mail_type" = %s')
+            sqlarr.append(mail_type)
+        sqlstr = sqlstr + (';')
         cur.execute(sqlstr, sqlarr)
 
         for data in cur:

@@ -109,10 +109,29 @@ var index = new function(){
     that.set_menu = function(tag){
         j_menutag.find('div.menu').text(tag); 
     };
+    that.add_tabnav = function(text,link){
+        var j_li = $('<li><a></a></li>');
+        var j_a = j_li.find('a');
+        
+        j_a.text(text);
+        j_a.attr('href',link);
+
+        j_header.find('ul.tabnav').append(j_li);        
+
+        j_li.active = function(){
+            j_header.find('ul.tabnav > li.active').removeClass('active');
+            j_li.addClass('active');
+        };
+
+        return j_li;
+    };
+    that.clear_tabnav = function(){
+        j_header.find('ul.tabnav').empty();        
+    };
     that.add_alert = function(type,title,content,autofade){
         var j_alert;
 
-        j_alert = $('<div class="alert fade in"><button type="button" class="close" data-dismiss="alert">&times;</button><strong></strong>&nbsp&nbsp<span></span></div>');
+        j_alert = $('<div class="alert fade in"><button type="button" class="close" data-dismiss="alert">&times;</button><strong></strong>&nbsp<span></span></div>');
 
         j_alert.addClass(type);
         j_alert.find('strong').text(title);
