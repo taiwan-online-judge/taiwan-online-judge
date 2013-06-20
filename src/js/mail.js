@@ -11,10 +11,16 @@ var mail = new function(){
     var maillist_type = null;
     var maillist_off = null;
 
-    function mailitem_set(j_item,mailid,from_username,title,time,unread){
-        j_item.find('td.from_username').text(from_username);
+    function mailitem_set(j_item,mailid,username,title,time,unread){
+        var j_span;
+
+        j_item.find('td.username').text(username);
         j_item.find('td.title').text(title);
         j_item.find('td.time').text(time);
+
+        j_span = j_item.find('span.check');
+        j_span.check(false);
+        j_span.attr('mailid',mailid);
 
         if(unread == true){
             j_item.addClass('warning');
@@ -23,19 +29,30 @@ var mail = new function(){
         }
         
         j_item.off('click').on('click',function(e){
+            var j_e = $(e.target);
+            if(j_e.is('td.check')){
+                j_e.find('span.check').click();
+                return;
+            }
+            if(j_e.parents('td.check').length > 0){
+                return;
+            }
+
             readmail_mailid = mailid;
             j_readmail.modal('show'); 
             return false;
         });
     };
-    function mailitem_create(mailid,from_username,title,time,unread){
-        var j_item = $('<tr class="item"><td class="from_username"></td><td class="title"></td><td class="time"></td></tr>');
+    function mailitem_create(mailid,username,title,time,unread){
+        var j_item = $('<tr class="item"><td class="check"><span class="check" data-label="mailcheck"></span></td><td class="username"></td><td class="title"></td><td class="time"></td></tr>');
 
-        mailitem_set(j_item,mailid,from_username,title,time,unread);
+        mailitem_set(j_item,mailid,username,title,time,unread);
 
         return j_item;
     };
     function update_maillist(){
+        j_index_page.find('span.checkall').check(false);
+
         com.call_backend('core/mail/','list_mail',function(result){
             var data;
             var mail;
@@ -94,12 +111,40 @@ var mail = new function(){
                     newmail_content = com.create_codebox(j_newmail.find('div.content'),'text/html');
                     readmail_content = com.create_codebox(j_readmail.find('div.content'),'text/html',true);
 
-                    index.add_tabnav('寫新郵件','').on('click',function(e){
-                        j_newmail.modal('show');
-                        return false;
-                    });
                     j_tabnav_inbox = index.add_tabnav('收件匣','/toj/mail/inbox/');
                     j_tabnav_backup = index.add_tabnav('寄件備份','/toj/mail/backup/');
+
+                    j_index_page.find('button.newmail').on('click',function(e){
+                        j_newmail.modal('show');
+                    });
+                    j_index_page.find('button.delmail').on('click',function(e){
+                        var i;
+                        var mails;
+                        var count = 0;
+                        var fail = 0;
+
+                        mails = j_maillist.find('span.check[checked="checked"]');
+                        count = mails.length;
+                        for(i = 0;i < mails.length;i++){
+                            com.call_backend('core/mail/','del_mail',function(result){
+                                console.log(result);
+                                if(com.is_callerr(result)){
+                                    fail++;
+                                }
+
+                                count--;
+                                if(count == 0){
+                                    if(fail == 0){
+                                        index.add_alert('alert-success','成功','郵件已刪除',true);
+                                    }else{
+                                        index.add_alert('alert-error','失敗',fail + '封郵件刪除失敗',true);
+                                    }
+
+                                    update_maillist();
+                                }
+                            },parseInt($(mails[i]).attr('mailid')));
+                        }
+                    });
 
                     j_newmail.on('shown',function(e){
                         newmail_content.refresh();
@@ -155,7 +200,7 @@ var mail = new function(){
                                 data = result.data;
 
                                 j_readmail.find('h3.title').text(data.title);
-                                j_readmail.find('span.from_username').text(data.from_username);
+                                j_readmail.find('span.username').text(data.from_username);
                                 readmail_content.setValue(data.content);
                             }
                         },readmail_mailid); 
@@ -171,7 +216,7 @@ var mail = new function(){
                         update_maillist();
                     });
                     j_readmail.find('button.reply').on('click',function(e){
-                        j_newmail.find('input.to_username').val(j_readmail.find('span.from_username').text());
+                        j_newmail.find('input.to_username').val(j_readmail.find('span.username').text());
                         j_newmail.find('input.title').val('Re: ' + j_readmail.find('h3.title').text());
 
                         j_readmail.modal('hide');
@@ -204,6 +249,8 @@ var mail = new function(){
                 }
 
                 j_tabnav_inbox.active();
+                j_index_page.find('table.maillist th.username').text('寄件人');
+                j_readmail.find('span.username_label').text('寄件人');
 
                 com.call_backend('core/mail/','get_mail_count',function(result){
                     var i;
@@ -238,6 +285,8 @@ var mail = new function(){
                 }
 
                 j_tabnav_backup.active();
+                j_index_page.find('table.maillist th.username').text('收件人');
+                j_readmail.find('span.username_label').text('收件人');
 
                 com.call_backend('core/mail/','get_mail_count',function(result){
                     var i;
@@ -248,7 +297,7 @@ var mail = new function(){
                     if(com.is_callerr(result)){
                         //TODO GE
                     }else{
-                        offs = com.create_pagination(j_div,0,result.data.tot_count,maillist_off,2);
+                        offs = com.create_pagination(j_div,0,result.data.tot_count,maillist_off,20);
                         as = j_div.find('a');
                         for(i = 0;i < as.length;i++){
                             $(as[i]).attr('href','/toj/mail/backup:' + offs[i] + '/');

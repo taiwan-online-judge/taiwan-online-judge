@@ -78,7 +78,7 @@ var user = new function(){
 
         function _tmp(y){
             var now = 0;
-            var ay = 50;
+            var ay = 80;
             
             function __ani(){
                 if(y <= now){
@@ -88,7 +88,7 @@ var user = new function(){
                 $(window).scrollTop(now);
 
                 now = now + ay;
-                ay = Math.max(5,ay * 0.87);
+                ay = Math.max(5,ay * 0.86);
                 setTimeout(__ani,10);
             }
 

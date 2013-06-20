@@ -94,7 +94,7 @@ var com = new function(){
     var urlchg_hasnext = false;
     var check_mbox_url = function(url){
         if(url.search(/toj\/m\/.*/) != -1){
-return true;
+            return true;
         }else{
             return false;
         }
@@ -113,6 +113,28 @@ return true;
         var i;
         var url;
         var urlpart;
+
+        function _update_check(j_e,checked){
+            var i;
+            var label;
+            var spans;
+            var j_span;
+
+            if(checked == false){
+                j_e.empty();
+                j_e.attr('checked',null);
+            }else{
+                j_e.append($('<i class="icon-ok"></i>'));
+                j_e.attr('checked','checked');
+            }
+
+            if((label = j_e.attr('data-all')) != undefined){
+                spans = $.find('span.check[data-label="' + label + '"]');
+                for(i = 0;i < spans.length;i++){
+                    $(spans[i]).check(checked)
+                }
+            }
+        }
 
         that.vus_root = new vus.node(null);
         that.vus_mbox = new vus.node('m');
@@ -144,6 +166,28 @@ return true;
             that.url_push($(this).attr('href'));   
             return false;
         });
+        $(document).on('click','span.check',function(e){
+            var j_e = $(e.target);
+
+            if(!j_e.is('span.check')){
+                j_e = j_e.parent('span.check');
+            }
+            _update_check(j_e,!j_e.check());
+
+            return false;
+        });
+
+        $.fn.check = function(checked){
+            if(checked != undefined){
+                _update_check(this,checked);
+            }
+
+            if(this.attr('checked') == 'checked'){
+                return true;
+            }else{
+                return false;
+            }
+        }
     };
 
     that.url_push = function(url){
@@ -527,7 +571,7 @@ return true;
         var offs = new Array;
 
         start = Math.floor(start / step);
-        end = Math.floor((end - 1)/ step);
+        end = Math.floor(Math.max(0,(end - 1)) / step);
         curr = Math.floor(curr / step);
 
         j_div.empty();

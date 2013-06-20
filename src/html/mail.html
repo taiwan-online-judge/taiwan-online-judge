@@ -29,14 +29,14 @@
 <div class="modal hide fade medium_modal readmail">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3 class="title">範例郵件</h3>
+        <h3 class="title"></h3>
     </div>
     <div class="modal-body container-fluid">
         <div class="row-fluid">
             <div class="span13"> 
                 <div class="input-prepend">
-                    <span class="add-on">寄件人</span>
-                    <span class="uneditable-input from_username" type="text"></span>
+                    <span class="add-on username_label"></span>
+                    <span class="uneditable-input username" type="text"></span>
                 </div>
                 <div class="content" exheight=true exratio=38%></div>
             </div>
@@ -48,12 +48,17 @@
 </div>
 
 <div class="row">
-    <div class="offset3 span7 mail">
+    <div class="offset1 span2 oper">
+        <button class="btn btn-primary newmail">寫新郵件</button><br><br>
+        <button class="btn delmail">刪除所選</button>
+    </div>
+    <div class="span8 mail">
         <table class="table table-hover maillist">
             <thead>
                 <tr>
-                    <th class="span2">發信者</th>
-                    <th class="span3">標題</th>
+                    <th class="check"><span class="check check_bold checkall" data-all="mailcheck"></span></th>
+                    <th class="span2 username"></th>
+                    <th class="span4">標題</th>
                     <th class="span2 time">時間</th>
                 </tr>
             </thead>

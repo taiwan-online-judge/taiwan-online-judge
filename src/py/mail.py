@@ -68,7 +68,7 @@ class Mail:
                 to_uid, uid, self.MAIL_TYPE_INBOX, True, title, content
             )
             self._add_mail(
-                uid, uid, self.MAIL_TYPE_SENT_BACKUP, False, title,content
+                uid, to_uid, self.MAIL_TYPE_SENT_BACKUP, False, title, content
             )
 
 
