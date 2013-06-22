@@ -1,6 +1,7 @@
 from tojauth import TOJAuth
 from asyncdb import AsyncDB
 from user import UserMg
+from notice import Notice
 from imc.proxy import Proxy
 import imc.proxy
 import config
@@ -70,7 +71,12 @@ class Mail:
             self._add_mail(
                 uid, to_uid, self.MAIL_TYPE_SENT_BACKUP, False, title, content
             )
-
+            username = UserMg.instance.get_user_info_by_uid(uid)['username']
+            Notice.instance.send_notice(
+                to_uid, 'Mail From ' + username, title, None, '/mail/inbox/'
+            )
+            self.notify_client(uid)
+            self.notify_client(to_uid)
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def _add_mail(self, uid, from_uid, mail_type, unread, title, content):
@@ -254,6 +260,13 @@ class Mail:
             count = data[0]
 
         return count
+
+    @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
+    def notify_client(self, uid):
+        for link in self.get_link('client', uid = uid):
+            Proxy.instance.call_async(
+                link + 'core/mail/', 'update_mail', 10000, None
+            )
     
 def load(mod_idendesc, get_link_fn):
     Mail(mod_idendesc, get_link_fn)

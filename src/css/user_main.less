@@ -1,3 +1,16 @@
-#index_page{
+@import "mixin.less";
+@import "color.less";
 
+#index_page{
+    div.cover{
+        width:100%;
+        height:900px;
+        overflow-y:hidden;
+        position:absolute;
+        top:0px; left:0px; z-index:0;
+        background-size:cover;
+    }
+    div.profile{
+        color:darken(@gray,20%);
+    }
 }

@@ -621,12 +621,3 @@ class Proxy:
     def _abort_sendfile(self,filekey):
         if filekey in self._info_filekeymap:
             self._ioloop.add_callback(self._ret_sendfile,filekey,'Eabort')
-
-def imc_call(dst,func_name,*args):
-    return Proxy.instance.call(dst,func_name,65536,*args)
-
-def imc_call_async(dst,func_name,callback,*args):
-    Proxy.instance.call_async(dst,func_name,65536,callback,*args)
-
-def imc_register_call(path,func_name,func):
-    Proxy.instance.register_call(path,func_name,func)

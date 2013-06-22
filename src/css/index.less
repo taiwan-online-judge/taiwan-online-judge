@@ -2,12 +2,24 @@
 @import 'mixin.less';
 
 body{
+    overflow-x:hidden;
     overflow-y:scroll;
 }
 
 #index_header{
+    height:0px;
     z-index:1;
-    position:relative;
+    position:fixed;
+    top:0px;
+    left:0px;
+    opacity:0;
+    transition:opacity @fast;
+
+    &.active{
+        height:40px;
+        opacity:1;
+        display:block;
+    }
 }
 .index_tag{
     height:32px;
@@ -48,6 +60,7 @@ body{
     div.notice{
         width:70px;
         text-align:center;
+        background-color:@darkgray
     }
     div.notice_hl{
         background-color:@orange;
@@ -106,10 +119,14 @@ body{
     div.notice{
         overflow-y:auto;
         
-        li > a{
-            height:64px; 
+        ul.nav > li > a{
+            min-height:64px; 
             padding-left:@SmallPad;
             font-size:@NormalFontSize;
+
+            p{
+                word-wrap:break-word; 
+            }
         }
     }
 }
@@ -120,9 +137,12 @@ body{
     right:@MediumPad;
 }
 #index_page{
+    margin-top:40px;
     padding-top:@MediumPad;
-
-    div.page{
-
-    }
+}
+#index_footer{
+    margin-top:@MediumPad;
+    padding:@MediumPad @MediumPad 0px @MediumPad;
+    background-color:@lightgray;
+    text-align:right;
 }

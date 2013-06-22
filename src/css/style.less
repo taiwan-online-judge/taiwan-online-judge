@@ -6,6 +6,26 @@ div.medium_modal{
     width:970px;
     margin-left:-485px;
 }
+span.check{
+    width:14px;
+    height:14px;
+    border:@gray 1px solid;
+    position:relative;
+    display:inline-block;
+
+    &:hover{
+        background-color:fade(@black,10%);
+    }
+
+    i{
+        position:absolute;
+        top:-2px;
+        left:0px;
+    }
+}
+span.check_bold{
+    border:@darkgray 2px solid;
+}
 .time{
     font-size:@SmallFontSize;
 }

@@ -87,6 +87,8 @@ var imc = new function(){
                 }   
             };
 
+            console.log(func_name);
+
             part = dst.split('/');
             dst_link = part.slice(0,3).join('/') + '/'
             dst_path = part.slice(3,-1);

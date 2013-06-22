@@ -51,6 +51,10 @@ var mail = new function(){
         return j_item;
     };
     function update_maillist(){
+        if(maillist_type == null){
+            return;
+        }
+
         j_index_page.find('span.checkall').check(false);
 
         com.call_backend('core/mail/','list_mail',function(result){
@@ -90,6 +94,11 @@ var mail = new function(){
         var backup_node = new vus.node('backup');
 
         j_index_page = $('#index_page');
+        
+        imc.Proxy.instance.register_call('core/mail/','update_mail',function(callback){
+            update_maillist();
+            callback('Success');
+        });
 
         mail_node.url_chg = function(direct,url_upart,url_dpart,param){
             if(direct == 'in'){
@@ -152,8 +161,6 @@ var mail = new function(){
                     j_newmail.on('hide',function(e){
                         j_newmail.find('input').val('');
                         newmail_content.setValue('');
-
-                        update_maillist();
                     });
                     j_newmail.find('button.submit').on('click',function(e){
                         var to_username = j_newmail.find('input.to_username').val();
@@ -212,6 +219,7 @@ var mail = new function(){
                         j_readmail.find('h3.title').text('');
                         j_readmail.find('span.from_username').text('');
                         readmail_content.setValue('');
+                        readmail_mailid = null;
                         
                         update_maillist();
                     });
@@ -270,6 +278,9 @@ var mail = new function(){
                 },maillist_type);
 
                 update_maillist();
+            }else if(direct == 'out'){
+                maillist_type = null; 
+                maillist_off = null;
             }
 
             return 'cont';
@@ -306,6 +317,9 @@ var mail = new function(){
                 },maillist_type);
 
                 update_maillist();
+            }else if(direct == 'out'){
+                maillist_type = null; 
+                maillist_off = null;
             }
 
             return 'cont';

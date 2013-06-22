@@ -22,6 +22,8 @@ class UserMg:
     AVATAR_LEN_MAX = 200
     ABOUTME_LEN_MIN = 0
     ABOUTME_LEN_MAX = 1000
+    COVER_LEN_MIN = 0
+    COVER_LEN_MAX = 200
 
     def __init__(self, mod_idendesc, get_link_fn):
         UserMg.instance = self
@@ -40,16 +42,21 @@ class UserMg:
             'core/user/', 'get_user_info', self.get_user_info)
         Proxy.instance.register_call(
             'core/user/', 'set_user_info', self.set_user_info)
+        Proxy.instance.register_call(
+            'core/user/', 'change_user_password', self.change_user_password)
 
     @imc.async.caller
-    def register(self, username, password, nickname, email, avatar, aboutme):
+    def register(
+        self, username, password, nickname, email, avatar, aboutme, cover
+    ):
         if(
             type(username) != str or
             type(password) != str or
             type(nickname) != str or
             type(email) != str or
             type(avatar) != str or
-            type(aboutme) != str
+            type(aboutme) != str or 
+            type(cover) != str
         ):
             return 'Eparameter'
 
@@ -77,32 +84,44 @@ class UserMg:
             return 'Eaboutme_too_short'
         elif len(aboutme) > self.ABOUTME_LEN_MAX:
             return 'Eaboutme_too_long'
+        elif len(cover) < self.COVER_LEN_MIN:
+            return 'Ecover_too_short'
+        elif len(cover) > self.COVER_LEN_MAX:
+            return 'Ecover_too_long'
 
         passhash = self._password_hash(password)
 
         with TOJAuth.change_current_iden(self._idendesc):
             try:
                 uid = self._create_user(
-                    username, passhash, nickname, email, avatar, aboutme)
+                    username, passhash, nickname, email, avatar, aboutme, cover
+                )
             except psycopg2.IntegrityError:
                 return 'Eusername_exists'
 
         return {'uid' : uid}
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
-    def _create_user(self, username, passhash, nickname, email, avatar, 
-            aboutme):
+    def _create_user(
+        self, username, passhash, nickname, email, avatar, aboutme, cover
+    ):
         roleid = TOJAuth.instance.create_role(username, TOJAuth.ROLETYPE_USER)
 
         cur = self.db.cursor()
         sqlstr = ('INSERT INTO "USER" ("username", "passhash", "nickname", '
-                '"email", "avatar", "aboutme", "idenid") '
-                'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING "uid";')
-        sqlarr = (username, passhash, nickname, email, avatar, aboutme, roleid)
+                '"email", "avatar", "aboutme", "cover", "idenid") '
+                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING "uid";')
+        sqlarr = (
+            username, passhash, nickname, email, avatar, aboutme, cover, roleid
+        )
         cur.execute(sqlstr, sqlarr)
 
         for data in cur:
             uid = data[0]
+
+        with TOJAuth.change_current_iden(self._idendesc):
+            Notice.instance.create_unseen_count(uid)
+
         return uid
 
     @imc.async.caller
@@ -130,13 +149,14 @@ class UserMg:
             idenid = data[0]
 
         if idenid == None:
-            return 'Elogin_faild'
+            return 'Elogin_failed'
         
+        client_link = TOJAuth.get_current_iden()['link']
         with TOJAuth.change_current_iden(self._idendesc):
             stat,data = Proxy.instance.call(self.get_link('center'),
                                             'create_iden',
                                             10000,
-                                            TOJAuth.get_current_iden()['link'],
+                                            client_link,
                                             idenid,
                                             TOJAuth.ROLETYPE_USER,
                                             {'uid' : uid})
@@ -178,11 +198,12 @@ class UserMg:
         if real_uphash != uphash:
             return 'Elogin_failed'
 
+        client_link = TOJAuth.get_current_iden()['link']
         with TOJAuth.change_current_iden(self._idendesc):
             stat,data = Proxy.instance.call(self.get_link('center'),
                                             'create_iden',
                                             10000,
-                                            TOJAuth.get_current_iden()['link'],
+                                            client_link,
                                             idenid,
                                             TOJAuth.ROLETYPE_USER,
                                             {'uid' : uid})
@@ -212,13 +233,14 @@ class UserMg:
         return ret
 
     @imc.async.caller
-    def set_user_info(self, uid, nickname, email, avatar, aboutme):
+    def set_user_info(self, uid, nickname, email, avatar, aboutme, cover):
         if(
             type(uid) != int or
             type(nickname) != str or
             type(email) != str or
             type(avatar) != str or
-            type(aboutme) != str
+            type(aboutme) != str or
+            type(cover) != str
         ):
             return 'Eparameter'
 
@@ -238,6 +260,10 @@ class UserMg:
             return 'Eaboutme_too_short'
         elif len(aboutme) > self.ABOUTME_LEN_MAX:
             return 'Eaboutme_too_long'
+        elif len(cover) < self.COVER_LEN_MIN:
+            return 'Ecover_too_short'
+        elif len(cover) > self.COVER_LEN_MAX:
+            return 'Ecover_too_long'
 
         idenid = self.get_idenid_by_uid(uid)
         if idenid == None:
@@ -249,8 +275,9 @@ class UserMg:
 
         cur = self.db.cursor()
         sqlstr = ('UPDATE "USER" SET "nickname" = %s, "email" = %s, '
-                  '"avatar" = %s, "aboutme" = %s WHERE "uid" = %s;')
-        sqlarr = (nickname, email, avatar, aboutme, uid)
+                  '"avatar" = %s, "aboutme" = %s, "cover" = %s WHERE '
+                  '"uid" = %s;')
+        sqlarr = (nickname, email, avatar, aboutme, cover, uid)
         cur.execute(sqlstr, sqlarr)
 
     @imc.async.caller
@@ -310,7 +337,8 @@ class UserMg:
 
     def get_user_info_by_uid(self, uid):
         cur = self.db.cursor()
-        sqlstr = ('SELECT * FROM "USER" WHERE "uid" = %s;')
+        sqlstr = ('SELECT "uid", "username", "nickname", "email", "avatar", '
+                  '"aboutme", "cover" FROM "USER" WHERE "uid" = %s;')
         sqlarr = (uid, )
         cur.execute(sqlstr, sqlarr)
 
@@ -319,10 +347,11 @@ class UserMg:
             ret = {}
             ret['uid'] = data[0]
             ret['username'] = data[1]
-            ret['nickname'] = data[3]
-            ret['email'] = data[4]
-            ret['avatar'] = data[5]
-            ret['aboutme'] = data[6]
+            ret['nickname'] = data[2]
+            ret['email'] = data[3]
+            ret['avatar'] = data[4]
+            ret['aboutme'] = data[5]
+            ret['cover'] = data[6]
 
         return ret
 
@@ -374,3 +403,6 @@ def load(mod_idendesc, get_link_fn):
 
 def unload():
     pass
+
+from notice import Notice
+

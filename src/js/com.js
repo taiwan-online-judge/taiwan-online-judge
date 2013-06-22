@@ -201,7 +201,9 @@ var com = new function(){
         that.url_chg();
     };
     that.url_push_back = function(block_regexp){
-        if(that.url_back == null || that.url_back.search(block_regexp) != -1){
+        console.log(that.url_back);
+
+        if(that.url_back == null || (block_regexp != undefined && that.url_back.search(block_regexp) != -1)){
             that.url_push('/toj/home/');
         }else{
             that.url_push(that.url_back);
@@ -466,27 +468,36 @@ var com = new function(){
     };
     that.exheight = function(){
         var i;
-        var es = $('[exheight="true"]');
         var j_e;
         var winheight = $(window).innerHeight();
         var exratio;
         var extop;
+        var exbottom;
 
-        for(i = 0;i < es.length;i++){
-            j_e = $(es[i]);
+        function ex(es,attr){
+            for(i = 0;i < es.length;i++){
+                j_e = $(es[i]);
 
-            if((exratio = j_e.attr('exratio')) != undefined){
-                exratio = parseInt(exratio.match('(.*)%')[1]) / 100;
-                j_e.height(winheight * exratio);
-            }else{
-                if((extop = j_e.attr('extop')) == undefined){
-                    extop = j_e.css('top');
+                if((exratio = j_e.attr('exratio')) != undefined){
+                    exratio = parseInt(exratio.match('(.*)%')[1]) / 100;
+                    j_e.height(winheight * exratio);
+                }else{
+                    if((extop = j_e.attr('extop')) == undefined){
+                        extop = j_e.css('top');
+                    }
+                    if((exbottom = j_e.attr('exbottom')) == undefined){
+                        exbottom = '0px';
+                    }
+
+                    extop = extop.match('(.*)px')[1];
+                    exbottom = exbottom.match('(.*)px')[1];
+                    j_e.css(attr,(winheight - extop - exbottom));
                 }
-
-                extop = extop.match('(.*)px')[1];
-                j_e.height(winheight - extop);
             }
         }
+
+        ex($('[exheight="true"]'),'height');
+        ex($('[exminheight="true"]'),'min-height');
 
         $('.modal-body').css('max-height',(winheight * 0.5) + 'px');
     };
@@ -673,12 +684,13 @@ var com = new function(){
 
                     imc.Auth.change_current_iden(idendesc)
 
-                    if((cookie = com.get_cookie()) != null){
-                        com.call_backend('core/user/','cookie_login',function(result){
-                            if(com.is_callerr(result)){
+                    if((cookie = that.get_cookie()) != null){
+                        that.call_backend('core/user/','cookie_login',function(result){
+                            if(that.is_callerr(result)){
                                 //TODO GE
                             }else{
                                 imc.Auth.change_current_iden(result.data.idendesc);
+                                user.uid = imc.Auth.get_current_iden().uid;
                             }
                             
                             that.conn_callback.fire();
@@ -696,7 +708,7 @@ var com = new function(){
         var i;
         var params = new Array()
 
-        params = [com.backend_link + path,func_name,1000,callback]
+        params = [that.backend_link + path,func_name,1000,callback]
         for(i = 3;i < arguments.length;i++){
             params.push(arguments[i]); 
         }

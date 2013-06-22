@@ -14,12 +14,14 @@ import tornado.websocket
 
 from imc import auth
 import imc.async
-from imc.proxy import Proxy,Connection,imc_call,imc_call_async,imc_register_call
+from imc.proxy import Proxy,Connection
 
 import netio
 from netio import SocketStream,SocketConnection,WebSocketConnection
 from tojauth import TOJAuth
-import mod
+from notice import Notice
+from user import UserMg
+from mail import Mail
 
 class BackendWorker(tornado.tcpserver.TCPServer):
     def __init__(self,center_addr,ws_port):
@@ -113,8 +115,15 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 Proxy.instance.register_call('test/','test_dst',self._test_dst)
                 #Proxy.instance.register_filter('test/',self._test_filter)
 
-                mod.load('core_user','user',self._idendesc,self._get_link)
-                mod.load('core_mail','mail',self._idendesc,self._get_link)
+                try:
+                    Notice(self._idendesc,self._get_link)
+                    UserMg(self._idendesc,self._get_link)
+                    Mail(self._idendesc,self._get_link)
+                except Exception as e:
+                    print(e)
+
+                #mod.load('core_user','user',self._idendesc,self._get_link)
+                #mod.load('core_mail','mail',self._idendesc,self._get_link)
 
                 #if self._link == '/backend/2/':
                 #    self._test_call(None)
@@ -178,6 +187,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         with TOJAuth.change_current_iden(self._idendesc):
             stat,ret = Proxy.instance.call(self.center_conn.link,'lookup_link',65536,link)
 
+        print(link)
+        print(ret)
+
         if stat == False or ret == None:
             return None
 
@@ -236,9 +248,14 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         except KeyError:
             pass
 
-    def _get_link(self,linkclass):
+    def _get_link(self,linkclass,uid = None):
         if linkclass == 'center':
             return self.center_conn.link
+
+        elif linkclass == 'client' and uid != None:
+            stat,ret = Proxy.instance.call(self.center_conn.link + 'core/','get_uid_clientlink',10000,uid)
+            print(ret)
+            return ret
 
     @imc.async.caller
     def _test_get_client_list(self,talk,talk2):
@@ -262,17 +279,12 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                     continue
 
                 fileres = Proxy.instance.sendfile(dst,'Fedora-18-x86_64-DVD.iso')
-                ret = imc_call_async(dst + 'test/','test_dst',lambda result: print('ok'),fileres.filekey)
+                ret = Proxy.instance.call_async(dst + 'test/','test_dst',lambda result: print('ok'),fileres.filekey)
                 
                 print(fileres.wait())
 
             print(time.perf_counter() - st)
             print(self._link)
-
-        #imc_call_async(dst,'test_dst',lambda result : print(result),'test',113)
-
-        #ret = imc_call('/center/1/','create_iden','client','1234',1221,TOJAuth.ROLETYPE_USER,{'uid':31})
-        #print(ret)
 
         return
 
@@ -284,7 +296,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             fileres = Proxy.instance.sendfile('/backend/' + str((i % 16) + 2) + '/','Fedora-18-x86_64-DVD.iso')
             
             dst = '/backend/' + str((i % 16) + 2) + '/'
-            ret = imc_call(self._idendesc,dst,'test_dst',fileres.filekey)
+            ret = Proxy.instance.call(self._idendesc,dst,'test_dst',fileres.filekey)
 
             pend.append(fileres)
 

@@ -1,3 +1,6 @@
+@import "mixin.less";
+@import "color.less";
+
 #index_page{
     div.newmail{
         div.content{
@@ -9,7 +12,29 @@
             width:100%;
         }
     }
+    div.oper{
+        text-align:center;
+    }
     table.maillist{
+        position:relative;
+        left:-39px;
+
+        th.check{
+            width:16px;
+            text-align:center;
+
+            span.check{
+                margin-bottom:-2px;
+            }
+        }
+        td.check{
+            width:16px;
+            text-align:center;
+
+            span.check{
+                margin-top:4px;
+            }
+        }
         tr.item{
             cursor:pointer;
         }

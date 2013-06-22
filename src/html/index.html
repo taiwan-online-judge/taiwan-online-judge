@@ -23,6 +23,7 @@
 <script src="/toj/js/com.js" type="text/javascript"></script>
 <script src="/toj/js/index.js" type="text/javascript"></script>
 <script src="/toj/js/user.js" type="text/javascript"></script>
+<script src="/toj/js/notice.js" type="text/javascript"></script>
 <script src="/toj/js/home.js" type="text/javascript"></script>
 <script src="/toj/js/mail.js" type="text/javascript"></script>
 
@@ -36,6 +37,7 @@ $(document).ready(function(){
 
     com.conn_callback.add(function(){
         user.ready();
+        notice.ready();
         index.ready();
         home.ready();
         mail.ready();
@@ -91,7 +93,7 @@ $(document).ready(function(){
 </div>
 
 <div id="index_paneltag" class="active">
-    <div class="notice notice_hl">[5]</div>
+    <div class="notice"></div>
 </div>
 <div id="index_panel" exheight=true>
     <div class="tagblock"></div>
@@ -122,6 +124,9 @@ $(document).ready(function(){
 </div>
 
 <div id="index_alert" style="z-index:2000;"></div>
-<div id="index_page" class="container"></div>
+<div id="index_page" class="container" exminheight=true extop=56px exbottom=62px></div>
+<div id="index_footer">
+    <p class="muted">εpsilon team</p>
+</div>
 </body>
 </html>

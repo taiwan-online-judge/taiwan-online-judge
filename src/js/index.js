@@ -10,11 +10,19 @@ var index = new function(){
     var j_header;
     var j_alertbox;
 
+    function active_header(){
+        j_header.addClass('active');
+    }
+    function inactive_header(){
+        if(j_win.scrollTop() > 8 && !j_header.hasClass('force')){
+            j_header.removeClass('active');
+        }
+    }
     function active_menutag(){
         j_menutag.addClass('active');
     };
     function inactive_menutag(){
-        if(j_win.scrollTop() > 8 && !j_menu.hasClass('active')){
+        if(j_win.scrollTop() > 8 && !j_menutag.hasClass('force') && !j_menu.hasClass('active')){
             j_menutag.removeClass('active');
         }
     };
@@ -22,7 +30,7 @@ var index = new function(){
         j_paneltag.addClass('active');
     };
     function inactive_paneltag(){
-        if(j_win.scrollTop() > 8 && !j_panel.hasClass('active')){
+        if(j_win.scrollTop() > 8 && !j_paneltag.hasClass('force') && !j_panel.hasClass('active')){
             j_paneltag.removeClass('active');
         }
     };
@@ -51,15 +59,21 @@ var index = new function(){
         j_panel = $('#index_panel');
         j_header = $('#index_header');
         j_alertbox = $('#index_alert');
-        
-        j_win.on('scroll',function(e){
+
+        function _change(){
             if(j_win.scrollTop() <= 8){
+                active_header();
                 active_menutag();
                 active_paneltag();
             }else{
+                inactive_header();
                 inactive_menutag();
                 inactive_paneltag();
             }
+        }
+        
+        j_win.on('scroll',function(e){
+            _change(); 
         });
         j_win.on('mouseover',function(e){
             var j_e;
@@ -92,6 +106,11 @@ var index = new function(){
                 active_panel();
             }   
         });
+        j_panel.find('div.notice').on('click',function(e){
+            if(j_panel.hasClass('active')){
+                inactive_panel();
+            }
+        });
 
         user.login_callback.add(function(){
             var j_li;
@@ -102,6 +121,8 @@ var index = new function(){
 
             j_menu.find('div.menu li.mail').show();
         });
+
+        _change(); 
     };
     that.set_title = function(title){
         j_header.find('p.title').text(title); 
