@@ -73,13 +73,13 @@ class CenterServer(tornado.tcpserver.TCPServer):
         self._idendesc = TOJAuth.instance.create_iden(self._link,1,TOJAuth.ROLETYPE_TOJ)
         Proxy(self._link,TOJAuth.instance,self._idendesc)
 
-        Proxy.instance.register_call('','lookup_link',self._lookup_link)
-        Proxy.instance.register_call('','create_iden',self._create_iden)
-        Proxy.instance.register_call('','add_client',self._add_client)
-        Proxy.instance.register_call('','del_client',self._del_client)
+        Proxy.instance.register_call('core/','lookup_link',self._lookup_link)
+        Proxy.instance.register_call('core/','create_iden',self._create_iden)
+        Proxy.instance.register_call('core/','add_client',self._add_client)
+        Proxy.instance.register_call('core/','del_client',self._del_client)
         Proxy.instance.register_call('core/','get_uid_clientlink',self._get_uid_clientlink)
         
-        Proxy.instance.register_call('test/','get_client_list',self._test_get_client_list)
+        #Proxy.instance.register_call('test/','get_client_list',self._test_get_client_list)
 
     def handle_stream(self,stream,addr):
         def _recv_worker_info(data):

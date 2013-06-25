@@ -1,0 +1,53 @@
+@import 'color.less';
+@import 'mixin.less';
+
+#index_page{
+    div.catelist{
+        position:fixed;
+    }
+    div.indexlist{
+        div.catebox{
+            margin-bottom:@MediumPad;
+
+            & > h4{
+                display:none;
+            }
+        }
+        div.boxlist{
+            margin-bottom:@MediumPad;
+            display:none;
+
+            div.box{
+                height:108px;
+                margin-bottom:12px;
+                box-shadow:0px 0px 6px 0px fade(@black,30%);
+                position:relative;
+
+                img.logo{
+                    height:108px;
+                    margin-right:@SmallPad;
+                    float:left;
+                }
+                div.time{
+                    line-height:12px;
+                }
+                p.intro{
+                    margin-top:@SmallPad;
+                    font-size:@SmallFontSize;
+                }
+                div.oper{
+                    position:absolute;
+                    top:6px;
+                    right:6px;
+                }
+
+                &:hover{
+                    box-shadow:0px 0px 6px 1px fade(@black,30%);
+                }
+                &:nth-child(2n - 1){
+                    margin-left:0px;
+                }
+            }
+        }
+    }
+}

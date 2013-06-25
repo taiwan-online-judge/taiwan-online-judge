@@ -684,10 +684,10 @@ var com = new function(){
 
                     imc.Auth.change_current_iden(idendesc)
 
-                    if((cookie = that.get_cookie()) != null){
+                    if((cookie = that.get_cookie()).uid != undefined){
                         that.call_backend('core/user/','cookie_login',function(result){
                             if(that.is_callerr(result)){
-                                //TODO GE
+                                index.add_alert('','登入發生錯誤');
                             }else{
                                 imc.Auth.change_current_iden(result.data.idendesc);
                                 user.uid = imc.Auth.get_current_iden().uid;

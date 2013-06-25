@@ -12,16 +12,13 @@ import tornado.tcpserver
 import tornado.httpserver
 import tornado.websocket
 
-from imc import auth
 import imc.async
 from imc.proxy import Proxy,Connection
 
+import mod
 import netio
 from netio import SocketStream,SocketConnection,WebSocketConnection
 from tojauth import TOJAuth
-from notice import Notice
-from user import UserMg
-from mail import Mail
 
 class BackendWorker(tornado.tcpserver.TCPServer):
     def __init__(self,center_addr,ws_port):
@@ -68,7 +65,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         @imc.async.caller
         def _call():
             with TOJAuth.change_current_iden(self._idendesc):
-                Proxy.instance.call(self.center_conn.link,'add_client',10000,link,self._link)
+                Proxy.instance.call(self.center_conn.link + 'core/','add_client',10000,link,self._link)
 
         self._client_linkmap[link] = {}
 
@@ -84,7 +81,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         @imc.async.caller
         def _call():
             with TOJAuth.change_current_iden(self._idendesc):
-                Proxy.instance.call(self.center_conn.link,'del_client',10000,link,self._link)
+                Proxy.instance.call(self.center_conn.link + 'core/','del_client',10000,link,self._link)
 
         del self._client_linkmap[link]
 
@@ -111,19 +108,18 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 self.center_conn.add_close_callback(__retry)
                 Proxy.instance.add_conn(self.center_conn)
 
-                Proxy.instance.register_call('test/','get_client_list',self._test_get_client_list)
-                Proxy.instance.register_call('test/','test_dst',self._test_dst)
+                #Proxy.instance.register_call('test/','get_client_list',self._test_get_client_list)
+                #Proxy.instance.register_call('test/','test_dst',self._test_dst)
                 #Proxy.instance.register_filter('test/',self._test_filter)
 
                 try:
-                    Notice(self._idendesc,self._get_link)
-                    UserMg(self._idendesc,self._get_link)
-                    Mail(self._idendesc,self._get_link)
+                    mod.load('Notice','notice',self._idendesc,self._get_link)
+                    mod.load('UserMg','user',self._idendesc,self._get_link)
+                    mod.load('SquareMg','square',self._idendesc,self._get_link)
+                    mod.load('Mail','mail',self._idendesc,self._get_link)
+
                 except Exception as e:
                     print(e)
-
-                #mod.load('core_user','user',self._idendesc,self._get_link)
-                #mod.load('core_mail','mail',self._idendesc,self._get_link)
 
                 #if self._link == '/backend/2/':
                 #    self._test_call(None)
@@ -185,10 +181,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             return None
 
         with TOJAuth.change_current_iden(self._idendesc):
-            stat,ret = Proxy.instance.call(self.center_conn.link,'lookup_link',65536,link)
-
-        print(link)
-        print(ret)
+            stat,ret = Proxy.instance.call(self.center_conn.link + 'core/','lookup_link',65536,link)
 
         if stat == False or ret == None:
             return None

@@ -1,6 +1,6 @@
 from tojauth import TOJAuth
 from asyncdb import AsyncDB
-
+import mod
 from imc.proxy import Proxy
 import imc.proxy
 import config
@@ -11,7 +11,6 @@ class Notice:
     NOTICE_LIST_NUM = 10
 
     def __init__(self, mod_idendesc, get_link_fn):
-        Notice.instance = self
         Notice.db = AsyncDB(config.CORE_DBNAME, config.CORE_DBUSER, 
                             config.CORE_DBPASSWORD)
         Notice._idendesc = mod_idendesc
@@ -94,7 +93,7 @@ class Notice:
         ):
             return 'Eparameter'
 
-        uid = UserMg.get_current_uid()
+        uid = mod.UserMg.get_current_uid()
         if uid == None:
             return 'Euid'
 
@@ -151,7 +150,7 @@ class Notice:
 
     @imc.async.caller
     def get_unseen_count(self):
-        uid = UserMg.get_current_uid()
+        uid = mod.UserMg.get_current_uid()
         if uid == None:
             return 'Euid'
 
@@ -201,7 +200,8 @@ class Notice:
 
         for link in self.get_link('client', uid = uid):
             Proxy.instance.call_async(
-                link + 'core/notice/', 'update_notice', 10000, None, unseen_count
+                link + 'core/notice/', 'update_notice', 10000, None, 
+                unseen_count
             )
 
     def get_notice(self, noticeid):
@@ -227,10 +227,12 @@ class Notice:
         if ret == None:
             return None
 
-        uid = UserMg.get_current_uid()
+        uid = mod.UserMg.get_current_uid()
         if uid != ret['uid']:
             TOJAuth.check_access_func(self._accessid, TOJAuth.ACCESS_EXECUTE)
 
         return ret
 
-from user import UserMg
+    def unload():
+        pass
+

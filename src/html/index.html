@@ -25,6 +25,7 @@
 <script src="/toj/js/user.js" type="text/javascript"></script>
 <script src="/toj/js/notice.js" type="text/javascript"></script>
 <script src="/toj/js/home.js" type="text/javascript"></script>
+<script src="/toj/js/square.js" type="text/javascript"></script>
 <script src="/toj/js/mail.js" type="text/javascript"></script>
 
 <script type="text/javascript">
@@ -40,6 +41,7 @@ $(document).ready(function(){
         notice.ready();
         index.ready();
         home.ready();
+        square.ready();
         mail.ready();
 
         j_win.on('resize',com.exheight);
@@ -85,6 +87,7 @@ $(document).ready(function(){
         <ul class="nav nav-list">
             <li><a href="/toj/home/">首頁</a></li>
             <li class="profile" style="display:none;"><a href="">個人</a></li>
+            <li class="square" style="display:none;"><a href="/toj/square/user/">方塊</a></li>
             <li class="mail" style="display:none;"><a href="/toj/mail/inbox/">信箱</a></li>
             <li><a href="#">狀態</a></li>
             <li><a href="#">關於</a></li>
@@ -93,33 +96,12 @@ $(document).ready(function(){
 </div>
 
 <div id="index_paneltag" class="active">
-    <div class="notice"></div>
+    <div class="notice" style="display:none;"></div>
 </div>
 <div id="index_panel" exheight=true>
     <div class="tagblock"></div>
     <div class="notice" exheight=true extop=41px>
-        <ul class="nav nav-list">
-            <li><a href="#">
-                <h5>Mail From Alice</h5>
-                Hey, don't challenge me!
-            </a></li>
-            <li><a href="#">
-                <h5>Challenge Success</h5>
-                You get +50 points
-            </a></li>
-            <li><a href="#">
-                <h5>Submit 573</h5>
-                Result:WA Score:37
-            </a></li>
-            <li><a href="#">
-                <h5>Submit 570</h5>
-                Result:WA Score:23
-            </a></li>
-            <li><a href="#">
-                <h5>Submit 565</h5>
-                Result:AC Score:100
-            </a></li>
-        </ul>
+        <ul class="nav nav-list"></ul>
     </div>
 </div>
 

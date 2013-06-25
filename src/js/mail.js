@@ -4,8 +4,8 @@ var mail = new function(){
     var j_maillist;
     var j_newmail;
     var j_readmail;
-    var j_tabnav_inbox;
-    var j_tabnav_backup;
+    var inbox_tabnav;
+    var backup_tabnav;
 
     var readmail_mailid = null;
     var maillist_type = null;
@@ -57,28 +57,52 @@ var mail = new function(){
 
         j_index_page.find('span.checkall').check(false);
 
+        com.call_backend('core/mail/','get_mail_count',function(result){
+            var i;
+            var j_div = j_index_page.find('div.pagination');
+            var offs;
+            var as;
+            var pfix;
+
+            if(com.is_callerr(result)){
+                index.add_alert('','警告','信箱發生錯誤');
+            }else{
+                if(maillist_type == 1){
+                    pfix = '/toj/mail/inbox:';
+                }else if(maillist_type == 2){
+                    pfix = '/toj/mail/backup:';
+                }
+
+                offs = com.create_pagination(j_div,0,result.data.tot_count,maillist_off,20);
+                as = j_div.find('a');
+                for(i = 0;i < as.length;i++){
+                    $(as[i]).attr('href',pfix + offs[i] + '/');
+                }
+            }
+        },maillist_type);
+
         com.call_backend('core/mail/','list_mail',function(result){
             var data;
-            var mail;
+            var mailo;
             var items;
             var j_item;
             var i;
 
             if(com.is_callerr(result)){
-                //TODO GE
+                index.add_alert('','警告','信箱發生錯誤');
             }else{
                 data = result.data; 
 
                 items = j_maillist.find('tr.item');
                 for(i = 0;i < Math.min(items.length,data.length);i++){
-                    mail = data[i];
+                    mailo = data[i];
 
-                    mailitem_set($(items[i]),mail.mailid,mail.from_username,mail.title,com.get_timestring(mail.send_time),mail.unread);
+                    mailitem_set($(items[i]),mailo.mailid,mailo.from_username,mailo.title,com.get_timestring(mailo.send_time),mailo.unread);
                 }
                 for(;i < data.length;i++){
-                    mail = data[i];
+                    mailo = data[i];
 
-                    j_item = mailitem_create(mail.mailid,mail.from_username,mail.title,com.get_timestring(mail.send_time),mail.unread);
+                    j_item = mailitem_create(mailo.mailid,mailo.from_username,mailo.title,com.get_timestring(mailo.send_time),mailo.unread);
                     j_maillist.append(j_item);
                 }
                 for(;i < items.length;i++){
@@ -104,7 +128,6 @@ var mail = new function(){
             if(direct == 'in'){
                 index.set_menu('信箱');
                 index.set_title('');
-
                 index.clear_tabnav();
                 
                 mail_node.child_delayset('inbox');
@@ -120,8 +143,8 @@ var mail = new function(){
                     newmail_content = com.create_codebox(j_newmail.find('div.content'),'text/html');
                     readmail_content = com.create_codebox(j_readmail.find('div.content'),'text/html',true);
 
-                    j_tabnav_inbox = index.add_tabnav('收件匣','/toj/mail/inbox/');
-                    j_tabnav_backup = index.add_tabnav('寄件備份','/toj/mail/backup/');
+                    inbox_tabnav = index.add_tabnav('收件匣','/toj/mail/inbox/');
+                    backup_tabnav = index.add_tabnav('寄件備份','/toj/mail/backup/');
 
                     j_index_page.find('button.newmail').on('click',function(e){
                         j_newmail.modal('show');
@@ -183,7 +206,7 @@ var mail = new function(){
                                 }else if(data == 'Eto_username'){
                                     errmsg = '收件人不存在';
                                 }else{
-                                    errmsg = '信件寄出時發生錯誤';
+                                    errmsg = '信件寄出發生錯誤';
                                 }
 
                                 index.add_alert('alert-error','失敗',errmsg,true);
@@ -202,7 +225,7 @@ var mail = new function(){
                             var data;
 
                             if(com.is_callerr(result)){
-                                //TODO GE
+                                index.add_alert('','警告','讀取郵件發生錯誤');
                             }else{
                                 data = result.data;
 
@@ -256,26 +279,9 @@ var mail = new function(){
                     maillist_off = parseInt(param);
                 }
 
-                j_tabnav_inbox.active();
+                inbox_tabnav.active();
                 j_index_page.find('table.maillist th.username').text('寄件人');
                 j_readmail.find('span.username_label').text('寄件人');
-
-                com.call_backend('core/mail/','get_mail_count',function(result){
-                    var i;
-                    var j_div = j_index_page.find('div.pagination');
-                    var offs;
-                    var as;
-
-                    if(com.is_callerr(result)){
-                        //TODO GE
-                    }else{
-                        offs = com.create_pagination(j_div,0,result.data.tot_count,maillist_off,20);
-                        as = j_div.find('a');
-                        for(i = 0;i < as.length;i++){
-                            $(as[i]).attr('href','/toj/mail/inbox:' + offs[i] + '/');
-                        }
-                    }
-                },maillist_type);
 
                 update_maillist();
             }else if(direct == 'out'){
@@ -295,26 +301,9 @@ var mail = new function(){
                     maillist_off = parseInt(param);
                 }
 
-                j_tabnav_backup.active();
+                backup_tabnav.active();
                 j_index_page.find('table.maillist th.username').text('收件人');
                 j_readmail.find('span.username_label').text('收件人');
-
-                com.call_backend('core/mail/','get_mail_count',function(result){
-                    var i;
-                    var j_div = j_index_page.find('div.pagination');
-                    var offs;
-                    var as;
-
-                    if(com.is_callerr(result)){
-                        //TODO GE
-                    }else{
-                        offs = com.create_pagination(j_div,0,result.data.tot_count,maillist_off,20);
-                        as = j_div.find('a');
-                        for(i = 0;i < as.length;i++){
-                            $(as[i]).attr('href','/toj/mail/backup:' + offs[i] + '/');
-                        }
-                    }
-                },maillist_type);
 
                 update_maillist();
             }else if(direct == 'out'){

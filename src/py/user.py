@@ -7,6 +7,8 @@ import imc.async
 from imc.proxy import Proxy
 import config
 
+import mod
+
 class UserMg:
     _accessid = 2
 
@@ -26,7 +28,6 @@ class UserMg:
     COVER_LEN_MAX = 200
 
     def __init__(self, mod_idendesc, get_link_fn):
-        UserMg.instance = self
         UserMg.db = AsyncDB(config.CORE_DBNAME, config.CORE_DBUSER, 
                 config.CORE_DBPASSWORD)
         UserMg._idendesc = mod_idendesc
@@ -120,7 +121,7 @@ class UserMg:
             uid = data[0]
 
         with TOJAuth.change_current_iden(self._idendesc):
-            Notice.instance.create_unseen_count(uid)
+            mod.Notice.create_unseen_count(uid)
 
         return uid
 
@@ -153,7 +154,7 @@ class UserMg:
         
         client_link = TOJAuth.get_current_iden()['link']
         with TOJAuth.change_current_iden(self._idendesc):
-            stat,data = Proxy.instance.call(self.get_link('center'),
+            stat,data = Proxy.instance.call(self.get_link('center') + 'core/',
                                             'create_iden',
                                             10000,
                                             client_link,
@@ -200,7 +201,7 @@ class UserMg:
 
         client_link = TOJAuth.get_current_iden()['link']
         with TOJAuth.change_current_iden(self._idendesc):
-            stat,data = Proxy.instance.call(self.get_link('center'),
+            stat,data = Proxy.instance.call(self.get_link('center') + 'core/',
                                             'create_iden',
                                             10000,
                                             client_link,
@@ -398,11 +399,6 @@ class UserMg:
             return None
         return uid
 
-def load(mod_idendesc, get_link_fn):
-    UserMg(mod_idendesc, get_link_fn)
-
-def unload():
-    pass
-
-from notice import Notice
+    def unload():
+        pass
 

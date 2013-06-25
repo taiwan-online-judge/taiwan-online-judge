@@ -1,7 +1,6 @@
 from tojauth import TOJAuth
 from asyncdb import AsyncDB
-from user import UserMg
-from notice import Notice
+import mod
 from imc.proxy import Proxy
 import imc.proxy
 import config
@@ -21,7 +20,6 @@ class Mail:
     LIST_ITEM_PER_PAGE = 20
 
     def __init__(self, mod_idendesc, get_link_fn):
-        Mail.instance = self
         Mail.db = AsyncDB(config.CORE_DBNAME, config.CORE_DBUSER, 
                 config.CORE_DBPASSWORD)
         Mail._idendesc = mod_idendesc
@@ -56,11 +54,11 @@ class Mail:
         elif len(content) > self.CONTENT_LEN_MAX:
             return 'Econtent_too_long'
 
-        to_uid = UserMg.instance.get_uid_by_username(to_username) 
+        to_uid = mod.UserMg.get_uid_by_username(to_username) 
         if to_uid == None:
             return 'Eto_username'
 
-        uid = UserMg.get_current_uid()
+        uid = mod.UserMg.get_current_uid()
         if uid == None:
             return 'Euid'
 
@@ -71,8 +69,8 @@ class Mail:
             self._add_mail(
                 uid, to_uid, self.MAIL_TYPE_SENT_BACKUP, False, title, content
             )
-            username = UserMg.instance.get_user_info_by_uid(uid)['username']
-            Notice.instance.send_notice(
+            username = mod.UserMg.get_user_info_by_uid(uid)['username']
+            mod.Notice.send_notice(
                 to_uid, 'Mail From ' + username, title, None, '/mail/inbox/'
             )
             self.notify_client(uid)
@@ -100,7 +98,7 @@ class Mail:
         ):
             return 'Eparameter'
 
-        uid = UserMg.get_current_uid()
+        uid = mod.UserMg.get_current_uid()
         if uid == None:
             return 'Eno_uid'
 
@@ -137,9 +135,9 @@ class Mail:
             ret['send_time'] = data[7]
 
             ret['to_username'] = (
-                UserMg.instance.get_user_info_by_uid(data[1])['username'])
+                mod.UserMg.get_user_info_by_uid(data[1])['username'])
             ret['from_username'] = (
-                UserMg.instance.get_user_info_by_uid(data[2])['username'])
+                mod.UserMg.get_user_info_by_uid(data[2])['username'])
 
         return ret
 
@@ -159,7 +157,7 @@ class Mail:
         ):
             return 'Eparameter'
 
-        uid = UserMg.get_current_uid()
+        uid = mod.UserMg.get_current_uid()
         if uid == None:
             return 'Eno_uid'
         
@@ -189,7 +187,7 @@ class Mail:
             item['send_time'] = data[4]
 
             item['from_username'] = (
-                UserMg.instance.get_user_info_by_uid(data[1])['username'])
+                mod.UserMg.get_user_info_by_uid(data[1])['username'])
  
             ret.append(item) 
          
@@ -202,7 +200,7 @@ class Mail:
         ):
             return 'Eparameter'
 
-        uid = UserMg.get_current_uid()
+        uid = mod.UserMg.get_current_uid()
         if uid == None:
             return 'Eno_uid'
 
@@ -227,7 +225,7 @@ class Mail:
 
     @imc.async.caller
     def get_mail_count(self, mail_type = None):
-        uid = UserMg.get_current_uid()
+        uid = mod.UserMg.get_current_uid()
         if uid == None:
             return 'Eno_uid'
 
@@ -268,8 +266,5 @@ class Mail:
                 link + 'core/mail/', 'update_mail', 10000, None
             )
     
-def load(mod_idendesc, get_link_fn):
-    Mail(mod_idendesc, get_link_fn)
-
-def unload():
-    pass
+    def unload():
+        pass

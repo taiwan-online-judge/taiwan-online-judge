@@ -167,7 +167,7 @@ var user = new function(){
                     var url;
 
                     if((url = data.avatar) == ''){
-                        url = 'http://i.imgur.com/ykkQD.png';
+                        url = 'http://www.gravatar.com/avatar/' + user_node_uid + '?f=y&d=identicon&s=256';
                     }
                     j_index_page.find('img.avatar').attr('src',url);
                     if((url = data.cover) == ''){
@@ -231,7 +231,7 @@ var user = new function(){
                         var url = $(this).val();
 
                         if(url == ''){
-                            url = 'http://i.imgur.com/ykkQD.png';
+                            url = 'http://www.gravatar.com/avatar/' + that.uid + '?f=y&d=identicon&s=256';
                         }
                         j_img_avatar.attr('src',url);
                     });
@@ -456,13 +456,4 @@ var user = new function(){
         };
         com.vus_root.child_set(logout_node);
     };
-
-    that.login_callback.add(function(){
-        var j_index_header = $('#index_header');
-        
-        j_index_header.find('li.login').hide();
-        j_index_header.find('li.register').hide();
-        j_index_header.find('li.nickname').show();
-        j_index_header.find('li.logout').show();
-    });
 };

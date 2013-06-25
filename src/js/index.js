@@ -114,10 +114,18 @@ var index = new function(){
 
         user.login_callback.add(function(){
             var j_li;
+
+            j_header.find('li.login').hide();
+            j_header.find('li.register').hide();
+            j_header.find('li.nickname').show();
+            j_header.find('li.logout').show();
+
             
-            j_li = j_menu.find('div.menu li.profile')
+            j_li = j_menu.find('div.menu li.profile');
             j_li.find('a').attr('href','/toj/user:' + user.uid + '/main/'); 
             j_li.show();
+            
+            j_menu.find('div.menu li.square').show();
 
             j_menu.find('div.menu li.mail').show();
         });
@@ -161,7 +169,7 @@ var index = new function(){
         if(autofade != false){
             setTimeout(function(){
                 j_alert.alert('close');
-            },10000);
+            },5000);
         }
 
         j_alertbox.prepend(j_alert);
