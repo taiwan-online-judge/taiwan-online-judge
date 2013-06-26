@@ -540,7 +540,7 @@ var com = new function(){
             date = data;
         }
 
-        ret =  date.getFullYear() + '/' + date.getMonth() + '/' + date.getDate() + ' ' + 
+        ret =  date.getFullYear() + '/' + fix(date.getMonth() + 1) + '/' + fix(date.getDate()) + ' ' + 
             fix(date.getHours()) + ':' + fix(date.getMinutes());
 
         if(sec == true){
@@ -548,6 +548,9 @@ var com = new function(){
         }
 
         return ret;
+    };
+    that.get_defaultimg = function(hash){
+        return 'http://www.gravatar.com/avatar/' + hash + '?f=y&d=identicon&s=256';
     };
     that.create_codebox = function(j_div,mode,readonly){
         var codebox;
@@ -640,6 +643,258 @@ var com = new function(){
         j_ul.append(j_li);
 
         return offs;
+    };
+    that.create_datetimepicker = function(j_div){
+        j_div.addClass('input-append date');
+        j_div.append($('<input type="text" data-format="yyyy/MM/dd hh:mm:ss"><span class="add-on"><i date-time-icon="icon-time" date-date-icon="icon-calendar"></i></span>'));
+
+        j_div.datetimepicker({'language':'pt-BR'});
+
+        return j_div.data('datetimepicker');
+    };
+    that.create_tagbox = function(j_div,words,restrict,duplicate){
+        var i;
+        var width;
+        var inwidth;
+        var j_box;
+        var j_input;
+        var j_menu;
+        var last_text = '';
+        var show = false;
+
+        function _resize(){
+            var j_tag;
+            var pos;
+            var left;
+            var top;
+            
+            left = 6;
+            top = 4;
+            if((j_tag = j_box.find('span.tag:last')).length == 1){
+                pos = j_tag.position();
+                left += pos.left + j_tag.width() + 14;
+
+                top += pos.top + j_tag.height() + 1;
+
+                if((inwidth - left) < 70){
+                    left = 6;
+                    top += 6;
+                }else{
+                    top -= (j_tag.height() + 2);
+                }
+            }
+
+            j_input.width(inwidth - left + 6);
+            j_input.css('padding-left',left);
+            j_input.css('padding-top',top);
+        }
+        function _match(value){
+            var i;
+            var word;
+            var list;
+            var dup;
+            var spans;
+            var j_li;
+            var j_a;
+            var flag;
+            
+            if(value == ''){
+                list = words;
+            }else{
+                list = new Array();
+                for(i = 0;i < words.length;i++){
+                    word = words[i];
+                    if(word.indexOf(value) == 0){
+                        list.push(word);
+                    }
+                }
+            }
+
+            if(duplicate != true){
+                dup = new Object();
+                spans = j_box.find('span.tag');
+                for(i = 0;i < spans.length;i++){
+                    dup[$(spans[i]).attr('text')] = true;
+                }
+            }
+
+            j_menu.empty();
+            flag = false;
+            for(i = 0;i < list.length;i++){
+                word = list[i];
+                if(word in dup){
+                    continue;
+                }
+                flag = true;
+
+                j_li = $('<li><a href=""></a></li>');
+                j_li.attr('word',word);
+                j_li.on('mouseover',function(e){
+                    j_menu.find('li.active').removeClass('active');
+                    $(this).addClass('active');
+                });
+
+                j_a = j_li.find('a')
+                j_a.text(word);
+                j_a.on('click',function(word){return function(e){
+                    _add_tag(word,false);
+
+                    return false;
+                }}(word));
+
+                j_menu.append(j_li); 
+            }
+
+            j_menu.find('li:first').addClass('active');
+            
+            if(flag == true && show == true){
+                j_menu.show();
+            }else{
+                j_menu.hide();
+            }
+        }
+        function _move(direct){
+            var j_li = j_menu.find('li.active')
+
+            if(direct == 0){
+                if(j_li.prev().length > 0){
+                    j_li.removeClass('active');
+                    j_li.prev().addClass('active');
+                }
+            }else{
+                if(j_li.next().length > 0){
+                    j_li.removeClass('active');
+                    j_li.next().addClass('active');
+                }
+            }
+        }
+
+        function _add_tag(text,force){
+            var j_li;
+            var j_tag;
+
+            j_input.val('');
+            if(force == false){
+                if(restrict == true){
+                    if((j_li = j_menu.find('li.active')).length == 0){
+                        return;
+                    }
+                    text = j_li.attr('word'); 
+                }else if(duplicate != true){
+                    if(j_box.find('[text="' + text + '"]').length > 0){
+                        return;
+                    }
+                }else if(text == ''){
+                    return;
+                }
+            }
+
+            j_tag = that.create_tag(text);
+            j_tag.find('i').on('click',function(){
+                _del_tag();
+            });
+
+            j_box.append(j_tag);
+
+            _match('');
+            _resize();
+        }
+        function _del_tag(){
+            _match('');
+            _resize();
+        }
+
+        j_div.empty();
+        j_div.addClass('tagbox');
+        j_div.append($('<div></div><input type="text"><ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu"></ul>'));
+
+        j_box = j_div.find('div');
+        j_input = j_div.find('input');
+        j_menu = j_div.find('ul');
+
+        width = j_input.width() + 14;
+        inwidth = width - 14;
+
+        j_div.width(width);
+
+        j_input.width(inwidth);
+        j_input.on('keydown',function(e){
+            if(e.keyCode == 8 && j_input.val() == ''){
+                j_box.find('span.tag:last').remove();
+                _del_tag();
+            }else if(e.keyCode == 38){
+                _move(0); 
+            }else if(e.keyCode == 40){
+                _move(1); 
+            }
+        });
+        j_input.on('keyup',function(e){
+            var text = j_input.val();
+
+            if(e.keyCode == 13){
+                _add_tag(text,false);
+            }else if(text != last_text){
+                last_text = text;
+                _match(text);
+            }
+        });
+
+        j_input.on('focusin',function(e){
+            show = true;
+            _match('');
+            _resize();
+
+            return false;
+        });
+        $(window).on('click',function(e){
+            if($(e.target).parents('div.tagbox').is(j_div)){
+                return;
+            }
+
+            show = false;
+            j_input.val('');
+            j_menu.hide();
+            return false;
+        });
+
+        if(words == undefined){
+            words = [];
+        }else{
+            words = words.sort();
+        }
+        j_menu.width(width - 2);
+
+        j_div.add_tag = function(text){
+            _add_tag(text,true); 
+        }
+        j_div.refresh = function(){
+            _match('');
+            _resize();
+        }
+
+        _match('');
+        _resize();
+
+        return j_div;
+    };
+    that.create_tag = function(text,style){
+        var j_span;
+        var j_i;
+
+        j_span = $('<span class="label tag"></span>');
+        j_span.attr('text',text);
+        if(style != undefined){
+            j_span.addClass(style);
+        }
+        j_span.text(text);
+
+        j_i = $('<i class="icon-remove-circle icon-white"></i>');
+        j_span.append(j_i);
+        j_i.on('click',function(e){
+            j_span.remove();
+        });
+
+        return j_span;
     };
     that.is_callerr = function(result){
         if(result.stat == false || typeof(result.data) == 'string'){

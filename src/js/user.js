@@ -98,7 +98,6 @@ var user = new function(){
 
                 index.set_menu('使用者');
                 index.set_title('');
-
                 index.clear_tabnav();
                 
                 j_tabnav_main = index.add_tabnav('個人','/toj/user:' + user_node_uid + '/main/');
@@ -167,7 +166,7 @@ var user = new function(){
                     var url;
 
                     if((url = data.avatar) == ''){
-                        url = 'http://www.gravatar.com/avatar/' + user_node_uid + '?f=y&d=identicon&s=256';
+                        url = com.get_defaultimg(user_node_uid);
                     }
                     j_index_page.find('img.avatar').attr('src',url);
                     if((url = data.cover) == ''){
@@ -231,7 +230,7 @@ var user = new function(){
                         var url = $(this).val();
 
                         if(url == ''){
-                            url = 'http://www.gravatar.com/avatar/' + that.uid + '?f=y&d=identicon&s=256';
+                            url = com.get_defaultimg(that.uid);
                         }
                         j_img_avatar.attr('src',url);
                     });

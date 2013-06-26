@@ -202,9 +202,10 @@ class SquareMg:
     def _list_square_category(self, cateid, uid):
         cur = self.db.cursor()
         sqlsel = ('SELECT "SQUARE"."sqid", "title", "start_time", "end_time", '
-                  '"hidden", "sqmodid", "intro", "logo"')
+                  '"hidden", "sqmodid", "intro", "logo", "cateid"')
         sqlfrom = (' FROM "SQUARE"')
         sqlwhere = (' WHERE true')
+        sqlorder = (' ORDER BY "SQUARE"."sqid" ASC')
         sqlarr = []
 
         if uid != None:
@@ -218,7 +219,7 @@ class SquareMg:
             sqlwhere = sqlwhere + (' AND %s = ANY ("cateid")')
             sqlarr.append(cateid)
 
-        sqlstr = sqlsel + sqlfrom + sqlwhere + ';'
+        sqlstr = sqlsel + sqlfrom + sqlwhere + sqlorder + ';'
         cur.execute(sqlstr, sqlarr)
 
         ret = []
@@ -232,8 +233,13 @@ class SquareMg:
             obj['sqmodid'] = data[5]
             obj['intro'] = data[6]
             obj['logo'] = data[7]
+            obj['cateid'] = data[8]
+
+            if 0 in obj['cateid']:
+                obj['cateid'] = []
+
             if uid != None:
-                obj['active'] = data[8]
+                obj['active'] = data[9]
 
             nowtime = datetime.datetime.now(datetime.timezone.utc)
 

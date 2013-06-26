@@ -176,7 +176,7 @@ var square = new function(){
                             }
 
                             if((logo = sqo.logo) == ''){
-                                logo = 'http://www.gravatar.com/avatar/' + sqo.sqid + '?f=y&d=identicon&s=96';
+                                logo = com.get_defaultimg(sqo.sqid);
                             }
                             if(sqo.start_time == null){
                                 start_time = null; 

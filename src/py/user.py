@@ -45,6 +45,8 @@ class UserMg:
             'core/user/', 'set_user_info', self.set_user_info)
         Proxy.instance.register_call(
             'core/user/', 'change_user_password', self.change_user_password)
+        Proxy.instance.register_call(
+            'core/user/', 'list_auth', self.list_auth)
 
     @imc.async.caller
     def register(
@@ -327,6 +329,19 @@ class UserMg:
     @imc.async.caller
     def oauth_login(self):
         raise NotImplementedError
+
+    @imc.async.caller
+    def list_auth(self):
+        uid = self.get_current_uid()
+        if uid == None:
+            return 'Euid'
+
+        idenid = self.get_idenid_by_uid(uid)
+        
+        with TOJAuth.change_current_iden(self._idendesc):
+            auth_list = TOJAuth.instance.get_user_auth_list(idenid)
+        
+        return auth_list
     
     def _password_hash(self, password):
         h = SHA512.new(bytes(password + config.USER_PASSHASH_SALT, 'utf-8'))
@@ -353,6 +368,14 @@ class UserMg:
             ret['avatar'] = data[4]
             ret['aboutme'] = data[5]
             ret['cover'] = data[6]
+
+        uid = self.get_current_uid()
+        if uid != ret['uid']:    
+            try:
+                TOJAuth.check_access_func(
+                    self._accessid, TOJAuth.ACCESS_EXECUTE)
+            except Exception:
+                del ret['email']
 
         return ret
 

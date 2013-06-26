@@ -7,6 +7,10 @@
     src:url('/DejaVuSansMono.woff');
 }
 
+div.small_modal{
+    width:570px;
+    margin-left:-285px;
+}
 div.medium_modal{
     width:970px;
     margin-left:-485px;
@@ -37,4 +41,48 @@ span.check_bold{
 }
 .uneditable-input{
     cursor:default;
+}
+span.tag{
+    margin-right:@SmallPad;
+    font-size:13px;
+
+    i{
+        margin-left:@SmallPad;
+        cursor:pointer;
+        opacity:0.8;
+
+        &:hover{
+            opacity:1;
+        }
+    }
+}
+div.tagbox{
+    position:relative;
+
+    div{
+        height:0px;
+        position:absolute;
+        top:4px;
+        left:7px;
+        z-index:1;
+
+        span.tag{
+            margin-bottom:3px;
+        }
+    }
+    input{
+        z-index:0;
+    }
+    ul{
+        position:absolute;
+        display:none;
+
+        li{
+            a:hover{
+                color:@black;
+                background-color:inherit;
+                background-image:none;
+            }
+        }
+    }
 }
