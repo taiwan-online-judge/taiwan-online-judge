@@ -3,6 +3,7 @@ import datetime
 from tojauth import TOJAuth
 from asyncdb import AsyncDB
 import mod
+import com
 import imc.async
 from imc.proxy import Proxy
 import config
@@ -42,6 +43,28 @@ class SquareMg:
             'core/square/', 'join_square', self.join_square)
         Proxy.instance.register_call(
             'core/square/', 'quit_square', self.quit_square)
+        Proxy.instance.register_call(
+            'core/square/', 'create_square', self.create_square)
+        Proxy.instance.register_call(
+            'core/square/', 'delete_square', self.delete_square)
+        Proxy.instance.register_call(
+            'core/square/', 'set_square', self.imc_set_square)
+
+    def unload(self):
+        Proxy.instance.unregister_call(
+            'core/square/', 'list_category')
+        Proxy.instance.unregister_call(
+            'core/square/', 'list_square')
+        Proxy.instance.unregister_call(
+            'core/square/', 'join_square')
+        Proxy.instance.unregister_call(
+            'core/square/', 'quit_square')
+        Proxy.instance.unregister_call(
+            'core/square/', 'create_square')
+        Proxy.instance.unregister_call(
+            'core/square/', 'delete_square')
+        Proxy.instance.unregister_call(
+            'core/square/', 'set_square')
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def load_square(self, sqid):
@@ -132,11 +155,10 @@ class SquareMg:
         sqlarr = (accessid, sqid)
         cur.execute(sqlstr, sqlarr)
 
-        with TOJAuth.change_current_iden(self._idendesc):
-            TOJAuth.instance.set_access_list(
-                accessid, TOJAuth.ROLEID_SQUARE_ADMIN_GROUP, 
-                TOJAuth.ACCESS_ALL
-            )
+        TOJAuth.instance.set_access_list(
+            accessid, TOJAuth.ROLEID_SQUARE_ADMIN_GROUP, 
+            TOJAuth.ACCESS_ALL
+        )
 
         sqmodname = self.get_sqmodname_by_sqmodid(sqmodid)
         sqmod = mod.load_sqmod(sqmodname)
@@ -155,7 +177,9 @@ class SquareMg:
         if not self.does_sqid_exist(sqid):
             return 'Eno_such_sqid'
 
-        self._delete_square(self, sqid)
+        self._delete_square(sqid)
+
+        return 'Success'
     
     def _delete_square(self, sqid):
         accessid = self.get_accessid_by_sqid(sqid)
@@ -176,11 +200,84 @@ class SquareMg:
         cur = self.db.cursor()
         sqlstr = ('DELETE FROM "SQUARE" WHERE "sqid" = %s;')
         sqlarr = (sqid, )
-        cur.execute()
+        cur.execute(sqlstr, sqlarr)
 
         sqlstr = ('DELETE FROM "SQUARE_USER" WHERE "sqid" = %s;')
         sqlarr = (sqid, )
-        cur.execute()
+        cur.execute(sqlstr, sqlarr)
+
+    @imc.async.caller
+    def imc_set_square(self, sqid, title, start_time, end_time, hidden, intro, 
+                       logo, category):
+
+        if start_time != None:
+            start_time = com.isoptime(start_time)
+            if start_time == None:
+                return 'Eparameter'
+
+        if end_time != None:
+            end_time = com.isoptime(end_time)
+            if end_time == None:
+                return 'Eparameter'
+
+        if(
+            type(sqid) != int or
+            type(title) != str or
+            (start_time != None and type(start_time) != datetime.datetime) or
+            (end_time != None and type(end_time) != datetime.datetime) or
+            type(hidden) != bool or
+            type(intro) != str or
+            type(logo) != str or
+            type(category) != list
+        ):
+            return 'Eparameter'
+
+        for cateid in category:
+            if(
+                type(cateid) != int
+            ):
+                return 'Eparameter'
+
+        if len(title) < self.TITLE_LEN_MIN:
+            return 'Etitle_too_short'
+        elif len(title) > self.TITLE_LEN_MAX:
+            return 'Etitle_too_long'
+        elif len(intro) < self.INTRO_LEN_MIN:
+            return 'Eintro_too_short'
+        elif len(intro) > self.INTRO_LEN_MAX:
+            return 'Eintro_too_long'
+        elif len(logo) < self.INTRO_LEN_MIN:
+            return 'Elogo_too_short'
+        elif len(logo) > self.INTRO_LEN_MAX:
+            return 'Elogo_too_long'
+        elif len(category) > self.SQUARE_CATE_NUM_MAX:
+            return 'Etoo_many_category'
+
+        if not self.does_sqid_exist(sqid):
+            return 'Esqid'
+
+        category = list(set(category))
+
+        for cateid in category:
+            if not self.does_cateid_exist(cateid):
+                return 'Eno_such_cateid'
+
+        self.set_square(sqid, title, start_time, end_time, hidden, intro, logo)
+        self._set_square_category(sqid, category)
+
+        return 'Success'
+
+    def set_square(self, sqid, title, start_time, end_time, hidden, intro, 
+                    logo):
+        accessid = self.get_accessid_by_sqid(sqid)
+        TOJAuth.check_access_func(accessid, TOJAuth.ACCESS_WRITE)
+
+        cur = self.db.cursor()
+        sqlstr = ('UPDATE "SQUARE" SET "title" = %s, "start_time" = %s, '
+                  '"end_time" = %s, "hidden" = %s, "intro" = %s, "logo" = %s '
+                  'WHERE "sqid" = %s;')
+        sqlarr = (title, start_time, end_time, hidden, intro, logo, sqid)
+        cur.execute(sqlstr, sqlarr)
 
     @imc.async.caller
     def list_square(self, cateid = None):
@@ -241,7 +338,7 @@ class SquareMg:
             if uid != None:
                 obj['active'] = data[9]
 
-            nowtime = datetime.datetime.now(datetime.timezone.utc)
+            nowtime = datetime.datetime.now()
 
             if obj['start_time'] == None:
                 obj['status'] = self.STATUS_RUNNING
@@ -255,7 +352,7 @@ class SquareMg:
                 obj['status'] = self.STATUS_RUNNING
 
             ret.append(obj)
-
+        
         return ret
 
     @imc.async.caller
@@ -306,34 +403,6 @@ class SquareMg:
 
         return cateid
 
-    @imc.async.caller
-    def set_square_category(self, sqid, category):
-        if(
-            type(sqid) != int or
-            type(category) != list
-        ):
-            return 'Eparameter'
-
-        for cateid in category:
-            if(
-                type(cateid) != int
-            ):
-                return 'Eparameter'
-
-        if len(category) > self.SQUARE_CATE_NUM_MAX:
-            return 'Etoo_many_category'
-
-        category = list(set(category))
-        
-        if not self.does_sqid_exist(sqid):
-            return 'Eno_such_sqid'
-
-        for cateid in category:
-            if not self.does_cateid_exist(cateid):
-                return 'Eno_such_cateid'
-
-        self._set_square_category(sqid, category)
-        
     def _set_square_category(self, sqid, category):
         sq_accessid = self.get_accessid_by_sqid(sqid)
         TOJAuth.check_access_func(sq_accessid, TOJAuth.ACCESS_WRITE)
@@ -397,6 +466,7 @@ class SquareMg:
         elif result == self.JOIN_ACCEPT:
             with TOJAuth.change_current_iden(self._idendesc):
                 self._set_user_square_relation(uid, sqid, True)
+            
             return {'active': True}
         else:
             return 'Ejoin_sq_error'
@@ -423,6 +493,8 @@ class SquareMg:
         
         with TOJAuth.change_current_iden(self._idendesc):
             self._del_user_square_relation(uid, sqid)
+
+        return 'Success'
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_WRITE)
     def _set_user_square_relation(self, uid, sqid, active):
@@ -517,9 +589,6 @@ class SquareMg:
     def does_sqmodid_exist(self, sqmodid):
         sqmodname = self.get_sqmodname_by_sqmodid(sqmodid)
         return sqmodname != None
-
-    def unload():
-        pass
 
 class Square:
     def unload(self):

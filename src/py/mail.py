@@ -36,6 +36,18 @@ class Mail:
         Proxy.instance.register_call(
             'core/mail/', 'get_mail_count', self.get_mail_count)
 
+    def unload(self):
+        Proxy.instance.unregister_call(
+            'core/mail/', 'send_mail')
+        Proxy.instance.unregister_call(
+            'core/mail/', 'recv_mail')
+        Proxy.instance.unregister_call(
+            'core/mail/', 'list_mail')
+        Proxy.instance.unregister_call(
+            'core/mail/', 'del_mail')
+        Proxy.instance.unregister_call(
+            'core/mail/', 'get_mail_count')
+
     @imc.async.caller
     def send_mail(self, to_username, title, content):
         if(
@@ -75,6 +87,8 @@ class Mail:
             )
             self.notify_client(uid)
             self.notify_client(to_uid)
+
+        return 'Success'
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def _add_mail(self, uid, from_uid, mail_type, unread, title, content):
@@ -216,6 +230,8 @@ class Mail:
         with TOJAuth.change_current_iden(self._idendesc):
             self._del_mail(mailid)
 
+        return 'Success'
+
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def _del_mail(self, mailid):
         cur = self.db.cursor()
@@ -266,5 +282,3 @@ class Mail:
                 link + 'core/mail/', 'update_mail', 10000, None
             )
     
-    def unload():
-        pass

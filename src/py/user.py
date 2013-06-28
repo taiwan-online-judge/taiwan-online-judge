@@ -48,6 +48,23 @@ class UserMg:
         Proxy.instance.register_call(
             'core/user/', 'list_auth', self.list_auth)
 
+    def unload(self):
+        Proxy.instance.unregister_call(
+            'core/user/', 'register')
+        Proxy.instance.unregister_call(
+            'core/user/', 'login')
+        Proxy.instance.unregister_call(
+            'core/user/', 'cookie_login')
+        Proxy.instance.unregister_call(
+            'core/user/', 'get_user_info')
+        Proxy.instance.unregister_call(
+            'core/user/', 'set_user_info')
+        Proxy.instance.unregister_call(
+            'core/user/', 'change_user_password')
+        Proxy.instance.unregister_call(
+            'core/user/', 'list_auth')
+
+
     @imc.async.caller
     def register(
         self, username, password, nickname, email, avatar, aboutme, cover
@@ -283,6 +300,8 @@ class UserMg:
         sqlarr = (nickname, email, avatar, aboutme, cover, uid)
         cur.execute(sqlstr, sqlarr)
 
+        return 'Success'
+
     @imc.async.caller
     def change_user_password(self, uid, old_password, new_password):
         if(
@@ -325,6 +344,8 @@ class UserMg:
         sqlstr = ('UPDATE "USER" SET "passhash" = %s WHERE "uid" = %s;')
         sqlarr = (new_passhash, uid)
         cur.execute(sqlstr, sqlarr)
+
+        return 'Success'
 
     @imc.async.caller
     def oauth_login(self):
@@ -421,7 +442,4 @@ class UserMg:
         except KeyError:
             return None
         return uid
-
-    def unload():
-        pass
 

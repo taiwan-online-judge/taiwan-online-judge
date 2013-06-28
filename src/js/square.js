@@ -16,17 +16,15 @@ var square = new function(){
 
             j_box.attr('boxid',id);
 
-            j_box.find('img.logo').attr('src',logo);
+            j_box.find('div.logo').css('background-image','url(\'' + logo + '\')');
             j_box.find('h5.title').text(title);
             j_box.find('p.intro').text(intro);
 
-            if(start_time != null || end_time != null){
-                if(start_time != null){
-                    j_box.find('div.start').text('┌─' + start_time);
-                }
-                if(end_time != null){
-                    j_box.find('div.end').text('└→' + end_time);
-                }
+            if(start_time != null){
+                j_box.find('div.start').text('┌─' + com.get_timestring(start_time));
+            }
+            if(end_time != null){
+                j_box.find('div.end').text('└→' + com.get_timestring(end_time));
             }
 
             j_oper = j_box.find('div.oper');
@@ -88,14 +86,14 @@ var square = new function(){
             }
         }
         function box_create(id,logo,title,start_time,end_time,intro,active){
-            var j_box = $('<div class="span5 box"><img class="logo"></img><h5 class="title"></h5><div class="time start"></div><div class="time end"></div><p class="intro"></p><div class="btn-group oper"></div></div>');
+            var j_box = $('<div class="span5 box"><div class="logo"></div><h5 class="title"></h5><div class="time start"></div><div class="time end"></div><p class="intro"></p><div class="btn-group oper"></div></div>');
 
             box_set(j_box,id,logo,title,start_time,end_time,intro,active);
 
             return j_box;
         }
         function catebox_set(j_box,cateid,catename){
-            j_box.attr('cateid',cateid);
+            j_box.data('cateid',cateid);
             j_box.find('h3.catename').text(catename);
         }
         function catebox_create(cateid,catename){
@@ -178,18 +176,8 @@ var square = new function(){
                             if((logo = sqo.logo) == ''){
                                 logo = com.get_defaultimg(sqo.sqid);
                             }
-                            if(sqo.start_time == null){
-                                start_time = null; 
-                            }else{
-                                start_time = com.get_timestring(sqo.start_time);
-                            }
-                            if(sqo.end_time == null){
-                                end_time = null; 
-                            }else{
-                                end_time = com.get_timestring(sqo.end_time);
-                            }
                             
-                            j_box = box_create(sqo.sqid,logo,sqo.title,start_time,end_time,sqo.intro,sqo.active);
+                            j_box = box_create(sqo.sqid,logo,sqo.title,sqo.start_time,sqo.end_time,sqo.intro,sqo.active);
 
                             if(sqo.status == 1){
                                 j_pend.append(j_box);

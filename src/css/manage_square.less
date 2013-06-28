@@ -2,17 +2,25 @@
 @import 'mixin.less';
 
 #index_page{
-    div.set{
+    div.create,div.set{
         div.modal-body{
-            min-height:384px;
+            min-height:320px;
 
             img.logo{
                 width:96px;
             }
         }
     }
+    div.oper{
+        text-align:center;
+    }
     table.list{
         tr.item{
+            td.time{
+                div.time{
+                    height:12px;
+                }
+            }
             td.cate{
                 span.label{
                     margin-right:@SmallPad;

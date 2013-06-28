@@ -188,10 +188,7 @@ class SocketStream:
                     try:
                         while True:
                             buf = self._sock.recv(min(size,65536))
-                            if len(buf) == 0:
-                                self.close()
-                                return
-
+                            
                             os.write(iocb[2],buf)
                             size -= len(buf)
 
@@ -201,6 +198,10 @@ class SocketStream:
                                 
                                 self._read_queue.popleft()
                                 break
+                            
+                            if len(buf) == 0:
+                                self.close()
+                                return
                     
                     except BlockingIOError:
                         iocb[1] = size
@@ -228,10 +229,6 @@ class SocketStream:
                     try:
                         while True:
                             ret = self._sock.send(buf[off:])
-                            if ret == 0:
-                                self.close()
-                                return
-
                             off += ret
 
                             if off == len(buf):
@@ -240,6 +237,10 @@ class SocketStream:
 
                                 self._write_queue.popleft()
                                 break
+                            
+                            if ret == 0:
+                                self.close()
+                                return
 
                     except BlockingIOError:
                         iocb[1] = off
@@ -257,10 +258,6 @@ class SocketStream:
                     try:
                         while True:
                             ret = os.sendfile(sockfd,filefd,None,min(size,65536))
-                            if ret == 0:
-                                self.close()
-                                return
-
                             size -= ret
 
                             if size == 0:
@@ -269,6 +266,10 @@ class SocketStream:
 
                                 self._write_queue.popleft()
                                 break
+                            
+                            if ret == 0:
+                                self.close()
+                                return
 
                     except BlockingIOError:
                         iocb[1] = size

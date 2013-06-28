@@ -265,13 +265,13 @@ class Proxy:
 
         return (child,name,filt)
     
-    def _json_handler(self,o):
+    def _json_dump_handler(self,o):
         if isinstance(o,datetime.datetime):
             return o.isoformat();
             
         else:
             return None
-
+    
     def _route_call(self,in_conn,caller_link,caller_retid,idendesc,dst,func_name,timeout,param):
         def __add_wait_caller(conn_link):
             callback = tornado.stack_context.wrap(lambda result : self._ret_call(caller_link,caller_retid,result))
@@ -493,7 +493,7 @@ class Proxy:
         try:
             msg = json.loads(data.decode('utf-8'))
         
-        except:
+        except Exception:
             return
         
         msg_type = msg['type']
@@ -522,7 +522,7 @@ class Proxy:
             'param':param
         }
 
-        conn.send_msg(bytes(json.dumps(msg,default = self._json_handler),'utf-8')) 
+        conn.send_msg(bytes(json.dumps(msg,default = self._json_dump_handler),'utf-8')) 
 
     def _recv_msg_call(self,conn,msg):
         @async.caller
@@ -548,7 +548,7 @@ class Proxy:
             'result':{'stat':stat,'data':data}
         }
         
-        conn.send_msg(bytes(json.dumps(msg,default = self._json_handler),'utf-8'))
+        conn.send_msg(bytes(json.dumps(msg,default = self._json_dump_handler),'utf-8'))
 
     def _recv_msg_ret(self,conn,msg):
         caller_link = msg['caller_link']
@@ -566,7 +566,7 @@ class Proxy:
             'filesize':filesize
         }
 
-        conn.send_msg(bytes(json.dumps(msg,default = self._json_handler),'utf-8'))
+        conn.send_msg(bytes(json.dumps(msg,default = self._json_dump_handler),'utf-8'))
 
     def _recv_msg_sendfile(self,conn,msg):
         @async.caller
@@ -586,7 +586,7 @@ class Proxy:
             'error':err
         }
 
-        conn.send_msg(bytes(json.dumps(msg,default = self._json_handler),'utf-8'))
+        conn.send_msg(bytes(json.dumps(msg,default = self._json_dump_handler),'utf-8'))
 
     def _recv_msg_abortfile(self,conn,msg):
         @async.caller

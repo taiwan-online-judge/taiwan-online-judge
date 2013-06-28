@@ -20,7 +20,7 @@ var mail = new function(){
 
         j_span = j_item.find('span.check');
         j_span.check(false);
-        j_span.attr('mailid',mailid);
+        j_span.data('mailid',mailid);
 
         if(unread == true){
             j_item.addClass('warning');
@@ -174,7 +174,7 @@ var mail = new function(){
 
                                     update_maillist();
                                 }
-                            },parseInt($(mails[i]).attr('mailid')));
+                            },parseInt($(mails[i]).data('mailid')));
                         }
                     });
 

@@ -78,18 +78,20 @@ class TOJAuth(Auth):
                             ok = True
 
                 if not ok:
-                    sqlstr = ('SELECT "ACCESS_ROLE"."permission" FROM "ACCESS_ROLE"'
-                            ' INNER JOIN "IDEN_ROLE" ON "ACCESS_ROLE"."roleid" = '
-                            '"IDEN_ROLE"."roleid" WHERE "ACCESS_ROLE"."accessid"=%s'
-                            ' AND "IDEN_ROLE"."idenid"=%s;')
+                    sqlstr = ('SELECT "ACCESS_ROLE"."permission" FROM '
+                              '"ACCESS_ROLE" INNER JOIN "IDEN_ROLE" ON '
+                              '"ACCESS_ROLE"."roleid" = "IDEN_ROLE"."roleid" '
+                              'WHERE "ACCESS_ROLE"."accessid"= %s AND '
+                              '"IDEN_ROLE"."idenid" = %s;')
                     sqlarr = (accessid, idenid)
                     cur.execute(sqlstr, sqlarr)
 
+                    permission = 0
                     for data in cur:
-                        permission = data[0]
-                        if (permission & access_mask) == access_mask:
-                            ok = True
-                            break
+                        permission = permission | data[0]
+
+                    if (permission & access_mask) == access_mask:
+                        ok = True
 
                 if ok:
                     return f(*args);
@@ -105,8 +107,7 @@ class TOJAuth(Auth):
         TOJAuth.check_access(accessid, access_mask)(lambda x:x)(0)
 
     def create_access(self, owner_idenid):
-        self.check_access(
-            self._accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
+        self.check_access_func(self._accessid, self.ACCESS_EXECUTE)
 
         cur = self.db.cursor()
         sqlstr = ('INSERT INTO "ACCESS" ("owner_idenid") VALUES (%s) '
@@ -119,19 +120,19 @@ class TOJAuth(Auth):
         return accessid
 
     def del_access(self, accessid):
-        self.check_access(accessid, self.ACCESS_SETPER)(lambda x:x)(0)
+        self.check_access_func(accessid, self.ACCESS_SETPER)
 
         cur = self.db.cursor()
         sqlstr = ('DELETE FROM "ACCESS_ROLE" WHERE "accessid" = %s;')
         sqlarr = (accessid, )
-        cur.execute()
+        cur.execute(sqlstr, sqlarr)
         
         sqlstr = ('DELETE FROM "ACCESS" WHERE "accessid" = %s;')
         sqlarr = (accessid, )
-        cur.execute()
+        cur.execute(sqlstr, sqlarr)
         
     def set_access_list(self, accessid, roleid, permission):
-        self.check_access(accessid, self.ACCESS_SETPER)(lambda x:x)(0)
+        self.check_access_func(accessid, self.ACCESS_SETPER)
 
         cur = self.db.cursor()
         table = 'ACCESS_ROLE'
@@ -145,7 +146,7 @@ class TOJAuth(Auth):
         cur.upsert(table, cond, value)
 
     def del_access_list(self, accessid, roleid):
-        self.check_access(accessid, self.ACCESS_SETPER)(lambda x:x)(0)
+        self.check_access_func(accessid, self.ACCESS_SETPER)
 
         cur = self.db.cursor()
         sqlstr = ('DELETE FROM "ACCESS_ROLE" WHERE "accessid" = %s '
@@ -154,8 +155,7 @@ class TOJAuth(Auth):
         cur.execute(sqlstr, sqlarr)        
 
     def create_role(self, rolename, roletype):
-        self.check_access(
-            self._accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
+        self.check_access_func(self._accessid, self.ACCESS_EXECUTE)
 
         cur = self.db.cursor()    
         sqlstr = ('INSERT INTO "ROLE" ("rolename", "roletype") VALUES (%s, %s)'
@@ -171,8 +171,7 @@ class TOJAuth(Auth):
         return roleid
 
     def set_role_relation(self, idenid, roleid):
-        self.check_access(
-            self._accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
+        self.check_access_func(self._accessid, self.ACCESS_EXECUTE)
 
         cur = self.db.cursor()
         table = 'IDEN_ROLE'
@@ -183,8 +182,7 @@ class TOJAuth(Auth):
         cur.upsert(table, cond)
 
     def del_role_relation(self, idenid, roleid):
-        self.check_access(
-            self._accessid, self.ACCESS_EXECUTE)(lambda x:x)(0)
+        self.check_access_func(self._accessid, self.ACCESS_EXECUTE)
 
         cur = self.db.cursor()
         sqlstr = ('DELETE FROM "IDEN_ROLE" WHERE "idenid"=%s '
@@ -193,10 +191,40 @@ class TOJAuth(Auth):
         cur.execute(sqlstr, sqlarr)
 
     def set_owner(self, idenid, accessid):
-        self.check_access(accessid, self.ACCESS_SETPER)(lambda x:x)(0)
+        self.check_access_func(accessid, self.ACCESS_SETPER)
 
         cur = self.db.cursor()
         sqlstr = ('UPDATE "ACCESS" SET "owner_idenid"=%s WHERE "accessid"=%s;')
         sqlarr = (idenid, accessid)
         cur.execute(sqlstr, sqlarr)
+
+    def get_user_auth_list(self, idenid):
+        self.check_access_func(self._accessid, self.ACCESS_SETPER)
+        
+        cur = self.db.cursor()
+        sqlstr = ('SELECT "ACCESS_ROLE"."accessid", "ACCESS_ROLE"."permission" '
+                  'FROM "ACCESS_ROLE" INNER JOIN "IDEN_ROLE" ON "ACCESS_ROLE"'
+                  '."roleid" = "IDEN_ROLE"."roleid" WHERE "IDEN_ROLE"'
+                  '."idenid" = %s;')
+        sqlarr = (idenid, )
+        cur.execute(sqlstr, sqlarr)
+
+        ret_set = {}
+        for data in cur:
+            accessid = data[0]
+            permission = data[1]
+
+            if not accessid in ret_set:
+                ret_set[accessid] = 0
+
+            ret_set[accessid] = ret_set[accessid] | permission
+
+        ret = []
+        for accessid in ret_set:
+            obj = {}
+            obj['accessid'] = accessid
+            obj['permission'] = ret_set[accessid]
+            ret.append(obj)
+
+        return ret
 

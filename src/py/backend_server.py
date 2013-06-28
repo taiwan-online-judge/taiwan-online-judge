@@ -20,6 +20,9 @@ import netio
 from netio import SocketStream,SocketConnection,WebSocketConnection
 from tojauth import TOJAuth
 
+from test_blob import TOJBlobTable,TOJBlobHandle
+from imc.blobclient import BlobClient
+
 class BackendWorker(tornado.tcpserver.TCPServer):
     def __init__(self,center_addr,ws_port):
         super().__init__()
@@ -104,9 +107,11 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 self._link = info['worker_link']
                 Proxy(self._link,TOJAuth.instance,self._idendesc,self._conn_link)
 
-                self.center_conn = SocketConnection(info['center_link'],stream,self.center_addr)
+                self.center_conn = SocketConnection(info['center_link'],stream,self.center_addr,self._add_pend_filestream)
                 self.center_conn.add_close_callback(__retry)
                 Proxy.instance.add_conn(self.center_conn)
+
+                self._init_blobclient()
 
                 #Proxy.instance.register_call('test/','get_client_list',self._test_get_client_list)
                 #Proxy.instance.register_call('test/','test_dst',self._test_dst)
@@ -126,6 +131,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
+                'conntype':'main',
                 'linkclass':'backend',
                 'sock_ip':sock_ip,
                 'sock_port':sock_port,
@@ -137,6 +143,25 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         stream = SocketStream(socket.socket(socket.AF_INET,socket.SOCK_STREAM,0))
         stream.set_close_callback(__retry)
         stream.connect(self.center_addr,__send_worker_info)
+
+    @imc.async.caller
+    def _init_blobclient(self):
+        '''blobclient = BlobClient(Proxy.instance,
+                                TOJAuth.instance,
+                                self._idendesc,
+                                self._link,
+                                self.center_conn.link,
+                                'blobtmp/2',
+                                TOJBlobTable(2),
+                                TOJBlobHandle)
+
+        blobclient.open_container('test','ACTIVE')
+        handle = blobclient.open('test','testblob',TOJBlobHandle.WRITE |
+                        TOJBlobHandle.CREATE)
+        print(handle._fileno)
+        handle.write(bytes('Hello Data','utf-8'),0)
+        handle.commit(False);'''
+        pass
 
     def _conn_link(self,link):
         def __handle_pend(conn):
@@ -272,7 +297,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                     continue
 
                 fileres = Proxy.instance.sendfile(dst,'Fedora-18-x86_64-DVD.iso')
-                ret = Proxy.instance.call_async(dst + 'test/','test_dst',lambda result: print('ok'),fileres.filekey)
+                ret = Proxy.instance.call_async(dst + 'test/','test_dst',1000,lambda result: print(result),fileres.filekey)
                 
                 print(fileres.wait())
 
@@ -303,9 +328,10 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         print(filekey)
 
         self._ioloop.add_timeout(datetime.timedelta(milliseconds = 2000),lambda : Proxy.instance.abortfile(filekey))
-        Proxy.instance.abortfile(filekey)
-        #fileres = Proxy.instance.recvfile(filekey,'data')
+        #Proxy.instance.abortfile(filekey)
+        fileres = Proxy.instance.recvfile(filekey,'data')
         #print('recv ' + fileres.wait())
+        print(fileres.wait())
 
         return 'ok'
 

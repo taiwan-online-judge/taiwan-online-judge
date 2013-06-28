@@ -17,8 +17,13 @@ import netio
 from netio import SocketStream,SocketConnection
 from tojauth import TOJAuth
 
+from test_blob import TOJBlobTable,TOJBlobHandle
+from imc.blobserver import BlobServer
+
 class Worker:
     def __init__(self,main_stream,link,idendesc,worker_info,center_link):
+        global center_serv
+        
         self.main_stream = main_stream
         self.link = link
         self.idendesc = idendesc
@@ -30,7 +35,7 @@ class Worker:
             'center_link':center_link
         }),'utf-8'))
 
-        conn = SocketConnection(self.link,self.main_stream,self.sock_addr)
+        conn = SocketConnection(self.link,self.main_stream,self.sock_addr,center_serv.add_pend_filestream)
         conn.add_close_callback(lambda conn : self.close())
         Proxy.instance.add_conn(conn)
 
@@ -57,6 +62,7 @@ class CenterServer(tornado.tcpserver.TCPServer):
         super().__init__()
 
         self._ioloop = tornado.ioloop.IOLoop.instance()
+        self._pend_filestream_filekeymap = {}
         self._linkid_usemap = {}
         self._worker_linkmap = {}
         self._client_linkmap = {}
@@ -73,29 +79,30 @@ class CenterServer(tornado.tcpserver.TCPServer):
         self._idendesc = TOJAuth.instance.create_iden(self._link,1,TOJAuth.ROLETYPE_TOJ)
         Proxy(self._link,TOJAuth.instance,self._idendesc)
 
+        self._init_blobserver()
+
         Proxy.instance.register_call('core/','lookup_link',self._lookup_link)
         Proxy.instance.register_call('core/','create_iden',self._create_iden)
         Proxy.instance.register_call('core/','add_client',self._add_client)
         Proxy.instance.register_call('core/','del_client',self._del_client)
         Proxy.instance.register_call('core/','get_uid_clientlink',self._get_uid_clientlink)
         
-        #Proxy.instance.register_call('test/','get_client_list',self._test_get_client_list)
-
     def handle_stream(self,stream,addr):
-        def _recv_worker_info(data):
-            worker_info = json.loads(data.decode('utf-8'))
+        def _recv_conn_info(data):
+            info = json.loads(data.decode('utf-8'))
+            conntype = info['conntype']
 
-            linkclass = worker_info['linkclass']
-            if linkclass == 'backend':
-                link = self._create_link('backend')
-                idendesc = TOJAuth.instance.create_iden(link,1,TOJAuth.ROLETYPE_TOJ)
-                BackendWorker(main_stream,link,idendesc,worker_info,self._link)
+            if conntype == 'main':
+                self._handle_mainconn(sock_stream,addr,info)
+
+            elif conntype == 'file':
+                self._handle_fileconn(sock_stream,addr,info)
 
         fd = stream.fileno()
         self._ioloop.remove_handler(fd)
-        main_stream = SocketStream(socket.fromfd(fd,socket.AF_INET,socket.SOCK_STREAM | socket.SOCK_NONBLOCK,0))
+        sock_stream = SocketStream(socket.fromfd(fd,socket.AF_INET,socket.SOCK_STREAM | socket.SOCK_NONBLOCK,0))
 
-        netio.recv_pack(main_stream,_recv_worker_info)
+        netio.recv_pack(sock_stream,_recv_conn_info)
 
     def add_backend_worker(self,backend):
         backend_link = backend.link
@@ -129,6 +136,19 @@ class CenterServer(tornado.tcpserver.TCPServer):
         ws_ip,ws_port = backend.ws_addr
 
         return (link,idendesc,backend.link,ws_ip,ws_port)
+
+    def add_pend_filestream(self,filekey,callback):
+        self._pend_filestream_filekeymap[filekey] = tornado.stack_context.wrap(callback)
+
+    @imc.async.caller
+    def _init_blobserver(self):
+        BlobServer(Proxy.instance,
+                   TOJAuth.instance,
+                   self._idendesc,
+                   self._link,
+                   'blobtmp/1',
+                   TOJBlobTable(1),
+                   TOJBlobHandle)
 
     def _create_link(self,linkclass):
         linkid = uuid.uuid1()
@@ -180,6 +200,20 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
         except KeyError:
             return None
+
+    def _handle_mainconn(self,main_stream,addr,info):
+        linkclass = info['linkclass']
+        if linkclass == 'backend':
+            link = self._create_link('backend')
+            idendesc = TOJAuth.instance.create_iden(link,1,TOJAuth.ROLETYPE_TOJ)
+            BackendWorker(main_stream,link,idendesc,info,self._link)
+
+    def _handle_fileconn(self,file_stream,addr,info):
+        try:
+            self._pend_filestream_filekeymap.pop(info['filekey'])(file_stream)
+
+        except KeyError:
+            pass
 
     @imc.async.caller
     @TOJAuth.check_access(1,TOJAuth.ACCESS_EXECUTE)

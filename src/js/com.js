@@ -188,6 +188,15 @@ var com = new function(){
                 return false;
             }
         }
+        $.fn.tagbox = function(option){
+            var tagbox = this.data('tagbox');
+
+            if(option != undefined){
+                tagbox = that.create_tagbox(this,option.words,option.restrict,option.duplicate); 
+            }
+
+            return tagbox;
+        }
     };
 
     that.url_push = function(url){
@@ -606,14 +615,14 @@ var com = new function(){
             off = (curr - 1) * step;
         }
         offs.push(off);
-        j_li.attr('off',off);
+        j_li.data('off',off);
         j_ul.append(j_li);
         
         for(i = start;i <= end;i++){
             j_li = $('<li><a href=""></a></li>');
             off = i * step;
             offs.push(off);
-            j_li.attr('off',off);
+            j_li.data('off',off);
             j_li.find('a').text(i + 1);
 
             if(i == curr){
@@ -639,7 +648,7 @@ var com = new function(){
             off = (curr + 1) * step;
         }
         offs.push(off);
-        j_li.attr('off',off);
+        j_li.data('off',off);
         j_ul.append(j_li);
 
         return offs;
@@ -660,7 +669,9 @@ var com = new function(){
         var j_input;
         var j_menu;
         var last_text = '';
+        var hide = true;
         var show = false;
+        var tagboxo;
 
         function _resize(){
             var j_tag;
@@ -714,7 +725,7 @@ var com = new function(){
                 dup = new Object();
                 spans = j_box.find('span.tag');
                 for(i = 0;i < spans.length;i++){
-                    dup[$(spans[i]).attr('text')] = true;
+                    dup[$(spans[i]).data('text')] = true;
                 }
             }
 
@@ -728,7 +739,7 @@ var com = new function(){
                 flag = true;
 
                 j_li = $('<li><a href=""></a></li>');
-                j_li.attr('word',word);
+                j_li.data('word',word);
                 j_li.on('mouseover',function(e){
                     j_menu.find('li.active').removeClass('active');
                     $(this).addClass('active');
@@ -768,6 +779,27 @@ var com = new function(){
                 }
             }
         }
+        function _init(){
+            j_input.css('width','');
+            width = j_input.width() + 14;
+            inwidth = width - 14;
+
+            j_div.width(width);
+            j_input.width(inwidth);
+            j_menu.width(width - 2);
+        }
+        function _set_words(new_words){
+            words = new_words;
+
+            if(words == undefined){
+                words = [];
+            }else{
+                words = words.sort();
+            }
+
+            _match('');
+            _resize();
+        }
 
         function _add_tag(text,force){
             var j_li;
@@ -779,7 +811,7 @@ var com = new function(){
                     if((j_li = j_menu.find('li.active')).length == 0){
                         return;
                     }
-                    text = j_li.attr('word'); 
+                    text = j_li.data('word'); 
                 }else if(duplicate != true){
                     if(j_box.find('[text="' + text + '"]').length > 0){
                         return;
@@ -812,12 +844,8 @@ var com = new function(){
         j_input = j_div.find('input');
         j_menu = j_div.find('ul');
 
-        width = j_input.width() + 14;
-        inwidth = width - 14;
-
-        j_div.width(width);
-
-        j_input.width(inwidth);
+        _init();
+        
         j_input.on('keydown',function(e){
             if(e.keyCode == 8 && j_input.val() == ''){
                 j_box.find('span.tag:last').remove();
@@ -840,49 +868,72 @@ var com = new function(){
         });
 
         j_input.on('focusin',function(e){
-            show = true;
-            _match('');
-            _resize();
-
-            return false;
-        });
-        $(window).on('click',function(e){
-            if($(e.target).parents('div.tagbox').is(j_div)){
-                return;
+            if(hide == true){
+                show = true;
+                _match('');
+                _resize();
             }
-
-            show = false;
-            j_input.val('');
-            j_menu.hide();
-            return false;
+            hide = true;
+        });
+        j_input.on('focusout',function(e){
+            if(hide == true){
+                show = false;
+                j_input.val('');
+                j_menu.hide();
+            }
+        });
+        j_menu.on('mousedown',function(e){
+            hide = false;
+        });
+        j_menu.on('mouseup',function(e){
+            j_input.focus();
         });
 
-        if(words == undefined){
-            words = [];
-        }else{
-            words = words.sort();
-        }
-        j_menu.width(width - 2);
-
-        j_div.add_tag = function(text){
-            _add_tag(text,true); 
-        }
-        j_div.refresh = function(){
-            _match('');
-            _resize();
-        }
+        _set_words(words);
 
         _match('');
         _resize();
 
-        return j_div;
+        tagboxo = {
+            'add_tag':function(text){
+                _add_tag(text,true); 
+            },
+            'get_tag':function(){
+                var i;
+                var tags = j_box.find('span.tag');
+                var taglist = new Array();
+
+                for(i = 0;i < tags.length;i++){
+                    taglist.push($(tags[i]).data('text'));
+                }
+
+                return taglist;
+            },
+            'set_words':function(new_words){
+                _set_words(new_words);
+            },
+            'refresh':function(){
+                _init();
+                _match('');
+                _resize();
+            },
+            'clear':function(){
+                j_box.empty();
+                _match('');
+                _resize();
+            }
+        };
+
+        j_div.data('tagbox',tagboxo);
+
+        return tagboxo;
     };
     that.create_tag = function(text,style){
         var j_span;
         var j_i;
 
         j_span = $('<span class="label tag"></span>');
-        j_span.attr('text',text);
+        j_span.data('text',text);
         if(style != undefined){
             j_span.addClass(style);
         }
@@ -897,7 +948,7 @@ var com = new function(){
         return j_span;
     };
     that.is_callerr = function(result){
-        if(result.stat == false || typeof(result.data) == 'string'){
+        if(result.stat == false || (typeof(result.data) == 'string' && result.data[0] == 'E')){
             return true;
         } 
 
