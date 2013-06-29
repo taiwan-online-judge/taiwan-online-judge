@@ -5,10 +5,12 @@ var manage = new function(){
     var j_index_page;
 
     that.ready = function(){
-        var j_tabnav_square;
-
         var manage_node = new vus.node('manage');
         var square_node = new vus.node('square'); 
+        var problem_node = new vus.node('problem'); 
+
+        var j_tabnav_square;
+        var j_tabnav_problem;
 
         j_index_page = $('#index_page');
 
@@ -18,6 +20,7 @@ var manage = new function(){
                 index.clear_tabnav();
 
                 j_tabnav_square = index.add_tabnav('方塊','/toj/manage/square/');
+                j_tabnav_problem = index.add_tabnav('題目','/toj/manage/problem/');
 
                 com.call_backend('core/user/','list_auth',function(result){
                     console.log(result);
@@ -94,6 +97,9 @@ var manage = new function(){
                 return j_item;
             }
             function _update(){
+                var cate_defer = $.Deferred();
+                var sqmod_defer = $.Deferred();
+
                 com.call_backend('core/square/','list_category',function(result){
                     var i;
                     var data = result.data;
@@ -116,67 +122,95 @@ var manage = new function(){
                         create_tagbox_cate.set_words(catelist);
                         set_tagbox_cate.set_words(catelist);
 
-                        com.call_backend('core/square/','list_square',function(result){
-                            var i;
-                            var data = result.data;
-                            var items;
-                            var j_item;
-                            var sqo;
-
-                            if(com.is_callerr(result)){
-                                index.add_alert('','警告','管理發生錯誤');
-                            }else{
-                                items = j_list.find('tr.item');
-
-                                for(i = 0;i < Math.min(items.length,data.length);i++){
-                                    sqo = data[i];
-
-                                    if(sqo.start_time != null){
-                                        sqo.start_time = new Date(sqo.start_time);
-                                    }
-                                    if(sqo.end_time != null){
-                                        sqo.end_time = new Date(sqo.end_time);
-                                    }
-                                    
-                                    _item_set($(items[i]),sqo.sqid,
-                                              sqo.title,
-                                              sqo.start_time,
-                                              sqo.end_time,
-                                              sqo.cateid,
-                                              sqo.intro,
-                                              sqo.logo,
-                                              sqo.hidden); 
-                                }
-                                for(;i < data.length;i++){
-                                    sqo = data[i];
-                                    
-                                    j_item = _item_create(sqo.sqid,
-                                                          sqo.title,
-                                                          sqo.start_time,
-                                                          sqo.end_time,
-                                                          sqo.cateid,
-                                                          sqo.intro,
-                                                          sqo.logo,
-                                                          sqo.hidden);
-                                    j_list.append(j_item);
-                                }
-                                for(;i < items.length;i++){
-                                    $(items[i]).remove();
-                                }
-                            }
-                        });
+                        cate_defer.resolve();
                     }
                 }); 
+                com.call_backend('core/square/','list_sqmod',function(result){
+                    var i;
+                    var data = result.data;
+                    var j_sqmod;
+                    var j_option;
+
+                    if(com.is_callerr(result)){
+                        index.add_alert('','警告','管理發生錯誤');
+                    }else{
+                        j_sqmod = j_create.find('[name="sqmod"]');
+                        console.log(j_sqmod.length);
+                        j_sqmod.empty();
+                        for(i = 0;i < data.length;i++){
+                            j_option = $('<option></option>');
+                            j_option.attr('value',data[i].sqmodid);
+                            j_option.text(data[i].sqmodname);
+
+                            j_sqmod.append(j_option);
+                        }
+
+                        sqmod_defer.resolve();
+                    }
+                }); 
+                
+                $.when(cate_defer,sqmod_defer).done(function(cate){
+                    com.call_backend('core/square/','list_square',function(result){
+                        var i;
+                        var data = result.data;
+                        var items;
+                        var j_item;
+                        var sqo;
+
+                        if(com.is_callerr(result)){
+                            index.add_alert('','警告','管理發生錯誤');
+                        }else{
+                            items = j_list.find('tr.item');
+
+                            for(i = 0;i < Math.min(items.length,data.length);i++){
+                                sqo = data[i];
+
+                                if(sqo.start_time != null){
+                                    sqo.start_time = new Date(sqo.start_time);
+                                }
+                                if(sqo.end_time != null){
+                                    sqo.end_time = new Date(sqo.end_time);
+                                }
+                                
+                                _item_set($(items[i]),sqo.sqid,
+                                          sqo.title,
+                                          sqo.start_time,
+                                          sqo.end_time,
+                                          sqo.cateid,
+                                          sqo.intro,
+                                          sqo.logo,
+                                          sqo.hidden); 
+                            }
+                            for(;i < data.length;i++){
+                                sqo = data[i];
+                                
+                                j_item = _item_create(sqo.sqid,
+                                                      sqo.title,
+                                                      sqo.start_time,
+                                                      sqo.end_time,
+                                                      sqo.cateid,
+                                                      sqo.intro,
+                                                      sqo.logo,
+                                                      sqo.hidden);
+                                j_list.append(j_item);
+                            }
+                            for(;i < items.length;i++){
+                                $(items[i]).remove();
+                            }
+                        }
+                    });    
+                });
             }
 
             if(direct == 'in'){
                 com.loadpage('/toj/html/manage_square.html').done(function(){
                     var j_catebox;
 
-                    j_list = j_index_page.find('table.list');
+                    j_tabnav_square.active();
+
                     j_create = j_index_page.find('div.create');
                     j_set = j_index_page.find('div.set');
-                    j_tabnav_square.active();
+                    j_list = j_index_page.find('table.list > tbody');
 
                     j_catebox = j_create.find('div.catebox');
                     create_tagbox_cate = j_catebox.tagbox({'words':[],'restrict':true,'duplicate':false});
@@ -198,6 +232,7 @@ var manage = new function(){
                         var title = j_create.find('[name="title"]').val(); 
                         var intro = j_create.find('[name="intro"]').val(); 
                         var logo = j_create.find('[name="logo"]').val(); 
+                        var sqmodid = parseInt(j_create.find('[name="sqmod"]').val());
                         var hidden = j_create.find('[name="hidden"]').val(); 
                         var tags = create_tagbox_cate.get_tag();
                         var cateid_list;
@@ -244,7 +279,7 @@ var manage = new function(){
                                 j_create.modal('hide');
                                 _update(); 
                             }
-                        },title,hidden,1,intro,logo,cateid_list);
+                        },title,hidden,sqmodid,intro,logo,cateid_list);
 
                     });
                     j_create.find('button.cancel').on('click',function(e){
@@ -372,5 +407,62 @@ var manage = new function(){
             return 'cont';
         };
         manage_node.child_set(square_node);
+
+        problem_node.url_chg = function(direct,url_upart,url_dpart,param){
+            var j_create;
+            var j_list;
+            var set_data;
+
+            function _item_set(j_item,proid,title,pmodid){
+                j_item.find('td.proid').text(proid); 
+                j_item.find('td.title').text(title); 
+
+                j_item.find('button.set').on('click',function(e){
+                    set_data = {
+                        'proid':proid,
+                        'title':title,
+                        'pmodid':pmodid
+                    }; 
+                });
+                j_item.find('button.del').on('click',function(e){
+                     
+                });
+            }
+            function _item_create(proid,title,pmodid){
+                var j_item = $('<tr><td class="proid"></td><td class="title"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>') 
+
+                _item_set(j_item,proid,title,pmodid);
+
+                return j_item;
+            }
+            function _update(){
+            
+            }
+
+            if(direct == 'in'){
+                j_tabnav_problem.active();
+
+                com.loadpage('/toj/html/manage_problem.html').done(function(){
+                    j_create = j_index_page.find('div.create'); 
+                    j_list = j_index_page.find('table.list > tbody');
+
+                    j_index_page.find('button.create').on('click',function(e){
+                        j_create.modal('show'); 
+                    });
+
+                    j_create.on('show',function(e){
+                                            
+                    });
+                    j_create.on('hide',function(e){
+                        j_create.find('input').val('');
+                    });
+                }); 
+            }else{
+            
+            }
+
+            return 'cont';
+        };
+        manage_node.child_set(problem_node);
     };
 };

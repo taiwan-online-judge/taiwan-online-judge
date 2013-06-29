@@ -146,7 +146,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
     @imc.async.caller
     def _init_blobclient(self):
-        '''blobclient = BlobClient(Proxy.instance,
+        blobclient = BlobClient(Proxy.instance,
                                 TOJAuth.instance,
                                 self._idendesc,
                                 self._link,
@@ -160,8 +160,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                         TOJBlobHandle.CREATE)
         print(handle._fileno)
         handle.write(bytes('Hello Data','utf-8'),0)
-        handle.commit(False);'''
-        pass
+        handle.commit(False);
 
     def _conn_link(self,link):
         def __handle_pend(conn):
@@ -381,7 +380,7 @@ if __name__ == '__main__':
     worker_list = []
 
     worker_list.append(Process(target = start_backend_worker,args = (81, )))
-    worker_list.append(Process(target = start_backend_worker,args = (82, )))
+    #worker_list.append(Process(target = start_backend_worker,args = (82, )))
     #worker_list.append(Process(target = start_backend_worker,args = (181, )))
     #worker_list.append(Process(target = start_backend_worker,args = (182, )))
     #worker_list.append(Process(target = start_backend_worker,args = (183, )))

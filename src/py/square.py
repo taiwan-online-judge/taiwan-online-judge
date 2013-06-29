@@ -49,6 +49,10 @@ class SquareMg:
             'core/square/', 'delete_square', self.delete_square)
         Proxy.instance.register_call(
             'core/square/', 'set_square', self.imc_set_square)
+        Proxy.instance.register_call(
+            'core/square/', 'get_square_info', self.get_square_info)
+        Proxy.instance.register_call(
+            'core/square/', 'list_sqmod', self.list_sqmod)
 
     def unload(self):
         Proxy.instance.unregister_call(
@@ -65,6 +69,10 @@ class SquareMg:
             'core/square/', 'delete_square')
         Proxy.instance.unregister_call(
             'core/square/', 'set_square')
+        Proxy.instance.unregister_call(
+            'core/square/', 'get_square_info')
+        Proxy.instance.unregister_call(
+            'core/square/', 'list_sqmod')
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def load_square(self, sqid):
@@ -292,11 +300,11 @@ class SquareMg:
 
         uid = mod.UserMg.get_current_uid()
 
-        ret = self._list_square_category(cateid, uid)
+        ret = self._list_square(cateid, uid)
 
         return ret
 
-    def _list_square_category(self, cateid, uid):
+    def _list_square(self, cateid, uid):
         cur = self.db.cursor()
         sqlsel = ('SELECT "SQUARE"."sqid", "title", "start_time", "end_time", '
                   '"hidden", "sqmodid", "intro", "logo", "cateid"')
@@ -353,6 +361,20 @@ class SquareMg:
 
             ret.append(obj)
         
+        return ret
+
+    @imc.async.caller
+    def get_square_info(self, sqid):
+        if(
+            type(sqid) != int
+        ):
+            return 'Eparameter'
+
+        ret = self.get_square_info_by_sqid(sqid)
+
+        if ret == None:
+            return 'Esqid'
+
         return ret
 
     @imc.async.caller
@@ -436,6 +458,23 @@ class SquareMg:
         cate_list.append(zerocate)
 
         return cate_list
+
+    @imc.async.caller
+    def list_sqmod(self):
+        cur = self.db.cursor()
+        sqlstr = ('SELECT "sqmodid", "sqmodname", "info" FROM "SQMOD" '
+                  'ORDER BY "sqmodid" ASC;')
+        cur.execute(sqlstr)
+
+        sqmod_list = []
+        for data in cur:
+            obj = {}
+            obj['sqmodid'] = data[0]
+            obj['sqmodname'] = data[1]
+            obj['info'] = data[2]
+            sqmod_list.append(obj)
+
+        return sqmod_list
 
     @imc.async.caller
     def join_square(self, sqid):
@@ -539,6 +578,8 @@ class SquareMg:
 
             if 0 in ret['cateid']:
                 ret['cateid'] = []
+
+            ret['sqmodname'] = self.get_sqmodname_by_sqmodid(ret['sqmodid'])
 
         return ret
 

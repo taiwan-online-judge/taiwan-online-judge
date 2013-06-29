@@ -1,0 +1,58 @@
+<link href="/toj/css/manage_problem.css" rel="stylesheet">
+
+<div class="modal hide fade tiny_modal create">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>建立題目</h3>
+    </div>
+    <div class="modal-body container-fluid">
+        <div class="row-fluid">
+            <div class="span13"> 
+                <label>題目名稱</label>
+                <input name="title" type="text">
+                <label>題目模組</label>
+                <select name="pmod"></select>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary submit">確定</button>
+        <button class="btn cancel">取消</button>
+    </div>
+</div>
+<div class="modal hide fade tiny_modal set">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>題目設定</h3>
+    </div>
+    <div class="modal-body container-fluid">
+        <div class="row-fluid">
+            <div class="span13"> 
+                <label>題目名稱</label>
+                <input name="title" type="text">
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary submit">確定</button>
+        <button class="btn cancel">取消</button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="span2 offset1 oper">
+        <button class="btn create">建立題目</button>
+    </div>
+    <div class="span6">
+        <table class="table list">
+            <thead>
+                <tr>
+                    <th class="span1">#</th>
+                    <th class="span3">題目名稱</th>
+                    <th class="span2"></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>

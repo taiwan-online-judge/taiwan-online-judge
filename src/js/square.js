@@ -30,7 +30,7 @@ var square = new function(){
             j_oper = j_box.find('div.oper');
             j_oper.empty();
             if(active == null){
-                j_oper.append('<button class="btn btn-primary join" data-loading-text="處理中">加入</button><button class="btn">開啓</button>');
+                j_oper.append('<button class="btn btn-primary join" data-loading-text="處理中">加入</button><a class="btn open">開啓</a>');
                 j_oper.find('button.join').on('click',function(e){
                     $(this).button('loading');
 
@@ -52,9 +52,9 @@ var square = new function(){
                 });
             }else{
                 if(active== true){
-                    j_oper.append('<button class="btn btn-success quit" data-loading-text="處理中">退出</button><button class="btn">開啓</button>');
+                    j_oper.append('<button class="btn btn-success quit" data-loading-text="處理中">退出</button><a class="btn open">開啓</a>');
                 }else{
-                    j_oper.append('<button class="btn btn-warning quit" data-loading-text="處理中">取消申請</button><button class="btn">開啓</button>');
+                    j_oper.append('<button class="btn btn-warning quit" data-loading-text="處理中">取消申請</button><a class="btn open">開啓</a>');
                 }
 
                 j_oper.find('button.quit').on('click',function(e){
@@ -75,6 +75,8 @@ var square = new function(){
                     },id); 
                 });
             }
+
+            j_oper.find('a.open').attr('href','/toj/sq/' + id + '/');
         }
         function box_update(id,logo,title,start_time,end_time,intro,active){
             var i;
