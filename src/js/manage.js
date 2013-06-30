@@ -80,11 +80,10 @@ var manage = new function(){
                 });
                 j_item.find('button.del').off('click').on('click',function(e){
                     com.call_backend('core/square/','delete_square',function(result){
-                        console.log(result);
                         if(com.is_callerr(result)){
-                            index.add_alert('alert-error','錯誤','刪除方塊發生錯誤');
+                            index.add_alert('alert-error','失敗','刪除方塊發生錯誤');
                         }else{
-                            _update(); 
+                            _update_list(); 
                         }
                     },id);
                 });
@@ -96,10 +95,22 @@ var manage = new function(){
 
                 return j_item;
             }
-            function _update(){
-                var cate_defer = $.Deferred();
-                var sqmod_defer = $.Deferred();
+            function _update_sqmod(){
+                var defer = $.Deferred();
 
+                com.call_backend('core/square/','list_sqmod',function(result){
+                    var data = result.data;
+
+                    if(com.is_callerr(result)){
+                        index.add_alert('','警告','管理發生錯誤');
+                    }else{
+                        defer.resolve(data);
+                    }
+                });
+
+                return defer.promise();
+            }
+            function _update_list(){
                 com.call_backend('core/square/','list_category',function(result){
                     var i;
                     var data = result.data;
@@ -122,84 +133,57 @@ var manage = new function(){
                         create_tagbox_cate.set_words(catelist);
                         set_tagbox_cate.set_words(catelist);
 
-                        cate_defer.resolve();
+                        com.call_backend('core/square/','list_square',function(result){
+                            var i;
+                            var data = result.data;
+                            var items;
+                            var j_item;
+                            var sqo;
+
+                            if(com.is_callerr(result)){
+                                index.add_alert('','警告','管理發生錯誤');
+                            }else{
+                                items = j_list.find('tr.item');
+
+                                for(i = 0;i < Math.min(items.length,data.length);i++){
+                                    sqo = data[i];
+
+                                    if(sqo.start_time != null){
+                                        sqo.start_time = new Date(sqo.start_time);
+                                    }
+                                    if(sqo.end_time != null){
+                                        sqo.end_time = new Date(sqo.end_time);
+                                    }
+                                    
+                                    _item_set($(items[i]),sqo.sqid,
+                                              sqo.title,
+                                              sqo.start_time,
+                                              sqo.end_time,
+                                              sqo.cateid,
+                                              sqo.intro,
+                                              sqo.logo,
+                                              sqo.hidden); 
+                                }
+                                for(;i < data.length;i++){
+                                    sqo = data[i];
+                                    
+                                    j_item = _item_create(sqo.sqid,
+                                                          sqo.title,
+                                                          sqo.start_time,
+                                                          sqo.end_time,
+                                                          sqo.cateid,
+                                                          sqo.intro,
+                                                          sqo.logo,
+                                                          sqo.hidden);
+                                    j_list.append(j_item);
+                                }
+                                for(;i < items.length;i++){
+                                    $(items[i]).remove();
+                                }
+                            }
+                        });
                     }
                 }); 
-                com.call_backend('core/square/','list_sqmod',function(result){
-                    var i;
-                    var data = result.data;
-                    var j_sqmod;
-                    var j_option;
-
-                    if(com.is_callerr(result)){
-                        index.add_alert('','警告','管理發生錯誤');
-                    }else{
-                        j_sqmod = j_create.find('[name="sqmod"]');
-                        console.log(j_sqmod.length);
-                        j_sqmod.empty();
-                        for(i = 0;i < data.length;i++){
-                            j_option = $('<option></option>');
-                            j_option.attr('value',data[i].sqmodid);
-                            j_option.text(data[i].sqmodname);
-
-                            j_sqmod.append(j_option);
-                        }
-
-                        sqmod_defer.resolve();
-                    }
-                }); 
-                
-                $.when(cate_defer,sqmod_defer).done(function(cate){
-                    com.call_backend('core/square/','list_square',function(result){
-                        var i;
-                        var data = result.data;
-                        var items;
-                        var j_item;
-                        var sqo;
-
-                        if(com.is_callerr(result)){
-                            index.add_alert('','警告','管理發生錯誤');
-                        }else{
-                            items = j_list.find('tr.item');
-
-                            for(i = 0;i < Math.min(items.length,data.length);i++){
-                                sqo = data[i];
-
-                                if(sqo.start_time != null){
-                                    sqo.start_time = new Date(sqo.start_time);
-                                }
-                                if(sqo.end_time != null){
-                                    sqo.end_time = new Date(sqo.end_time);
-                                }
-                                
-                                _item_set($(items[i]),sqo.sqid,
-                                          sqo.title,
-                                          sqo.start_time,
-                                          sqo.end_time,
-                                          sqo.cateid,
-                                          sqo.intro,
-                                          sqo.logo,
-                                          sqo.hidden); 
-                            }
-                            for(;i < data.length;i++){
-                                sqo = data[i];
-                                
-                                j_item = _item_create(sqo.sqid,
-                                                      sqo.title,
-                                                      sqo.start_time,
-                                                      sqo.end_time,
-                                                      sqo.cateid,
-                                                      sqo.intro,
-                                                      sqo.logo,
-                                                      sqo.hidden);
-                                j_list.append(j_item);
-                            }
-                            for(;i < items.length;i++){
-                                $(items[i]).remove();
-                            }
-                        }
-                    });    
-                });
             }
 
             if(direct == 'in'){
@@ -270,20 +254,40 @@ var manage = new function(){
                                 }
                                 
                                 if(err != null){
-                                    index.add_alert('alert-error','錯誤',err);
+                                    index.add_alert('alert-error','失敗',err);
                                 }else{
                                     index.add_alert('','警告','管理發生錯誤');
                                 }
                             }else{
                                 index.add_alert('alert-success','成功','方塊已建立');
                                 j_create.modal('hide');
-                                _update(); 
+                                _update_list(); 
                             }
                         },title,hidden,sqmodid,intro,logo,cateid_list);
 
                     });
                     j_create.find('button.cancel').on('click',function(e){
                         j_create.modal('hide');
+                    });
+                    j_create.on('show',function(e){
+                        _update_sqmod().done(function(sqmod_list){
+                            var i;
+                            var j_sqmod;
+                            var j_option;
+                            var sqmodo;
+
+                            j_sqmod = j_create.find('[name="sqmod"]');
+                            j_sqmod.empty();
+                            for(i = 0;i < sqmod_list.length;i++){
+                                sqmodo = sqmod_list[i];
+
+                                j_option = $('<option></option>');
+                                j_option.attr('value',sqmodo.sqmodid);
+                                j_option.text(sqmodo.sqmodname);
+
+                                j_sqmod.append(j_option);
+                            }
+                        });
                     });
                     j_create.on('hide',function(e){
                         j_create.find('input').val(''); 
@@ -375,15 +379,14 @@ var manage = new function(){
                                 }
                                 
                                 if(err != null){
-                                    index.add_alert('alert-error','錯誤',err);
+                                    index.add_alert('alert-error','失敗',err);
                                 }else{
-                                    console.log(data);
                                     index.add_alert('','警告','管理發生錯誤');
                                 }
                             }else{
                                 index.add_alert('alert-success','成功','方塊已設定');
                                 j_set.modal('hide');
-                                _update(); 
+                                _update_list(); 
                             }
                         },set_data.id,title,set_data.start_time,set_data.end_time,hidden,intro,logo,cateid_list);
                     });
@@ -400,7 +403,7 @@ var manage = new function(){
                         j_create.modal('show');      
                     });
                     
-                    _update();
+                    _update_list();
                 });
             }
             
@@ -410,6 +413,7 @@ var manage = new function(){
 
         problem_node.url_chg = function(direct,url_upart,url_dpart,param){
             var j_create;
+            var j_set;
             var j_list;
             var set_data;
 
@@ -421,11 +425,18 @@ var manage = new function(){
                     set_data = {
                         'proid':proid,
                         'title':title,
-                        'pmodid':pmodid
                     }; 
+
+                    j_set.modal('show');
                 });
                 j_item.find('button.del').on('click',function(e){
-                     
+                    com.call_backend('core/problem/','delete_problem',function(result){
+                        if(com.is_callerr(result)){
+                            index.add_alert('alert-error','失敗','刪除題目發生錯誤'); 
+                        }else{
+                            _update_list();
+                        }
+                    },proid); 
                 });
             }
             function _item_create(proid,title,pmodid){
@@ -435,8 +446,42 @@ var manage = new function(){
 
                 return j_item;
             }
-            function _update(){
-            
+            function _update_pmod(){
+                var defer = $.Deferred();
+
+                com.call_backend('core/problem/','list_pmod',function(result){
+                    var i;
+                    var data = result.data;
+                    var j_pmod;
+                    var j_option;
+
+                    if(com.is_callerr(result)){
+                        index.add_alert('','警告','管理發生錯誤'); 
+                    }else{
+                        defer.resolve(data);        
+                    }
+                });
+
+                return defer.promise();
+            }
+            function _update_list(){
+                com.call_backend('core/problem/','list_problem',function(result){
+                    var i;
+                    var data = result.data; 
+                    var proo;
+                    var j_item;
+
+                    if(com.is_callerr(result)){
+                        index.add_alert('','警告','管理發生錯誤'); 
+                    }else{
+                        j_list.empty();
+                        for(i = 0;i < data.length;i++){
+                            proo = data[i];
+                            j_item = _item_create(proo.proid,proo.title,proo.pmodid);
+                            j_list.append(j_item);
+                        } 
+                    }
+                });
             }
 
             if(direct == 'in'){
@@ -444,6 +489,7 @@ var manage = new function(){
 
                 com.loadpage('/toj/html/manage_problem.html').done(function(){
                     j_create = j_index_page.find('div.create'); 
+                    j_set = j_index_page.find('div.set'); 
                     j_list = j_index_page.find('table.list > tbody');
 
                     j_index_page.find('button.create').on('click',function(e){
@@ -451,14 +497,94 @@ var manage = new function(){
                     });
 
                     j_create.on('show',function(e){
-                                            
+                        _update_pmod().done(function(pmod_list){
+                            var i;
+                            var j_pmod;
+                            var j_option;
+
+                            j_pmod = j_create.find('[name="pmod"]');
+                            j_pmod.empty();
+                            for(i = 0;i < pmod_list.length;i++){
+                                j_option = $('<option></option>');
+                                j_option.attr('value',pmod_list[i].pmodid);
+                                j_option.text(pmod_list[i].pmodname);
+
+                                j_pmod.append(j_option);
+                            }
+                        });
                     });
                     j_create.on('hide',function(e){
                         j_create.find('input').val('');
                     });
+                    j_create.find('button.submit').on('click',function(e){
+                        var title = j_create.find('[name="title"]').val(); 
+                        var pmodid = parseInt(j_create.find('[name="pmod"]').val());
+
+                        com.call_backend('core/problem/','create_problem',function(result){
+                            var data = result.data;
+                            var err = null;
+
+                            if(com.is_callerr(result)){
+                                if(data == 'title_too_short'){
+                                    err = '題目名稱過短'; 
+                                }else if(data == 'title_too_long'){
+                                    err = '題目名稱過長'; 
+                                } 
+
+                                if(err != null){
+                                    index.add_alert('alert-error','失敗',err);
+                                }else{
+                                    index.add_alert('','警告','管理發生錯誤');
+                                }
+                            }else{
+                                j_create.modal('hide');
+                                index.add_alert('alert-success','成功','題目已建立');
+                                _update_list();
+                            }
+                        },title,pmodid);
+                    });
+                    j_create.find('button.cancel').on('click',function(e){
+                        j_create.modal('hide');
+                    });
+                    
+                    j_set.on('show',function(e){
+                        j_set.find('[name="title"]').val(set_data.title);
+                    });
+                    j_set.on('hide',function(e){
+                        j_set.find('input').val('');
+                    });
+                    j_set.find('button.submit').on('click',function(e){
+                        var title = j_set.find('[name="title"]').val(); 
+
+                        com.call_backend('core/problem/','set_problem',function(result){
+                            var data = result.data;
+                            var err = null;
+
+                            if(com.is_callerr(result)){
+                                if(data == 'title_too_short'){
+                                    err = '題目名稱過短'; 
+                                }else if(data == 'title_too_long'){
+                                    err = '題目名稱過長'; 
+                                } 
+
+                                if(err != null){
+                                    index.add_alert('alert-error','失敗',err);
+                                }else{
+                                    index.add_alert('','警告','管理發生錯誤');
+                                }
+                            }else{
+                                j_set.modal('hide');
+                                index.add_alert('alert-success','成功','題目已設定');
+                                _update_list();
+                            }
+                        },set_data.proid,title);
+                    });
+                    j_set.find('button.cancel').on('click',function(e){
+                        j_set.modal('hide');
+                    });
+
+                    _update_list();
                 }); 
-            }else{
-            
             }
 
             return 'cont';

@@ -80,7 +80,7 @@ class SquareMg:
             return self._sqmod_list[sqid]
 
         sqinfo = self.get_square_info_by_sqid(sqid)
-        sqmodname = self.get_sqmodname_by_sqmodid(sqinfo['sqmodid'])
+        sqmodname = sqinfo['sqmodname']
         sqmod = mod.load_sqmod(sqmodname)
         self._sqmod_list[sqid] = sqmod(self._idendesc, self.get_link, sqid)
 
@@ -194,7 +194,7 @@ class SquareMg:
         TOJAuth.check_access_func(accessid, TOJAuth.ACCESS_DELETE)
 
         sqinfo = self.get_square_info_by_sqid(sqid)
-        sqmodname = self.get_sqmodname_by_sqmodid(sqinfo['sqmodid'])
+        sqmodname = sqinfo['sqmodname']
         sqmod = mod.load_sqmod(sqmodname)
 
         with TOJAuth.change_current_iden(self._idendesc):
@@ -202,8 +202,7 @@ class SquareMg:
 
         sqmod.delete_square_data(sqid)
 
-        with TOJAuth.change_current_iden(self._idendesc):
-            TOJAuth.instance.del_access(accessid)
+        TOJAuth.instance.del_access(accessid)
 
         cur = self.db.cursor()
         sqlstr = ('DELETE FROM "SQUARE" WHERE "sqid" = %s;')
@@ -472,6 +471,7 @@ class SquareMg:
             obj['sqmodid'] = data[0]
             obj['sqmodname'] = data[1]
             obj['info'] = data[2]
+
             sqmod_list.append(obj)
 
         return sqmod_list
@@ -632,7 +632,7 @@ class SquareMg:
         return sqmodname != None
 
 class Square:
-    def unload(self):
+    def unload(self, Force):
         pass
 
 class Group:

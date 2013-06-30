@@ -24,7 +24,7 @@ class BlobHandle:
                                   '_', str(self.get_rev())])
         if flag & BlobHandle.CREATE:
             if not flag & BlobHandle.WRITE:
-                raise Exception("invalid flag")
+                raise ValueError("invalid flag")
             else:
                 self._need_commit = True
                 self._createtag = True
@@ -33,7 +33,7 @@ class BlobHandle:
             self._tmpfile = self.gen_tmp()
 
     def __del__(self):
-        self._del_tmp()
+        self.del_tmp()
         self._blobclient.close(self)
 
     def create(self):
@@ -121,6 +121,14 @@ class BlobHandle:
             commit_info['written'] = self._written
         return self._blobclient.commit(commit_info, flag, self)
 
+    def copy_tmp(self):
+        BlobHandle.copy_file(
+            self._tmpfile,
+            ''.join([self._location, self._info['container'], '_',
+                     self._name, '_', str(self._info['rev'])])
+        )
+        pass
+
     @abstractmethod
     def gen_tmp(self):
         # return tmp file path
@@ -140,6 +148,11 @@ class BlobHandle:
 
     @abstractmethod
     def _get_size(self):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def copy_file(source, dest):
         pass
 
     @staticmethod

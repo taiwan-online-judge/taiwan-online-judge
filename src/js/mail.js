@@ -64,6 +64,7 @@ var mail = new function(){
             var as;
             var pfix;
 
+            console.log(result);
             if(com.is_callerr(result)){
                 index.add_alert('','警告','信箱發生錯誤');
             }else{

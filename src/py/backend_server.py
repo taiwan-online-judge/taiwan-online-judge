@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+import traceback
+import sys
 import socket
 import json
 import datetime
@@ -23,10 +25,21 @@ from tojauth import TOJAuth
 from test_blob import TOJBlobTable,TOJBlobHandle
 from imc.blobclient import BlobClient
 
+class StdLogger(object):
+    def __init__(self,callback):
+        self._callback = callback
+
+    def write(self,data):
+        self._callback(data)
+
+    def flush(self):
+        pass
+
 class BackendWorker(tornado.tcpserver.TCPServer):
     def __init__(self,center_addr,ws_port):
         super().__init__()
 
+        self._log = StdLogger(self._send_log)
         self._ioloop = tornado.ioloop.IOLoop.current()
         self.center_addr = center_addr
         self.sock_addr = None
@@ -39,6 +52,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         self._client_linkmap = {}
 
     def start(self):
+        sys.stdout = self._log
+        sys.stderr = self._log
+
         sock_port = random.randrange(4096,8192)
         self.sock_addr = ('10.8.0.6',sock_port)
 
@@ -121,6 +137,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                     mod.load('Notice','notice',self._idendesc,self._get_link)
                     mod.load('UserMg','user',self._idendesc,self._get_link)
                     mod.load('SquareMg','square',self._idendesc,self._get_link)
+                    mod.load('ProblemMg','problem',self._idendesc,self._get_link)
                     mod.load('Mail','mail',self._idendesc,self._get_link)
 
                 except Exception as e:
@@ -156,8 +173,13 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                                 TOJBlobHandle)
 
         blobclient.open_container('test','ACTIVE')
-        handle = blobclient.open('test','testblob',TOJBlobHandle.WRITE |
-                        TOJBlobHandle.CREATE)
+        try:
+            handle = blobclient.open(
+                'test','testblob',
+                TOJBlobHandle.WRITE | TOJBlobHandle.CREATE
+            )
+        except:
+            pass
         print(handle._fileno)
         handle.write(bytes('Hello Data','utf-8'),0)
         handle.commit(False);
@@ -273,6 +295,14 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             stat,ret = Proxy.instance.call(self.center_conn.link + 'core/','get_uid_clientlink',10000,uid)
             print(ret)
             return ret
+
+    @imc.async.caller
+    def _send_log(self,data):
+        links = self._client_linkmap.keys()
+
+        with TOJAuth.change_current_iden(self._idendesc):
+            for link in links:
+                Proxy.instance.call_async(link + 'core/stat/','print_log',10000,None,data)
 
     @imc.async.caller
     def _test_get_client_list(self,talk,talk2):

@@ -165,8 +165,11 @@ class BlobClient:
             # TODO:
             # pend operation when client can't imc call server
             return False
-        # TODO:
-        # if commit success , copy tmpfile to location
+        else:
+            # TODO:
+            # if commit success , copy tmpfile to location
+            if ret:
+                blobhandle.copy_tmp()
 
     # TODO:
     # opencounts ?
@@ -227,7 +230,8 @@ class BlobClient:
             self._opencounts[blob] += 1
             return handle
 
-        def close(self, blobhandle):
-            blob = ''.join([blobhandle._name, '_',
-                            str(blobhandle.get_rev())])
-            self._opencounts[blob] -= 1
+    def close(self, blobhandle):
+        blob = ''.join([blobhandle._name, '_',
+                        str(blobhandle.get_rev())])
+        self._opencounts[blob] -= 1
+

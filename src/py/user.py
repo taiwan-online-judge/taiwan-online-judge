@@ -126,6 +126,9 @@ class UserMg:
         self, username, passhash, nickname, email, avatar, aboutme, cover
     ):
         roleid = TOJAuth.instance.create_role(username, TOJAuth.ROLETYPE_USER)
+        with TOJAuth.change_current_iden(self._idendesc):
+            TOJAuth.instance.set_role_relation(
+                roleid, TOJAuth.ROLEID_USER_GROUP)
 
         cur = self.db.cursor()
         sqlstr = ('INSERT INTO "USER" ("username", "passhash", "nickname", '
