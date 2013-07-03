@@ -1,5 +1,15 @@
 'use strict'
 
+var ACCESSID_SQUAREMG = 4; 
+var ACCESSID_PROBLEMMG = 6; 
+
+var ACCESS_READ = 0x1;
+var ACCESS_WRITE = 0x2;
+var ACCESS_CREATE = 0x4;
+var ACCESS_DELETE = 0x8;
+var ACCESS_SETPER = 0x10;
+var ACCESS_EXECUTE = 0x20;
+
 var WebSocketConnection = function(link,ws){
     var that = this;
 
@@ -561,6 +571,13 @@ var com = new function(){
     that.get_defaultimg = function(hash){
         return 'http://www.gravatar.com/avatar/' + hash + '?f=y&d=identicon&s=256';
     };
+    that.check_access = function(accessid,permission){
+        if((user.authmap[accessid].permission & permission) == permission){
+            return true;
+        }else{
+            return false;
+        }
+    };
     that.create_codebox = function(j_div,mode,readonly){
         var codebox;
         
@@ -583,6 +600,8 @@ var com = new function(){
         codebox.getWrapperElement().style.height = '100%';
         codebox.getScrollerElement().style.width = '100%';
         codebox.getScrollerElement().style.height = '100%';
+
+        j_div.data('codebox',codebox);
 
         return codebox;
     };
@@ -993,10 +1012,9 @@ var com = new function(){
                     if((cookie = that.get_cookie()).uid != undefined){
                         that.call_backend('core/user/','cookie_login',function(result){
                             if(that.is_callerr(result)){
-                                index.add_alert('','登入發生錯誤');
+                                index.add_alert('','錯誤','登入失敗');
                             }else{
                                 imc.Auth.change_current_iden(result.data.idendesc);
-                                user.uid = imc.Auth.get_current_iden().uid;
                             }
                             
                             that.conn_callback.fire();

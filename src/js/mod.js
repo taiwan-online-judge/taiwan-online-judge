@@ -1,11 +1,13 @@
+'use strict'
+
 var mod = new function(){
     var that = this;
-
-    that.curr_sqmod = null;
+    var sq_node = new vus.node('sq');
+    var pro_node = new vus.node('pro');
+    var curr_sqmod = null;
+    var curr_pmod = null;
 
     that.ready = function(){
-        var sq_node = new vus.node('sq');
-
         sq_node.url_chg = function(direct,url_upart,url_dpart,param){
             var sqid;
 
@@ -29,21 +31,60 @@ var mod = new function(){
                         $.getScript('/toj/sqmod/' + sqmodname + '/js/' + sqmodname + '.js',function(script,status,xhr){
                             var sqid_node;
 
-                            curr_sqmod = sqmodname;
-
                             sqid_node = new vus.node(sqid);
-                            eval(sqmodname + '(sqid_node);'); 
+                            eval('curr_sqmod = new ' + sqmodname + '(sqid_node);'); 
 
                             sq_node.child_set(sqid_node);
                         });
                     }
                 },parseInt(sqid));
             }else if(direct == 'out'){
-                eval(curr_sqmod + '.unload()'); 
+                curr_sqmod.unload();
+                curr_sqmod = null;
             }
 
             return 'cont';
         };
         com.vus_root.child_set(sq_node);
+
+        pro_node.url_chg = function(direct,url_upart,url_dpart,param){
+            var proid;
+
+            if(direct == 'in'){
+                index.set_menu('題目');
+                index.clear_tabnav();
+                
+                proid = url_dpart[0];
+                pro_node.child_delayset(proid);
+                    
+                com.call_backend('core/problem/','get_problem_info',function(result){
+                    var data = result.data;
+                    var pmodname;
+
+                    if(com.is_callerr(result)){
+                        index.add_alert('','警告','開啓題目發生錯誤');    
+                    }else{
+                        index.set_title(data.title);
+
+                        pmodname = escape(data.pmodname);
+                        $.getScript('/toj/pmod/' + pmodname + '/js/' + pmodname + '.js',function(script,status,xhr){
+                            var proid_node;
+
+                            proid_node = new vus.node(proid);
+                            eval('curr_pmod = new ' + pmodname + '(parseInt(proid),proid_node);'); 
+
+                            pro_node.child_set(proid_node);
+                        });
+                    }
+                },parseInt(proid));
+
+            }else if(direct == 'out'){
+                curr_pmod.unload();
+                curr_pmod = null;
+            }
+
+            return 'cont';
+        };
+        com.vus_root.child_set(pro_node);
     };
 }

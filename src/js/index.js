@@ -112,20 +112,28 @@ var index = new function(){
             }
         });
 
-        user.login_callback.add(function(){
+        user.datachg_callback.add(function(type){
+            var j_a;
             var j_li;
 
-            j_header.find('li.login').hide();
-            j_header.find('li.register').hide();
-            j_header.find('li.nickname').show();
-            j_header.find('li.logout').show();
-            
-            j_li = j_menu.find('div.menu li.profile');
-            j_li.find('a').attr('href','/toj/user:' + user.uid + '/main/'); 
-            j_li.show();
-            j_menu.find('div.menu li.square').show();
-            j_menu.find('div.menu li.mail').show();
-            j_menu.find('div.menu li.manage').show();
+            j_a = j_header.find('li.nickname > a');
+            j_a.text(user.nickname);
+            j_a.attr('href','/toj/user:' + user.uid + '/main/');
+            console.log(type);
+
+            if(type == 'login'){
+                j_header.find('li.login').hide();
+                j_header.find('li.register').hide();
+                j_header.find('li.nickname').show();
+                j_header.find('li.logout').show();
+                
+                j_li = j_menu.find('div.menu li.profile');
+                j_li.find('a').attr('href','/toj/user:' + user.uid + '/main/'); 
+                j_li.show();
+                j_menu.find('div.menu li.square').show();
+                j_menu.find('div.menu li.mail').show();
+                j_menu.find('div.menu li.manage').show();
+            }   
         });
 
         _change(); 

@@ -135,17 +135,18 @@ class SquareMg:
         if not self.does_sqmodid_exist(sqmodid):
             return 'Eno_such_sqmodid'
 
-        sqid = self._create_square(title, hidden, sqmodid, intro, logo)
+        sqid = self._create_square(title, sqmodid, intro, logo)
         self._set_square_category(sqid, category)
+        self._set_square_hidden(sqid, hidden)
         return {'sqid': sqid}
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_CREATE)
-    def _create_square(self, title, hidden, sqmodid, intro, logo):
+    def _create_square(self, title, sqmodid, intro, logo):
         cur = self.db.cursor()
         sqlstr = ('INSERT INTO "SQUARE" ("title", "hidden", "sqmodid", '
                   '"intro", "logo", "accessid") VALUES (%s, %s, %s, %s, '
                   '%s, %s) RETURNING "sqid";')
-        sqlarr = (title, hidden, sqmodid, intro, logo, 0)
+        sqlarr = (title, False, sqmodid, intro, logo, 0)
         cur.execute(sqlstr, sqlarr)
 
         sqid = None
@@ -269,21 +270,21 @@ class SquareMg:
             if not self.does_cateid_exist(cateid):
                 return 'Eno_such_cateid'
 
-        self.set_square(sqid, title, start_time, end_time, hidden, intro, logo)
+        self.set_square(sqid, title, start_time, end_time, intro, logo)
         self._set_square_category(sqid, category)
+        self._set_square_hidden(sqid, hidden)
 
         return 'Success'
 
-    def set_square(self, sqid, title, start_time, end_time, hidden, intro, 
-                    logo):
+    def set_square(self, sqid, title, start_time, end_time, intro, logo):
         accessid = self.get_accessid_by_sqid(sqid)
         TOJAuth.check_access_func(accessid, TOJAuth.ACCESS_WRITE)
 
         cur = self.db.cursor()
         sqlstr = ('UPDATE "SQUARE" SET "title" = %s, "start_time" = %s, '
-                  '"end_time" = %s, "hidden" = %s, "intro" = %s, "logo" = %s '
+                  '"end_time" = %s, "intro" = %s, "logo" = %s '
                   'WHERE "sqid" = %s;')
-        sqlarr = (title, start_time, end_time, hidden, intro, logo, sqid)
+        sqlarr = (title, start_time, end_time, intro, logo, sqid)
         cur.execute(sqlstr, sqlarr)
 
     @imc.async.caller
@@ -428,8 +429,8 @@ class SquareMg:
         sq_accessid = self.get_accessid_by_sqid(sqid)
         TOJAuth.check_access_func(sq_accessid, TOJAuth.ACCESS_WRITE)
 
-        if category == {}:
-            category = {0}
+        if category == []:
+            category = [0]
 
         cur = self.db.cursor()
         sqlstr = ('UPDATE "SQUARE" SET "cateid" = %s WHERE "sqid" = %s;')
@@ -555,6 +556,26 @@ class SquareMg:
         sqlarr = (uid, sqid)
         cur.execute(sqlstr, sqlarr)
 
+    def _set_square_hidden(self, sqid, hidden):
+        accessid = self.get_accessid_by_sqid(sqid)
+        TOJAuth.check_access_func(accessid, TOJAuth.ACCESS_WRITE)
+
+        cur = self.db.cursor()
+        sqlstr = ('UPDATE "SQUARE" SET "hidden" = %s WHERE "sqid" = %s')
+        sqlarr = (hidden, sqid)
+        cur.execute(sqlstr, sqlarr)
+
+        if hidden == True:
+            TOJAuth.instance.set_access_list(
+                accessid, TOJAuth.ROLEID_GUEST, TOJAuth.ACCESS_READ)
+            TOJAuth.instance.set_access_list(
+                accessid, TOJAuth.ROLEID_USER_GROUP, TOJAuth.ACCESS_READ)
+        else:
+            TOJAuth.instance.del_access_list(
+                accessid, TOJAuth.ROLEID_GUEST)
+            TOJAuth.instance.del_access_list(
+                accessid, TOJAuth.ROLEID_USER_GROUP)
+        
     def get_square_info_by_sqid(self, sqid):
         cur = self.db.cursor()
         sqlstr = ('SELECT "sqid", "title", "start_time", "end_time", '

@@ -45,23 +45,25 @@ var notice = new function(){
             });
         });
         
-        user.login_callback.add(function(){
-            imc.Proxy.instance.register_call('core/notice/','update_notice',function(callback,unseen_count){
-                _set_unseen_count(unseen_count);
-                callback('Success');
-            });
+        user.datachg_callback.add(function(type){
+            if(type == 'login'){
+                imc.Proxy.instance.register_call('core/notice/','update_notice',function(callback,unseen_count){
+                    _set_unseen_count(unseen_count);
+                    callback('Success');
+                });
 
-            com.call_backend('core/notice/','get_unseen_count',function(result){
-                var data = result.data;
+                com.call_backend('core/notice/','get_unseen_count',function(result){
+                    var data = result.data;
 
-                if(com.is_callerr(result)){
-                    index.add_alert('','警告','通知發生錯誤');
-                }else{
-                    _set_unseen_count(data.unseen_count);
-                }         
-            });
+                    if(com.is_callerr(result)){
+                        index.add_alert('','警告','通知發生錯誤');
+                    }else{
+                        _set_unseen_count(data.unseen_count);
+                    }         
+                });
 
-            j_noticetag.show();
+                j_noticetag.show();
+            }
         });
     };
 };

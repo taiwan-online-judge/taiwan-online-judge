@@ -3,15 +3,19 @@ var user = new function(){
     var j_index_page;
 
     that.uid = null;
+    that.authmap = null;
     that.username = null;
     that.nickname = null;
     that.email = null;
     that.avatar = null;
     that.cover = null;
 
-    that.login_callback = $.Callbacks();
+    that.datachg_callback = $.Callbacks();
+    that.authchg_callback = $.Callbacks();
 
     that.ready = function(){
+        var defer = $.Deferred();
+
         var uid;
         var user_node_uid = null;
         var j_tabnav_main; 
@@ -33,9 +37,7 @@ var user = new function(){
             document.cookie = 'hash=' + hash + ';path=/;expires=' + expire.toUTCString();
 
             imc.Auth.change_current_iden(idendesc);
-            _set_user_data(uid).done(function(){
-                that.login_callback.fire();
-            });
+            _set_user(uid);
         };
         function _logout(){
             document.cookie = 'uid=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -54,11 +56,30 @@ var user = new function(){
 
             return defer.promise();
         };
-        function _set_user_data(uid){
+        function _get_user_authlist(uid){
             var defer = $.Deferred();
 
-            _get_user_info(uid).done(function(data){
-                var j_a;
+            com.call_backend('core/user/','list_auth',function(result){
+                if(com.is_callerr(result)){
+                    defer.reject(result.data);
+                }
+                defer.resolve(result.data);
+            });
+
+            return defer.promise();
+        }
+        function _set_user(uid){
+            var defer = $.Deferred();
+
+            $.when(_get_user_info(uid),_get_user_authlist(uid)).done(function(data,authlist){
+                var i;
+                var type;
+
+                if(that.username == null){
+                    type = 'login';
+                }else{
+                    type = 'set';
+                }
 
                 that.uid = data.uid;
                 that.username = data.username;
@@ -67,12 +88,16 @@ var user = new function(){
                 that.avatar = data.avatar;
                 that.cover = data.cover;
 
-                j_a = $('#index_header li.nickname > a');
-                j_a.text(that.nickname);
-                j_a.attr('href','/toj/user:' + that.uid + '/main/');
+                user.authmap = new Object();
+                for(i = 0;i < authlist.length;i++){
+                    user.authmap[authlist[i].accessid] = authlist[i];
+                }
+
+                that.datachg_callback.fire(type);
+                that.authchg_callback.fire();
 
                 defer.resolve();
-            }).fail(function(data){
+            }).fail(function(){
                 defer.reject();
             });
 
@@ -81,9 +106,11 @@ var user = new function(){
 
         j_index_page = $('#index_page');
 
-        if((uid = imc.Auth.get_current_iden().uid) != undefined){
-            _set_user_data(uid).done(function(){
-                that.login_callback.fire();
+        if((uid = imc.Auth.get_current_iden().uid) == undefined){
+            defer.resolve();
+        }else{
+            _set_user(uid).done(function(){
+                defer.resolve();
             });
         }
 
@@ -119,26 +146,6 @@ var user = new function(){
             var j_menutag = $('#index_menutag');
             var j_paneltag = $('#index_paneltag');
             
-            function _tmp(y){
-                var now = 0;
-                var ay = 100;
-                
-                /*function __ani(){
-                    if(y <= now){
-                        $(window).scrollTop(y);
-                        return;
-                    }
-                    $(window).scrollTop(now);
-
-                    now = now + ay;
-                    ay = Math.max(5,ay * 0.86);
-                    setTimeout(__ani,10);
-                }
-
-                __ani();*/
-                j_win.scrollTop(y);
-            }
-
             function _active(){
                 j_header.addClass('force');
                 j_header.addClass('active');
@@ -193,7 +200,7 @@ var user = new function(){
                     });
 
                     _active();
-                    _tmp(500);
+                    j_win.scrollTop(500);
                     j_index_page.show();
                     j_index_page.css('visibility','visible');
                 });
@@ -294,7 +301,7 @@ var user = new function(){
                                 index.add_alert('alert-error','失敗',errmsg,true);
                                 set_defer.reject();
                             }else{
-                                _set_user_data(that.uid);
+                                _set_user(that.uid);
                                 set_defer.resolve();
                             }
                         },that.uid,j_nickname.val(),j_email.val(),j_avatar.val(),j_aboutme.val(),j_cover.val());
@@ -454,5 +461,7 @@ var user = new function(){
             }
         };
         com.vus_root.child_set(logout_node);
+
+        return defer.promise();
     };
 };

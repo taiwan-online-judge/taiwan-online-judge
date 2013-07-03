@@ -8,9 +8,9 @@ import importlib.machinery
 mod = sys.modules[__name__]
 mod_list = {}
 
-class SqmodFinder(MetaPathFinder):
+class ModFinder(MetaPathFinder):
     def find_module(fullname,path):
-        if not fullname.startswith('sqmod/'):
+        if not fullname.startswith('/srv/'):
             return None
 
         return importlib.machinery.SourceFileLoader(fullname,fullname + '.py')
@@ -26,10 +26,13 @@ def unload(name):
     del mod_list[name]
 
 def load_sqmod(sqmodname):
-    print(sqmodname)
-
-    instance = import_module(''.join(['sqmod/',sqmodname,'/py/',sqmodname]))
+    instance = import_module(''.join(['/srv/py/sqmod/',sqmodname,'/py/',sqmodname]))
 
     return getattr(instance,sqmodname)
 
-sys.meta_path.append(SqmodFinder)
+def load_pmod(pmodname):
+    instance = import_module(''.join(['/srv/http/toj/pmod/',pmodname,'/py/',pmodname]))
+
+    return getattr(instance,pmodname)
+
+sys.meta_path.append(ModFinder)

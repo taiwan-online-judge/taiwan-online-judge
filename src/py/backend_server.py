@@ -52,8 +52,8 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         self._client_linkmap = {}
 
     def start(self):
-        sys.stdout = self._log
-        sys.stderr = self._log
+        #sys.stdout = self._log
+        #sys.stderr = self._log
 
         sock_port = random.randrange(4096,8192)
         self.sock_addr = ('10.8.0.6',sock_port)

@@ -131,14 +131,14 @@ class BlobServer:
     def check_blob(self, client, blobname, cacherev):
         rev = self._blobtable.get_blob_info(blobname, 'rev')
         if rev is None:
-            return False
+            return 'no_exist'
         elif cacherev < rev:
             result = self.send_blob(client, blobname)
             response = {'filekey': result.filekey,
                         'info': self._blobtable.get_blob_info(blobname)}
             return response
         else:
-            return None
+            return 'up_to_date'
 
     @imc.async.caller
     def recv_update_result(self, client, blobname, result,

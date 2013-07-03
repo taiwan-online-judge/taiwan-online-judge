@@ -129,14 +129,13 @@ class BlobClient:
         if not sta:
             # TODO:
             # pend operation when client can't imc call server
-            return None
-        if ret is None:
-            return True
-        elif not ret:
+            pass
+        elif ret == 'up_to_date':
+            pass
+        elif ret == 'no_exist':
             self._cachetable.del_blob(blobname)
             if cacherev:
                 self.del_real_blob(''.join([blobname, '_', str(cacherev)]))
-            return None
         else:
             info = ret['info']
             rev = info['rev']
@@ -145,14 +144,9 @@ class BlobClient:
                 sta, ret = self._server_call('recv_update_result', blobname, 
                                              rst, rev, True)
 
-                if not sta:
-                    pass
-                    # TODO:
                 if 'Success' == ret:
                     self.update_blob(blobname, info)
-                    return True
-
-            return False
+                    break
 
     def commit(self, commit_info, force_flag, blobhandle):
         filekey = None
@@ -205,28 +199,26 @@ class BlobClient:
     def open(self, container, blobname, flag):
         if container not in self._containers:
             raise Exception("this container isn't open")
-        blob = container + '_' + blobname
-        is_existent = self.update(blob)
-        if is_existent is None:
+        blob = ''.join([container, '_', blobname])
+        self.update(blob)
+        info = self._cachetable.get_blob_info(blob)
+        if info is None:
             if (not flag & self.BlobHandle.WRITE or 
                 not flag & self.BlobHandle.CREATE):
-                raise Exception("the blob doesn't exist, so you must "
-                                "add a create flag")
-        elif not is_existent:
-            pass
-        try:
-            info = self._cachetable.get_blob_info(blob)
-            if info is None:
+                raise ValueError("the blob doesn't exist, so you must "
+                                 "add a create flag")
+            else:
                 info = {'container': container,
                         'rev': 0,
                         'metadata': '',
                         'size': None,
                         'commit_time': None}
+        try:
             handle = self.BlobHandle(blob, info, flag, self)
-        except:
+        except ValueError:
             raise
         else:
-            blob += '_' + str(handle.get_rev())
+            blob = ''.join(blob, '_', str(handle.get_rev()))
             self._opencounts[blob] += 1
             return handle
 

@@ -3,15 +3,17 @@
 var manage = new function(){
     var that = this;
     var j_index_page;
+    
+    var manage_node = new vus.node('manage');
+    var dash_node = new vus.node('dash'); 
+    var square_node = new vus.node('square'); 
+    var problem_node = new vus.node('problem'); 
+
+    var j_tabnav_dash;
+    var j_tabnav_square;
+    var j_tabnav_problem;
 
     that.ready = function(){
-        var manage_node = new vus.node('manage');
-        var square_node = new vus.node('square'); 
-        var problem_node = new vus.node('problem'); 
-
-        var j_tabnav_square;
-        var j_tabnav_problem;
-
         j_index_page = $('#index_page');
 
         manage_node.url_chg = function(direct,url_upart,url_dpart,param){
@@ -19,17 +21,72 @@ var manage = new function(){
                 index.set_menu('管理');
                 index.clear_tabnav();
 
+                j_tabnav_dash = index.add_tabnav('儀表板','/toj/manage/dash/');
                 j_tabnav_square = index.add_tabnav('方塊','/toj/manage/square/');
                 j_tabnav_problem = index.add_tabnav('題目','/toj/manage/problem/');
-
-                com.call_backend('core/user/','list_auth',function(result){
-                    console.log(result);
-                });
             }
 
             return 'cont';
         };
         com.vus_root.child_set(manage_node);
+        
+        dash_node.url_chg = function(direct,url_upart,url_dpart,param){
+            if(direct == 'in'){
+                j_tabnav_dash.active();
+
+                com.loadpage('/toj/html/manage_dash.html').done(function(){
+                    var i;
+                    var j_accesslist = j_index_page.find('table.accesslist');
+                    var j_item;
+                    var j_permission;
+                    var accessid;
+                    var authlist;
+                    var autho;
+
+                    authlist = new Array();
+                    for(accessid in user.authmap){
+                        authlist.push(user.authmap[accessid]);
+                    }
+                    authlist.sort(function(a,b){
+                        return a.accessid - b.accessid;
+                    });
+
+                    for(i = 0;i < authlist.length;i++){
+                        autho = authlist[i];
+
+                        j_item = $('<tr><td class="accessid"></td><td class="permission"></td></tr>'); 
+                        j_item.find('td.accessid').text(autho.accessid);
+                        j_permission = j_item.find('td.permission');
+
+                        if(com.check_access(autho.accessid,ACCESS_READ)){
+                            j_permission.append($('<span class="label label-success">READ</span>'));
+                        }
+                        if(com.check_access(autho.accessid,ACCESS_WRITE)){
+                            j_permission.append($('<span class="label label-warning">WRITE</span>'));
+                        }
+                        if(com.check_access(autho.accessid,ACCESS_CREATE)){
+                            j_permission.append($('<span class="label label-info">CREATE</span>'));
+                        }
+                        if(com.check_access(autho.accessid,ACCESS_DELETE)){
+                            j_permission.append($('<span class="label label-important">DELETE</span>'));
+                        }
+                        if(com.check_access(autho.accessid,ACCESS_SETPER)){
+                            j_permission.append($('<span class="label label-inverse">SETPER</span>'));
+                        }
+                        if(com.check_access(autho.accessid,ACCESS_EXECUTE)){
+                            j_permission.append($('<span class="label">EXECUTE</span>'));
+                        }
+
+                        j_accesslist.append(j_item);
+                    } 
+                }); 
+            }else if(direct == 'out'){
+
+            }
+
+            return 'cont';
+        };
+        manage_node.child_set(dash_node);
 
         square_node.url_chg = function(direct,url_upart,url_dpart,param){
             var j_create;
@@ -41,8 +98,9 @@ var manage = new function(){
             var set_tagbox_cate;
             var set_data;
 
-            function _item_set(j_item,id,title,start_time,end_time,cateid,intro,logo,hidden){
+            function _item_set(j_item,id,title,hidden,start_time,end_time,cateid,intro,logo){
                 var i;
+                var j_hidden;
                 var j_cate;
                 var j_label;
 
@@ -54,6 +112,15 @@ var manage = new function(){
                 }
                 if(end_time != null){
                     j_item.find('td.time > div.end').text('└→' + com.get_timestring(end_time));
+                }
+                
+                j_hidden = j_item.find('td.hid');
+                if(hidden == false){
+                    j_hidden.text('公開');
+                    j_hidden.removeClass('text-warning');
+                }else{
+                    j_hidden.text('隱藏');
+                    j_hidden.addClass('text-warning');
                 }
 
                 j_cate = j_item.find('td.cate');
@@ -68,12 +135,12 @@ var manage = new function(){
                     set_data = {
                         'id':id,
                         'title':title,
+                        'hidden':hidden,
                         'start_time':start_time,
                         'end_time':end_time,
                         'cateid':cateid,
                         'intro':intro,
                         'logo':logo,
-                        'hidden':hidden
                     };
 
                     j_set.modal('show');
@@ -88,10 +155,10 @@ var manage = new function(){
                     },id);
                 });
             }
-            function _item_create(id,title,start_time,end_time,cateid,intro,logo,hidden){
-                var j_item = $('<tr class="item"><td class="id"></td><td class="title"><td class="time"><div class="time start"></div><div class="time end"></div</td></td><td class="cate"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>');
+            function _item_create(id,title,hidden,start_time,end_time,cateid,intro,logo){
+                var j_item = $('<tr class="item"><td class="id"></td><td class="title"><td class="time"><div class="time start"></div><div class="time end"></div</td><td class="hid"></td></td><td class="cate"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>');
                 
-                _item_set(j_item,id,title,start_time,end_time,cateid,intro,logo,hidden);
+                _item_set(j_item,id,title,hidden,start_time,end_time,cateid,intro,logo);
 
                 return j_item;
             }
@@ -103,6 +170,7 @@ var manage = new function(){
 
                     if(com.is_callerr(result)){
                         index.add_alert('','警告','管理發生錯誤');
+                        defer.reject(data);
                     }else{
                         defer.resolve(data);
                     }
@@ -157,24 +225,24 @@ var manage = new function(){
                                     
                                     _item_set($(items[i]),sqo.sqid,
                                               sqo.title,
+                                              sqo.hidden,
                                               sqo.start_time,
                                               sqo.end_time,
                                               sqo.cateid,
                                               sqo.intro,
-                                              sqo.logo,
-                                              sqo.hidden); 
+                                              sqo.logo); 
                                 }
                                 for(;i < data.length;i++){
                                     sqo = data[i];
                                     
                                     j_item = _item_create(sqo.sqid,
                                                           sqo.title,
+                                                          sqo.hidden,
                                                           sqo.start_time,
                                                           sqo.end_time,
                                                           sqo.cateid,
                                                           sqo.intro,
-                                                          sqo.logo,
-                                                          sqo.hidden);
+                                                          sqo.logo);
                                     j_list.append(j_item);
                                 }
                                 for(;i < items.length;i++){
@@ -189,6 +257,7 @@ var manage = new function(){
             if(direct == 'in'){
                 com.loadpage('/toj/html/manage_square.html').done(function(){
                     var j_catebox;
+                    var j_button;
 
                     j_tabnav_square.active();
 
@@ -199,6 +268,14 @@ var manage = new function(){
                     j_catebox = j_create.find('div.catebox');
                     create_tagbox_cate = j_catebox.tagbox({'words':[],'restrict':true,'duplicate':false});
                     j_catebox.find('input').attr('placeholder','+加入分類');
+
+                    j_button = j_index_page.find('div.oper > button.create');
+                    if(com.check_access(ACCESSID_SQUAREMG,ACCESS_CREATE)){
+                        j_button.show();
+                    }
+                    j_index_page.find('div.oper > button.create').on('click',function(e){
+                        j_create.modal('show');      
+                    });
 
                     j_create.find('[name="logo"]').on('change',function(e){
                         var url;
@@ -399,10 +476,6 @@ var manage = new function(){
                         set_tagbox_cate.clear();
                     });
 
-                    j_index_page.find('div.oper > button.create').on('click',function(e){
-                        j_create.modal('show');      
-                    });
-                    
                     _update_list();
                 });
             }
@@ -417,14 +490,25 @@ var manage = new function(){
             var j_list;
             var set_data;
 
-            function _item_set(j_item,proid,title,pmodid){
+            function _item_set(j_item,proid,title,hidden,pmodid){
+                var j_hidden;
+
                 j_item.find('td.proid').text(proid); 
                 j_item.find('td.title').text(title); 
+                j_hidden = j_item.find('td.hid');
+                if(hidden == false){
+                    j_hidden.text('公開');
+                    j_hidden.removeClass('text-warning');
+                }else{
+                    j_hidden.text('隱藏');
+                    j_hidden.addClass('text-warning');
+                }
 
                 j_item.find('button.set').on('click',function(e){
                     set_data = {
                         'proid':proid,
                         'title':title,
+                        'hidden':hidden
                     }; 
 
                     j_set.modal('show');
@@ -439,10 +523,10 @@ var manage = new function(){
                     },proid); 
                 });
             }
-            function _item_create(proid,title,pmodid){
-                var j_item = $('<tr><td class="proid"></td><td class="title"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>') 
+            function _item_create(proid,title,hidden,pmodid){
+                var j_item = $('<tr><td class="proid"></td><td class="title"></td><td class="hid"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>');
 
-                _item_set(j_item,proid,title,pmodid);
+                _item_set(j_item,proid,title,hidden,pmodid);
 
                 return j_item;
             }
@@ -457,6 +541,7 @@ var manage = new function(){
 
                     if(com.is_callerr(result)){
                         index.add_alert('','警告','管理發生錯誤'); 
+                        defer.reject(data);
                     }else{
                         defer.resolve(data);        
                     }
@@ -477,7 +562,7 @@ var manage = new function(){
                         j_list.empty();
                         for(i = 0;i < data.length;i++){
                             proo = data[i];
-                            j_item = _item_create(proo.proid,proo.title,proo.pmodid);
+                            j_item = _item_create(proo.proid,proo.title,proo.hidden,proo.pmodid);
                             j_list.append(j_item);
                         } 
                     }
@@ -488,11 +573,17 @@ var manage = new function(){
                 j_tabnav_problem.active();
 
                 com.loadpage('/toj/html/manage_problem.html').done(function(){
+                    var j_button;
+
                     j_create = j_index_page.find('div.create'); 
                     j_set = j_index_page.find('div.set'); 
                     j_list = j_index_page.find('table.list > tbody');
 
-                    j_index_page.find('button.create').on('click',function(e){
+                    j_button = j_index_page.find('div.oper > button.create');
+                    if(com.check_access(ACCESSID_PROBLEMMG,ACCESS_CREATE)){
+                        j_button.show();
+                    }
+                    j_button.on('click',function(e){
                         j_create.modal('show'); 
                     });
 
@@ -519,6 +610,13 @@ var manage = new function(){
                     j_create.find('button.submit').on('click',function(e){
                         var title = j_create.find('[name="title"]').val(); 
                         var pmodid = parseInt(j_create.find('[name="pmod"]').val());
+                        var hidden = j_create.find('[name="hidden"]').val(); 
+
+                        if(hidden == '0'){
+                            hidden = false;
+                        }else{
+                            hidden = true;
+                        }
 
                         com.call_backend('core/problem/','create_problem',function(result){
                             var data = result.data;
@@ -541,7 +639,7 @@ var manage = new function(){
                                 index.add_alert('alert-success','成功','題目已建立');
                                 _update_list();
                             }
-                        },title,pmodid);
+                        },title,hidden,pmodid);
                     });
                     j_create.find('button.cancel').on('click',function(e){
                         j_create.modal('hide');
@@ -549,12 +647,24 @@ var manage = new function(){
                     
                     j_set.on('show',function(e){
                         j_set.find('[name="title"]').val(set_data.title);
+                        if(set_data.hidden == false){
+                            j_set.find('[name="hidden"]').val(0);
+                        }else{
+                            j_set.find('[name="hidden"]').val(1);
+                        }
                     });
                     j_set.on('hide',function(e){
                         j_set.find('input').val('');
                     });
                     j_set.find('button.submit').on('click',function(e){
                         var title = j_set.find('[name="title"]').val(); 
+                        var hidden = j_set.find('[name="hidden"]').val(); 
+
+                        if(hidden == '0'){
+                            hidden = false;
+                        }else{
+                            hidden = true;
+                        }
 
                         com.call_backend('core/problem/','set_problem',function(result){
                             var data = result.data;
@@ -577,7 +687,7 @@ var manage = new function(){
                                 index.add_alert('alert-success','成功','題目已設定');
                                 _update_list();
                             }
-                        },set_data.proid,title);
+                        },set_data.proid,title,hidden);
                     });
                     j_set.find('button.cancel').on('click',function(e){
                         j_set.modal('hide');

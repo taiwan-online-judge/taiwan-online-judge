@@ -23,7 +23,10 @@ class TOJAuth(Auth):
     ROLEID_MOD      = 2
     ROLEID_GUEST    = 99
 
-    ROLEID_SQUARE_ADMIN_GROUP    = 101
+    ROLEID_SQUARE_ADMIN_GROUP   = 101
+    ROLEID_PROBLEM_ADMIN_GROUP  = 102
+
+    ROLEID_USER_GROUP   = 201
 
     _accessid = 1
 

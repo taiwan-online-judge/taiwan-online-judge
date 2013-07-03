@@ -258,11 +258,30 @@ var imc = new function(){
             cnode = walk_path(path,true);
             cnode.name[func_name] = func;
         };
+        that.unregister_call = function(path,func_name){
+            var cnode;
+
+            cnode = walk_path(path,true);
+            delete cnode.name[func_name];
+        }
         that.register_filter = function(path,func){
             var cnode;
 
             cnode = walk_path(path,true);
             cnode.filt.push(func);
+        };
+        that.unregister_filter = function(path,func){
+            var i;
+            var cnode;
+            var new_filt = new Array();
+
+            cnode = walk_path(path,true);
+            for(i = 0;i < cnode.filt.length;i++){
+                if(cnode.filt[i] != func){
+                    new_filt.push(cnode.filt[i]); 
+                }
+            }
+            cnode.filt.remove(func);
         };
 
         conn_retidmap[self_link] = {};

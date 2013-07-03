@@ -19,6 +19,8 @@ class ProblemMg:
         self.get_link = get_link_fn
         self._pmod_list = {}
 
+        Proxy.instance.register_filter('pro/', self.pmod_filter)
+
         Proxy.instance.register_call(
             'core/problem/', 'create_problem', self.create_problem)
         Proxy.instance.register_call(
@@ -28,19 +30,30 @@ class ProblemMg:
         Proxy.instance.register_call(
             'core/problem/', 'list_problem', self.list_problem)
         Proxy.instance.register_call(
+            'core/problem/', 'get_problem_info', self.get_problem_info)
+        Proxy.instance.register_call(
             'core/problem/', 'list_pmod', self.list_pmod)
 
     def unload(self):
+        Proxy.instance.unregister_filter('pro/',self.pmod_filter)
+
         Proxy.instance.unregister_call(
             'core/problem/', 'create_problem')
-        Proxy.instance.register_call(
+        Proxy.instance.unregister_call(
             'core/problem/', 'delete_problem')
         Proxy.instance.unregister_call(
             'core/problem/', 'set_problem')
         Proxy.instance.unregister_call(
             'core/problem/', 'list_problem')
         Proxy.instance.unregister_call(
-            'core/problem/', 'list_problem')
+            'core/problem/', 'get_problem_info')
+        Proxy.instance.unregister_call(
+            'core/problem/', 'list_pmod')
+
+    def pmod_filter(self, res_path, dst_func):
+        proid = int(res_path[0])
+        with TOJAuth.change_current_iden(self._idendesc):
+            self.load_problem(proid)
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def load_problem(self, proid):
@@ -48,7 +61,7 @@ class ProblemMg:
             return self._pmod_list[proid]
 
         proinfo = self.get_problem_info_by_proid(proid)
-        pmodname = self.proinfo['pmodname']
+        pmodname = proinfo['pmodname']
         pmod = mod.load_pmod(pmodname)
         self._pmod_list[proid] = pmod(self._idendesc, self.get_link, proid)
 
@@ -61,9 +74,10 @@ class ProblemMg:
             del self._pmod_list[proid]
 
     @imc.async.caller
-    def create_problem(self, title, pmodid):
+    def create_problem(self, title, hidden, pmodid):
         if(
             type(title) != str or
+            type(hidden) != bool or
             type(pmodid) != int
         ):
             return 'Eparameter'
@@ -77,6 +91,8 @@ class ProblemMg:
             return 'Epmodid'
 
         proid = self._create_problem(title, pmodid)
+        self._set_problem_hidden(proid, hidden)
+
         return {'proid': proid}
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_CREATE)
@@ -107,10 +123,10 @@ class ProblemMg:
             TOJAuth.ACCESS_ALL
         )
 
-        # pmodname = self.get_pmodname_by_pmodid(pmodid)
-        # pmod = mod.load_pmod(pmodname)
+        pmodname = self.get_pmodname_by_pmodid(pmodid)
+        pmod = mod.load_pmod(pmodname)
         
-        # pmod.create_problem_data(proid)
+        pmod.create_problem_data(proid)
 
         return proid
 
@@ -132,14 +148,14 @@ class ProblemMg:
         accessid = self.get_accessid_by_proid(proid)
         TOJAuth.check_access_func(accessid, TOJAuth.ACCESS_DELETE)
 
-        # proinfo = self.get_problem_info_by_proid(proid)
-        # pmodname = proinfo['pmodname']
-        # pmod = mod.load_pmod(pmodname)
+        proinfo = self.get_problem_info_by_proid(proid)
+        pmodname = proinfo['pmodname']
+        pmod = mod.load_pmod(pmodname)
 
         with TOJAuth.change_current_iden(self._idendesc):
             self.unload_problem(proid)
 
-        # pmod.delete_problem_data(proid)
+        pmod.delete_problem_data(proid)
         
         TOJAuth.instance.del_access(accessid)
         
@@ -149,10 +165,11 @@ class ProblemMg:
         cur.execute(sqlstr, sqlarr)
 
     @imc.async.caller
-    def imc_set_problem(self, proid, title):
+    def imc_set_problem(self, proid, title, hidden):
         if(
             type(proid) != int or
-            type(title) != str
+            type(title) != str or
+            type(hidden) != bool
         ):
             return 'Eparameter'
 
@@ -165,6 +182,7 @@ class ProblemMg:
             return 'Eproid'
 
         self.set_problem(proid, title)
+        self._set_problem_hidden(proid, hidden)
 
         return 'Success'
 
@@ -186,8 +204,8 @@ class ProblemMg:
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def _list_problem(self):
         cur = self.db.cursor()
-        sqlstr = ('SELECT "proid", "title", "pmodid" FROM "PROBLEM" ORDER BY '
-                  '"proid" ASC;')
+        sqlstr = ('SELECT "proid", "title", "hidden", "pmodid" FROM "PROBLEM" '
+                  'ORDER BY "proid" ASC;')
         cur.execute(sqlstr)
 
         problem_list = []
@@ -195,7 +213,8 @@ class ProblemMg:
             obj = {}
             obj['proid'] = data[0]
             obj['title'] = data[1]
-            obj['pmodid'] = data[2]
+            obj['hidden'] = data[2]
+            obj['pmodid'] = data[3]
 
             problem_list.append(obj)
 
@@ -233,6 +252,26 @@ class ProblemMg:
 
         return pmod_list
 
+    def _set_problem_hidden(self, proid, hidden):
+        accessid = self.get_accessid_by_proid(proid)
+        TOJAuth.check_access_func(accessid, TOJAuth.ACCESS_WRITE)
+
+        cur = self.db.cursor()
+        sqlstr = ('UPDATE "PROBLEM" SET "hidden" = %s WHERE "proid" = %s;')
+        sqlarr = (hidden, proid)
+        cur.execute(sqlstr, sqlarr)
+
+        if hidden == True:
+            TOJAuth.instance.set_access_list(
+                accessid, TOJAuth.ROLEID_GUEST, TOJAuth.ACCESS_READ)
+            TOJAuth.instance.set_access_list(
+                accessid, TOJAuth.ROLEID_USER_GROUP, TOJAuth.ACCESS_READ)
+        else:
+            TOJAuth.instance.del_access_list(
+                accessid, TOJAuth.ROLEID_GUEST)
+            TOJAuth.instance.del_access_list(
+                accessid, TOJAuth.ROLEID_USER_GROUP)
+
     def get_accessid_by_proid(self, proid):
         cur = self.db.cursor()
         sqlstr = ('SELECT "accessid" FROM "PROBLEM" WHERE "proid" = %s;')
@@ -247,8 +286,8 @@ class ProblemMg:
 
     def get_problem_info_by_proid(self, proid):
         cur = self.db.cursor()
-        sqlstr = ('SELECT "proid", "title", "pmodid" FROM "PROBLEM" WHERE '
-                  '"proid" = %s;')
+        sqlstr = ('SELECT "proid", "title", "hidden", "pmodid" FROM "PROBLEM" '
+                  'WHERE "proid" = %s;')
         sqlarr = (proid, )
         cur.execute(sqlstr, sqlarr)
 
@@ -257,9 +296,10 @@ class ProblemMg:
             ret = {}
             ret['proid'] = data[0]
             ret['title'] = data[1]
-            ret['pmodid'] = data[2]
+            ret['hidden'] = data[2]
+            ret['pmodid'] = data[3]
 
-            # ret['pmodname'] = self.get_pmodname_by_pmodid(obj['pmodid'])
+            ret['pmodname'] = self.get_pmodname_by_pmodid(ret['pmodid'])
 
         return ret
 
@@ -269,7 +309,16 @@ class ProblemMg:
         return pro_info != None
 
     def get_pmodname_by_pmodid(self, pmodid):
-        return 'ABC'
+        cur = self.db.cursor()
+        sqlstr = ('SELECT "pmodname" FROM "PMOD" WHERE "pmodid" = %s;')
+        sqlarr = (pmodid, )
+        cur.execute(sqlstr, sqlarr)
+
+        pmodname = None
+        for data in cur:
+            pmodname = data[0]
+
+        return pmodname
 
     def does_pmodid_exist(self, pmodid):
         pmodname = self.get_pmodname_by_pmodid(pmodid)

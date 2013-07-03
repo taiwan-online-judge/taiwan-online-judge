@@ -25,6 +25,16 @@ class Notice:
         Proxy.instance.register_call(
             'core/notice/', 'get_unseen_count', self.get_unseen_count)
 
+    def unload(self):
+        Proxy.instance.unregister_call(
+            'core/notice/', 'list_notice')
+        Proxy.instance.unregister_call(
+            'core/notice/', 'read_notice')
+        Proxy.instance.unregister_call(
+            'core/notice/', 'del_notice')
+        Proxy.instance.unregister_call(
+            'core/notice/', 'get_unseen_count')
+
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def send_notice(self, uid, title, content, noticemod_path, metadata):
         cur = self.db.cursor()
@@ -77,6 +87,8 @@ class Notice:
         with TOJAuth.change_current_iden(self._idendesc):
             self._del_notice(noticeid)
             self.notify_client(notice['uid'])
+
+        return 'Success'
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def _del_notice(self, noticeid):    
@@ -140,6 +152,8 @@ class Notice:
 
         with TOJAuth.change_current_iden(self._idendesc):
             self.set_notice_unread(noticeid, False)
+
+        return 'Success'
 
     @TOJAuth.check_access(_accessid, TOJAuth.ACCESS_EXECUTE)
     def set_notice_unread(self, noticeid, unread):
@@ -232,7 +246,4 @@ class Notice:
             TOJAuth.check_access_func(self._accessid, TOJAuth.ACCESS_EXECUTE)
 
         return ret
-
-    def unload():
-        pass
 

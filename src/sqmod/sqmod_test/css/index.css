@@ -1,0 +1,36 @@
+@font-face {
+  font-family: Saucer-Regular;
+  src: url('/toj/sqmod/sqmod_test/html/Saucer-Regular.ttf');
+}
+@font-face {
+  font-family: Saucer-Bold;
+  src: url('/toj/sqmod/sqmod_test/html/Saucer-Bold.ttf');
+}
+@font-face {
+  font-family: Saucer-Mono;
+  src: url('/toj/sqmod/sqmod_test/html/Saucer-Mono.ttf');
+}
+#index_page div.stage {
+  width: 100%;
+  position: absolute;
+  top: 41px;
+  left: 0px;
+  font-family: Saucer-Regular;
+}
+#index_page div.stage div.box {
+  margin: 0px auto 0px auto;
+  position: relative;
+}
+#index_page div.stage div.box span.fps {
+  color: #D9D9D9;
+  font-size: 12px;
+}
+#index_page div.stage div.box canvas.stage {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}
+#index_page div.stage div.box div.butt {
+  position: absolute;
+  cursor: pointer;
+}

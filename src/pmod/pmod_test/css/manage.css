@@ -1,0 +1,4 @@
+#index_page div.create_mode div.content,
+#index_page div.set_mode div.content {
+  height: 256px;
+}

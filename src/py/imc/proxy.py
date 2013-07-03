@@ -333,6 +333,9 @@ class Proxy:
             except KeyError:
                 return __ret((False,'Enoexist'))
 
+            #except Exception:
+            #    return __ret((False,'Einternal'))
+
             if Auth.get_current_idendesc() == idendesc:
                 result = func(*param)
 
