@@ -9,6 +9,35 @@ var pmod_test = function(proid,pro_node){
     pro_node.url_chg = function(direct,url_upart,url_dpart,param){
         if(direct == 'in'){
             pro_node.child_set(manage_node);
+
+            if(url_dpart.length > 0){
+                return 'cont';
+            }
+
+            com.loadpage('/toj/pmod/pmod_test/html/view.html','/toj/pmod/pmod_test/css/view.css').done(function(){
+                var j_submit;
+
+                j_submit = j_index_page.find('div.submit');
+
+                com.call_backend(callpath,'view',function(result){
+                    var data = result.data;
+                    var j_info;
+
+                    if(com.is_callerr(result)){
+                        index.add_alert('alert-error','錯誤','讀取題目失敗');
+                    }else{
+                        j_info = j_index_page.find('div.info');
+                        j_info.find('table.limit td.timelimit').text(data.timelimit + ' ms');
+                        j_info.find('table.limit td.memlimit').text(data.memlimit + ' KB');
+
+                        j_info.find('button.submit').on('click',function(e){
+                            j_submit.modal('show');
+                        });
+
+                        j_index_page.find('div.content').html(data.content);
+                    }
+                });
+            });
         }else if(direct == 'out'){
             pro_node.child_del(manage_node);
         }
@@ -83,6 +112,10 @@ var pmod_test = function(proid,pro_node){
                         j_option.attr('value',testmode_list[i].testmodeid);
                         j_testmode.append(j_option);
                     }
+                    j_option = $('<option></option>');
+                    j_option.text('未設定');
+                    j_option.attr('value',0);
+                    j_testmode.append(j_option);
                     
                     j_testmode = j_set_mode.find('[name="testmode"]');
                     j_testmode.empty();
@@ -92,6 +125,10 @@ var pmod_test = function(proid,pro_node){
                         j_option.attr('value',testmode_list[i].testmodeid);
                         j_testmode.append(j_option);
                     }
+                    j_option = $('<option></option>');
+                    j_option.text('未設定');
+                    j_option.attr('value',0);
+                    j_testmode.append(j_option);
 
                     j_mode_list.empty();
                     for(i = 0;i < data.length;i++){
@@ -210,7 +247,11 @@ var pmod_test = function(proid,pro_node){
                             index.add_alert('','警告','管理發生錯誤');
                         }else{
                             j_set_mode.find('div.content').data('codebox').setValue(data.content);
-                            j_set_mode.find('[name="testmode"]').val(data.testmodeid);
+                            if(data.testmodeid == null){
+                                j_set_mode.find('[name="testmode"]').val(0);
+                            }else{
+                                j_set_mode.find('[name="testmode"]').val(data.testmodeid);
+                            }
                         }
                     },set_mode_id);
                 });
@@ -224,6 +265,10 @@ var pmod_test = function(proid,pro_node){
                 j_set_mode.find('button.submit').on('click',function(e){
                     var content = j_set_mode.find('div.content').data('codebox').getValue();
                     var testmodeid = parseInt(j_set_mode.find('[name="testmode"]').val());
+
+                    if(testmodeid == 0){
+                        testmodeid = null;
+                    }
 
                     com.call_backend(callpath,'set_mode',function(result){
                         if(com.is_callerr(result)){

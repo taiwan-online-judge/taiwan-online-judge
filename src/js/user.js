@@ -37,7 +37,9 @@ var user = new function(){
             document.cookie = 'hash=' + hash + ';path=/;expires=' + expire.toUTCString();
 
             imc.Auth.change_current_iden(idendesc);
-            _set_user(uid);
+            _set_user(uid).done(function(){
+                com.url_push_back('/toj/(login/|register)/');
+            });
         };
         function _logout(){
             document.cookie = 'uid=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -167,7 +169,7 @@ var user = new function(){
 
                 $.when(
                     _get_user_info(user_node_uid),
-                    com.loadpage('/toj/html/user_main.html')
+                    com.loadpage('/toj/html/user_main.html','/toj/css/user_main.css')
                 ).done(function(data){
                     var reen = false;
                     var url;
@@ -220,7 +222,7 @@ var user = new function(){
 
                 $.when(
                     _get_user_info(user_node_uid),
-                    com.loadpage('/toj/html/user_edit.html')
+                    com.loadpage('/toj/html/user_edit.html','/toj/css/user_edit.css')
                 ).done(function(data){
                     var j_nickname = j_index_page.find('[name="nickname"]');
                     var j_email = j_index_page.find('[name="email"]');
@@ -354,7 +356,7 @@ var user = new function(){
                 index.set_title('');
                 index.clear_tabnav();
 
-                com.loadpage('/toj/html/login.html').done(function(){
+                com.loadpage('/toj/html/login.html','/toj/css/login.css').done(function(){
                     var j_alert = j_index_page.find('div.alert');
                     var j_submit = j_index_page.find('button.submit');
 
@@ -378,7 +380,6 @@ var user = new function(){
                                 j_alert.show();
                             }else{
                                 _login(data.uid,data.hash,data.idendesc);
-                                com.url_push_back('/toj/(login/|register)/');
                             } 
                         },username,password);
                     }); 
@@ -395,7 +396,7 @@ var user = new function(){
                 index.set_title('');
                 index.clear_tabnav();
 
-                com.loadpage('/toj/html/register.html').done(function(){
+                com.loadpage('/toj/html/register.html','/toj/css/register.css').done(function(){
                     var j_alert = j_index_page.find('div.alert');
 
                     j_index_page.find('[name="username"]').focus();
@@ -420,7 +421,6 @@ var user = new function(){
                                 com.call_backend('core/user/','login',function(result){
                                     data = result.data; 
                                     _login(data.uid,data.hash,data.idendesc);
-                                    com.url_push_back('/toj/(login/|register)/');
                                 },username,password);
                             }else{
                                 console.log(data);

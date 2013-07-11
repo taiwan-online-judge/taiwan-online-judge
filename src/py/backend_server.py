@@ -168,8 +168,8 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                                 self._idendesc,
                                 self._link,
                                 self.center_conn.link,
-                                'blobtmp/2',
-                                TOJBlobTable(2),
+                                'blobtmp/' + str(self.ws_port - 79),
+                                TOJBlobTable(self.ws_port - 79),
                                 TOJBlobHandle)
 
         blobclient.open_container('test','ACTIVE')
@@ -180,6 +180,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             )
         except:
             pass
+
         print(handle._fileno)
         handle.write(bytes('Hello Data','utf-8'),0)
         handle.commit(False);
@@ -287,13 +288,12 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         except KeyError:
             pass
 
-    def _get_link(self,linkclass,uid = None):
+    def _get_link(self,linkclass,uid = 0):
         if linkclass == 'center':
             return self.center_conn.link
 
-        elif linkclass == 'client' and uid != None:
+        elif linkclass == 'client':
             stat,ret = Proxy.instance.call(self.center_conn.link + 'core/','get_uid_clientlink',10000,uid)
-            print(ret)
             return ret
 
     @imc.async.caller
@@ -410,7 +410,7 @@ if __name__ == '__main__':
     worker_list = []
 
     worker_list.append(Process(target = start_backend_worker,args = (81, )))
-    #worker_list.append(Process(target = start_backend_worker,args = (82, )))
+    worker_list.append(Process(target = start_backend_worker,args = (82, )))
     #worker_list.append(Process(target = start_backend_worker,args = (181, )))
     #worker_list.append(Process(target = start_backend_worker,args = (182, )))
     #worker_list.append(Process(target = start_backend_worker,args = (183, )))

@@ -92,7 +92,7 @@ var square = new function(){
         return j_box;
     }
     function catebox_set(j_box,cateid,catename){
-        j_box.data('cateid',cateid);
+        j_box.attr('cateid',cateid);
         j_box.find('h3.catename').text(catename);
     }
     function catebox_create(cateid,catename){
@@ -229,19 +229,30 @@ var square = new function(){
                 index.set_title('');
                 index.clear_tabnav();
 
-                square_node.child_delayset('user');
+                if(user.uid != null){
+                    square_node.child_delayset('user');
+                }
                 square_node.child_delayset('index');
 
-                com.loadpage('/toj/html/square.html').done(function(){
+                com.loadpage('/toj/html/square.html','/toj/css/square.css').done(function(){
                     j_catelist = j_index_page.find('ul.catelist');
                     j_indexlist = j_index_page.find('div.indexlist');
 
-                    user_tabnav = index.add_tabnav('已加入','/toj/square/user/');
+                    if(user.uid != null){
+                        user_tabnav = index.add_tabnav('已加入','/toj/square/user/');
+                        square_node.child_set(user_node);
+                    }
                     index_tabnav = index.add_tabnav('目錄','/toj/square/index/');
-                    
-                    square_node.child_set(user_node);
                     square_node.child_set(index_node);
                 });
+
+                if(url_dpart.length == 0){
+                    if(user.uid == null){
+                        com.url_update('/toj/square/index/');
+                    }else{
+                        com.url_update('/toj/square/user/');
+                    }
+                }
             }else if(direct == 'out'){
                 square_node.child_del(user_node);
                 square_node.child_del(index_node);

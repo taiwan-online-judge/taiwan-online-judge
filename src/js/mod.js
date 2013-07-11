@@ -32,7 +32,7 @@ var mod = new function(){
                             var sqid_node;
 
                             sqid_node = new vus.node(sqid);
-                            eval('curr_sqmod = new ' + sqmodname + '(sqid_node);'); 
+                            eval('curr_sqmod = new ' + sqmodname + '(parseInt(sqid),sqid_node);'); 
 
                             sq_node.child_set(sqid_node);
                         });

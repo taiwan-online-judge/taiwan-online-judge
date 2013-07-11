@@ -2,3 +2,6 @@
 #index_page div.set_mode div.content {
   height: 256px;
 }
+#index_page table.table td.oper div.btn-group {
+  position: absolute;
+}

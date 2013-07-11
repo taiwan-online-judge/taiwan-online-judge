@@ -64,7 +64,6 @@ var mail = new function(){
             var as;
             var pfix;
 
-            console.log(result);
             if(com.is_callerr(result)){
                 index.add_alert('','警告','信箱發生錯誤');
             }else{
@@ -134,7 +133,7 @@ var mail = new function(){
                 mail_node.child_delayset('inbox');
                 mail_node.child_delayset('backup');
 
-                com.loadpage('/toj/html/mail.html').done(function(){
+                com.loadpage('/toj/html/mail.html','/toj/css/mail.css').done(function(){
                     var newmail_content;
                     var readmail_content;
 
@@ -160,7 +159,6 @@ var mail = new function(){
                         count = mails.length;
                         for(i = 0;i < mails.length;i++){
                             com.call_backend('core/mail/','del_mail',function(result){
-                                console.log(result);
                                 if(com.is_callerr(result)){
                                     fail++;
                                 }

@@ -266,12 +266,16 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
     @imc.async.caller
     def _get_uid_clientlink(self,uid):
-        if uid in self._uid_clientmap:
-            clients = self._uid_clientmap[uid]
+        if uid == 0:
+            return list(self._client_linkmap.keys())
 
-            return list(clients.keys())
+        else:
+            if uid in self._uid_clientmap:
+                clients = self._uid_clientmap[uid]
 
-        return []
+                return list(clients.keys())
+
+            return []
 
     @imc.async.caller
     def _test_get_client_list(self,talk,talk2):

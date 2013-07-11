@@ -130,7 +130,6 @@ var index = new function(){
                 j_li = j_menu.find('div.menu li.profile');
                 j_li.find('a').attr('href','/toj/user:' + user.uid + '/main/'); 
                 j_li.show();
-                j_menu.find('div.menu li.square').show();
                 j_menu.find('div.menu li.mail').show();
                 j_menu.find('div.menu li.manage').show();
             }   

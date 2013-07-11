@@ -472,17 +472,32 @@ var com = new function(){
         urlchg_reen = false;
     };
 
-    that.loadpage = function(htmlurl){
+    that.loadpage = function(html_url,css_url){
         var j_index_page = $('#index_page');
+        var j_css;
         var defer = $.Deferred();
 
+        function loadhtml(){
+            $.get(html_url,function(data){
+                j_index_page.append($(data));
+                that.exheight();
+                defer.resolve();
+            });
+        }
+
         j_index_page.empty();
-        j_index_page.load(htmlurl,function(data,stat,xhr){
-            that.exheight();
 
-            defer.resolve();
-        });
-
+        if(css_url != undefined){
+            j_css = $('<link rel="stylesheet">');
+            j_css.attr('href',css_url);
+            j_css.ready(function(){
+                loadhtml();
+            });
+            j_index_page.append(j_css);
+        }else{
+            loadhtml();
+        }
+        
         return defer.promise();
     };
     that.exheight = function(){

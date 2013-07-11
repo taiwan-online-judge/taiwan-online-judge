@@ -34,7 +34,7 @@ var manage = new function(){
             if(direct == 'in'){
                 j_tabnav_dash.active();
 
-                com.loadpage('/toj/html/manage_dash.html').done(function(){
+                com.loadpage('/toj/html/manage_dash.html','/toj/css/manage_dash.css').done(function(){
                     var i;
                     var j_accesslist = j_index_page.find('table.accesslist');
                     var j_item;
@@ -54,7 +54,7 @@ var manage = new function(){
                     for(i = 0;i < authlist.length;i++){
                         autho = authlist[i];
 
-                        j_item = $('<tr><td class="accessid"></td><td class="permission"></td></tr>'); 
+                        j_item = $('<tr class="item"><td class="accessid"></td><td class="permission"></td></tr>'); 
                         j_item.find('td.accessid').text(autho.accessid);
                         j_permission = j_item.find('td.permission');
 
@@ -108,10 +108,10 @@ var manage = new function(){
                 j_item.find('td.title').text(title);
 
                 if(start_time != null){
-                    j_item.find('td.time > div.start').text('┌─' + com.get_timestring(start_time));
+                    j_item.find('td.time div.start').text('┌─' + com.get_timestring(start_time));
                 }
                 if(end_time != null){
-                    j_item.find('td.time > div.end').text('└→' + com.get_timestring(end_time));
+                    j_item.find('td.time div.end').text('└→' + com.get_timestring(end_time));
                 }
                 
                 j_hidden = j_item.find('td.hid');
@@ -156,7 +156,7 @@ var manage = new function(){
                 });
             }
             function _item_create(id,title,hidden,start_time,end_time,cateid,intro,logo){
-                var j_item = $('<tr class="item"><td class="id"></td><td class="title"><td class="time"><div class="time start"></div><div class="time end"></div</td><td class="hid"></td></td><td class="cate"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>');
+                var j_item = $('<tr class="item"><td class="id"></td><td class="title"><td class="time"><div class="time start"></div><div class="time end"></div></td><td class="hid"></td></td><td class="cate"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>');
                 
                 _item_set(j_item,id,title,hidden,start_time,end_time,cateid,intro,logo);
 
@@ -255,7 +255,7 @@ var manage = new function(){
             }
 
             if(direct == 'in'){
-                com.loadpage('/toj/html/manage_square.html').done(function(){
+                com.loadpage('/toj/html/manage_square.html','/toj/css/manage_square.css').done(function(){
                     var j_catebox;
                     var j_button;
 
@@ -524,7 +524,7 @@ var manage = new function(){
                 });
             }
             function _item_create(proid,title,hidden,pmodid){
-                var j_item = $('<tr><td class="proid"></td><td class="title"></td><td class="hid"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>');
+                var j_item = $('<tr class="item"><td class="proid"></td><td class="title"></td><td class="hid"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>');
 
                 _item_set(j_item,proid,title,hidden,pmodid);
 
@@ -572,7 +572,7 @@ var manage = new function(){
             if(direct == 'in'){
                 j_tabnav_problem.active();
 
-                com.loadpage('/toj/html/manage_problem.html').done(function(){
+                com.loadpage('/toj/html/manage_problem.html','/toj/css/manage_problem.css').done(function(){
                     var j_button;
 
                     j_create = j_index_page.find('div.create'); 

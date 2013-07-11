@@ -1,10 +1,37 @@
-<link href="/toj/pmod/pmod_test/css/view.css" rel="stylesheet">
+<div class="modal hide fade medium_modal submit">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>上傳</h3>
+    </div>
+    <div class="modal-body container-fluid">
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary submit">確定</button>
+        <button class="btn cancel">取消</button>
+    </div>
+</div>
 
 <div class="row">
-    <div class="span3">
-
+    <div class="span2 offset1 info">
+        <button class="btn btn-primary submit">上傳</button>
+        <table class="table limit">
+            <thead>
+                <tr>
+                    <th class="span1">限制</th>
+                    <th class="span1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>時間</td>
+                    <td class="timelimit"></td>
+                </tr>
+                <tr>
+                    <td>記憶體</td>
+                    <td class="memlimit"></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
-    <div class="span10">
-        LaLaLala
-    </div>
+    <div class="span10 offset3 content"></div>
 </div>

@@ -1,9 +1,20 @@
 'use strict'
 
-var sqmod_test = function(sq_node){
+var sqmod_test = function(sqid,sq_node){
     var that = this;
     var index_node = new vus.node('index');
     var j_index_page = $('#index_page');
+    var callpath = 'sq/' + sqid + '/';
+
+    function update_result(name,song,score,maxcombo){
+        com.call_backend(callpath,'update_result',function(result){
+            if(com.is_callerr(result)){
+                index.add_alert('','錯誤','資料存取發生錯誤');
+            }else{
+                index.add_alert('alert-success','成功','記錄已送出');
+            }
+        },name,song,score,maxcombo);
+    }
 
     sq_node.url_chg = function(direct,url_upart,url_dpart,param){
         if(direct == 'in'){
@@ -17,8 +28,45 @@ var sqmod_test = function(sq_node){
     }
 
     index_node.url_chg = function(direct,url_upart,url_dpart,param){
+        var j_jurank;
+
+        function _update(){
+            com.call_backend(callpath,'list_jurank',function(result){
+                var i;
+                var data = result.data;
+                var ranko;
+                var j_item;
+
+                if(com.is_callerr(result)){
+                    index.add_alert('','錯誤','資料存取發生錯誤');
+                }else{
+                    j_jurank.empty();
+                    for(i=0;i<data.length;i++){
+                        ranko = data[i];        
+                        
+                        j_item = $('<tr><td class="rank"></td><td class="name"></td><td class="song"></td><td class="score"></td><td class="maxcombo"></td></tr>')
+                        j_item.find('td.rank').text(i + 1);
+                        j_item.find('td.name').text(ranko.name);
+                        j_item.find('td.song').text(ranko.song);
+                        j_item.find('td.score').text(ranko.score);
+                        j_item.find('td.maxcombo').text(ranko.maxcombo);
+
+                        j_jurank.append(j_item);
+                    } 
+                }
+            });
+        }
+
         if(direct == 'in'){
-            com.loadpage('/toj/sqmod/sqmod_test/html/index.html').done(function(){
+            imc.Proxy.instance.register_call(callpath,'update_jurank',function(callback){
+                _update(); 
+                callback('Success');
+            });
+
+            com.loadpage('/toj/sqmod/sqmod_test/html/index.html','/toj/sqmod/sqmod_test/css/index.css').done(function(){
+                j_jurank = j_index_page.find('table.jurank > tbody');
+
+                _update(); 
                 run();
             });
         }
@@ -38,7 +86,6 @@ var sqmod_test = function(sq_node){
                   'R':[1,0],'T':[1,1],'Y':[1,2],'U':[1,3],
                   'F':[2,0],'G':[2,1],'H':[2,2],'J':[2,3],
                   'V':[3,0],'B':[3,1],'N':[3,2],'M':[3,3]};
-    var expfunc = new Object();
 
     var j_stage_bottom;
     var j_stage;
@@ -61,6 +108,10 @@ var sqmod_test = function(sq_node){
     var update_top_reen = false;
     var imgmap = new Object();
     var audiomap = new Object();
+
+    var player_name;
+    var curr_mode = 'pro';
+    var back_running = false;
 
     var param_auto = false;
 
@@ -103,10 +154,9 @@ var sqmod_test = function(sq_node){
 
         return defer.promise();
     }
-    function audio_play(buffer,ds){
+    function audio_play(buffer,onstart){
         var src = audio_ctx.createBufferSource();
-        var delay = audio_ctx.createDelay(10);
-        var proc = audio_ctx.createScriptProcessor(16384,1,1);
+        var proc = audio_ctx.createScriptProcessor(256,1,1);
 
         if(typeof(buffer) == 'string'){
             buffer = audiomap[buffer];
@@ -120,26 +170,24 @@ var sqmod_test = function(sq_node){
         src.connect(proc);
 
         proc.onaudioprocess = function(e){
-            console.log(e.inputBuffer.duration);
             src.disconnect(0);
             src.connect(g_out);
             proc.disconnect(0);
 
             console.log(new Date().getTime());
-            expfunc.test();
+            if(onstart != undefined){
+                onstart();
+            }
         }
         proc.connect(g_out);
 
-        if(ds != undefined){
-            //delay.delayTime.value = ds; 
-            //delay.connect(g_out);
-            //src.connect(delay);
-        }else{
-            //src.connect(g_out);
-        }
-        src.start(0);
-
         curr_src = src;
+        src.start(0);
+    }
+    function audio_stop(){
+        if(curr_src != null){
+            curr_src.stop(0);
+        }
     }
 
     function run(){
@@ -233,7 +281,7 @@ var sqmod_test = function(sq_node){
                 if(mouse_pos != null){
                     update_butt(mouse_pos[0],mouse_pos[1],true);
                 }
-            }else if(chr == 'A'){
+            }else if(chr == 'A' && curr_mode == 'play'){
                 param_auto ^= true; 
             }
         });
@@ -284,7 +332,7 @@ var sqmod_test = function(sq_node){
                     row = j_this.data('row');
                     col = j_this.data('col');
 
-                    update_butt(row,col,true);
+                    update_butt(row,col,true,false);
                 });
                 j_butts[i][j].on('mouseup',function(e){
                     var j_this = $(this);
@@ -324,11 +372,9 @@ var sqmod_test = function(sq_node){
         _scale();
         _audio();
 
-        expfunc.audio_play = audio_play;
-
-        eng_bottom = new engine(ctx_bottom,expfunc);
-        eng = new engine(ctx,expfunc);
-        eng_top = new engine(ctx_top,expfunc);
+        eng_bottom = new engine(ctx_bottom);
+        eng = new engine(ctx);
+        eng_top = new engine(ctx_top);
 
         ctx.fillStyle = '#1C1C1C';
         ctx.font = '100px Saucer-Regular';
@@ -339,32 +385,37 @@ var sqmod_test = function(sq_node){
 
             window.requestAnimationFrame(_update);
 
-            play();
-        })
+            pro();
+        });
 
-        /*setTimeout(function(){
-            _audio();
-            _audio_play(ab_select);
-            
-            st = new Date().getTime();
-            window.requestAnimationFrame(_ani);
-        },2000);*/
+        while(true){
+            player_name = prompt('Your player name','Foo');
+            if(player_name != ''){
+                break;
+            }
+        }
     }
 
     function preload(){
         return $.when(
             load_image('door_blue.png'),
+            load_image('startmark.png'),
             load_image('wave1.png'),
             load_image('wave2.png'),
             load_image('top.png'),
             load_image('light.png'),
             load_audio('select.ogg'),
-            load_audio('result.ogg')
+            load_audio('result.ogg'),
+            load_audio('select.ogg')
         ); 
     }
     
-    function update_butt(row,col,touch){
+    function update_butt(row,col,touch,click){
         if(butts[row][col].touch != touch){
+            if(click != false){
+                j_butts[row][col].click();
+            }
+
             butts[row][col].touch = touch;
             update_top();
         }
@@ -402,6 +453,11 @@ var sqmod_test = function(sq_node){
         var wave2_off = -1920;
 
         function _wave(){
+            if(curr_mode == 'play'){
+                back_running = false;
+                return;
+            }
+
             wave1_off -= 4;
             if(wave1_off < -i_wave1.width){
                 wave1_off = -(wave1_off + i_wave1.width);
@@ -421,14 +477,21 @@ var sqmod_test = function(sq_node){
             eng_bottom.add_work(_wave);
         }
         
-        eng_bottom.add_work(_wave);
+        if(back_running == false){
+            back_running = true;
+            eng_bottom.add_work(_wave);
+        }
     }
 
-    function play(){
+    function play(song){
         var defer = $.Deferred();
 
         var end = false;
         var i_marks = new Array();
+        var i_perfects = new Array();
+        var i_greats = new Array();
+        var i_goods = new Array();
+        var i_bads = new Array();
 
         var timemap = new Array();
         var st = null;
@@ -437,16 +500,19 @@ var sqmod_test = function(sq_node){
         var note_score;
         var last_touch;
 
+        var curr_tpb;
         var curr_combo = 0;
         var score = {
             'score':0,
+            'door_note':0,
             'perfect':0,
             'great':0,
             'good':0,
             'bad':0,
             'miss':0,
             'max_combo':0,
-            'total_note':0
+            'total_note':0,
+            'auto':false
         };
 
         function _judge(time){
@@ -454,26 +520,33 @@ var sqmod_test = function(sq_node){
 
             time = Math.abs(time);
 
-            if(time > 500){
+            if(time > 425){
                 score.miss += 1;
+                score.door_note -= 8;
                 ret = 4;
-            }else if(time > 200){
+            }else if(time > 170){
                 score.bad += 1;
                 score.score += note_score * 0.1;
+                score.door_note -= 8;
                 ret = 3;
-            }else if(time > 100){
+            }else if(time > 85){
                 score.good += 1;
                 score.score += note_score * 0.4;
+                score.door_note += 1;
                 ret = 2;
-            }else if(time > 50){
+            }else if(time > 42){
                 score.great += 1;
                 score.score += note_score * 0.7;
+                score.door_note += 2;
                 ret = 1;
             }else{
                 score.perfect += 1;
                 score.score += note_score;
+                score.door_note += 2;
                 ret = 0;
             }
+
+            score.door_note = Math.min(Math.max(0,score.door_note),score.total_note);
 
             if(ret <= 2){
                 curr_combo += 1;
@@ -493,20 +566,35 @@ var sqmod_test = function(sq_node){
             var col;
             var time;
             
-            function __drawmark(ctx,x,y,time){
-                var image = i_marks[Math.floor(time / 36.36364)];
+            function __drawmark(ctx,x,y,time,judge,judge_time){
+                var off;
+                    
+                if(time < 800){
+                    ctx.drawImage(i_marks[Math.floor(time / 36.36364)],x,y,320,320);
+                }
+                if(judge != -1){
+                    off = eng.ts - judge_time;
 
-                ctx.drawImage(image,x + 8,y + 8,304,304);
+                    if(judge == 0 && off < 225){
+                        ctx.drawImage(i_perfects[Math.floor(off / 15)],x,y,320,320);
+                    }else if(judge == 1 && off < 225){
+                        ctx.drawImage(i_greats[Math.floor(off / 15)],x,y,320,320);
+                    }else if(judge == 2 && off < 210){
+                        ctx.drawImage(i_goods[Math.floor(off / 15)],x,y,320,320);
+                    }else if(judge == 3 && off < 195){
+                        ctx.drawImage(i_bads[Math.floor(off / 15)],x,y,320,320);
+                    }
+                }
             }
 
             for(i = 0;i < poslist.length;i++){
                 pos = poslist[i];
 
                 time = (eng.ts - st) - pos.time; 
-                if(time >= -509 && time < 291){
+                if(time >= -509 && time < 620){
                     row = pos.pos[0];
                     col = pos.pos[1];
-                    __drawmark(ctx,butts[row][col].x,butts[row][col].y,time + 509);
+                    __drawmark(ctx,butts[row][col].x,butts[row][col].y,time + 509,pos.judge,pos.judge_time);
                 }
             }
         }
@@ -529,8 +617,9 @@ var sqmod_test = function(sq_node){
                     end = true;
                     j_stage_bottom.css('background-color','transparent');
                     
-                    result(score);
-
+                    eng.add_work(function(){
+                        result(song,score);
+                    });
                     return;
                 }
             }else{
@@ -538,7 +627,11 @@ var sqmod_test = function(sq_node){
                 if((ct + 509) >= map.time){
                     poss = map.pos;
                     for(i = 0;i < poss.length;i++){
-                        poslist.push({'judge':-1,'time':map.time,'pos':poss[i]});
+                        poslist.push({'judge':-1,'judge_time':-1,'time':map.time,'pos':poss[i]});
+                    }
+
+                    if(map.tpb != undefined){
+                        curr_tpb = map.tpb;
                     }
 
                     curr +=1;
@@ -549,9 +642,10 @@ var sqmod_test = function(sq_node){
             for(i = 0;i < poslist.length;i++){
                 pos = poslist[i];
                 time = ct - pos.time;
-                if(time >= 500){
+                if(time > 500){
                     if(pos.judge == -1){
                         pos.judge = _judge(time);
+                        pos.judge_time = eng.ts;
                     }
                     continue;
                 }
@@ -560,15 +654,18 @@ var sqmod_test = function(sq_node){
                 col = pos.pos[1];
 
                 if(param_auto == true){
-                    if(time > - 40 && time < 0){
+                    score.auto = true;
+
+                    if(butts[row][col].touch == false && time > -40 && time < 0){
                         update_butt(row,col,true);
                     }else if(time > 40 && time < 100){
                         update_butt(row,col,false);
                     }
                 }
 
-                if(butts[row][col].touch == true && last_touch[row][col] == false){
+                if(pos.judge == -1 && butts[row][col].touch == true && last_touch[row][col] == false){
                     pos.judge = _judge(time);
+                    pos.judge_time = eng.ts;
                 }
 
                 next_poslist.push(pos);
@@ -585,6 +682,37 @@ var sqmod_test = function(sq_node){
             eng.add_work(_update);
         }
         
+        function _prepare(){
+            var defer = $.Deferred();
+            var i_startmark = imgmap['startmark.png'];
+            var poss = timemap[0].pos;
+            
+            function __draw(ctx){
+                var i;
+                var pos;
+                var row;
+                var col;
+                
+                if((eng.ts - st) >= 5000){
+                    defer.resolve();
+                    return;
+                }
+                
+                for(i = 0;i < poss.length;i++){
+                    pos = poss[i];
+                    row = pos[0];
+                    col = pos[1];
+
+                    ctx.drawImage(i_startmark,butts[row][col].x + 35,butts[row][col].y + 35,250,250);
+                }
+                
+                eng.add_draw(0,__draw);
+            }
+
+            eng.add_draw(0,__draw);
+
+            return defer.promise();
+        }
         function _combo(){
             var last_combo = curr_combo;
             var ani_st = -1;
@@ -609,8 +737,6 @@ var sqmod_test = function(sq_node){
 
                 ctx.font = '60px Saucer-Mono';
                 ctx.fillText('combo',272 + 352 * 3 - 64 - m_combo.width,32 + 352 * 2 + 64);
-
-                last_combo = curr_combo;
             }
             function __update(){
                 if(end == true){
@@ -620,8 +746,9 @@ var sqmod_test = function(sq_node){
                     if(curr_combo != last_combo && ani_st == -1){
                         ani_st = eng.ts; 
                     }
-                    eng.add_draw(0,__draw);
+                    eng.add_draw(5,__draw);
                 }
+                last_combo = curr_combo;
 
                 eng.add_work(__update);
             }
@@ -632,8 +759,8 @@ var sqmod_test = function(sq_node){
             eng.add_work(__update);
         }
         function _score(){
+            var m_player;
             var m_otua;
-            var i_door = imgmap['door_blue.png'];
 
             function __draw(){
                 var text;
@@ -643,15 +770,6 @@ var sqmod_test = function(sq_node){
                     return;
                 } 
 
-                var ratio = score.max_combo / score.total_note;
-                var move = eng.beat_ease(307,40,(eng.ts - st) % 307);
-                var dw = 3840 * ratio + move;
-                var dh = 2880 * ratio + move;
-
-                ctx.drawImage(i_door,-dw / 2,-dh / 2,1920 + dw,1440 + dh);
-                ctx.fillStyle='rgba(0,0,0,' + (0.9 - (0.7 * ratio)) + ')';
-                ctx.fillRect(0,0,1920,1440);
-
                 text = Math.ceil(score.score).toString();
 
                 ctx.fillStyle = '#D9D9D9';
@@ -659,60 +777,52 @@ var sqmod_test = function(sq_node){
                 m = ctx.measureText(text);
                 ctx.fillText(text,272 + 352 * 3 - 64 - m.width,32 + 352 - 64);
 
-                if(param_auto == true){
-                    ctx.font = '60px Saucer-Mono';
-                    ctx.fillText('Player: OTUA',272 + 352 * 3 - 64 - m_otua.width,32 + 352 * 3 + 64);
+                ctx.font = '60px Saucer-Mono';
+                if(param_auto == false){
+                    text = 'Player: ' + player_name;
+                    m = m_player;
+                }else{
+                    text = 'Player: OTUA';
+                    m = m_otua;
                 }
+                ctx.fillText(text,272 + 352 * 3 - 64 - m.width,32 + 352 * 3 + 64);
 
-                eng.add_draw(0,__draw);
+                eng.add_draw(5,__draw);
             }
 
+            ctx.fillStyle = '#D9D9D9';
             ctx.font = '60px Saucer-Mono';
+            m_player = ctx.measureText('Player: ' + player_name);
             m_otua = ctx.measureText('Player: OTUA');
+
+            eng.add_draw(5,__draw);
+        }
+        function _door(){
+            var i_door = imgmap['door_blue.png'];
+
+            function __draw(ctx){
+                var ratio = score.door_note / score.total_note;
+                var move = eng.beat_ease(curr_tpb,40,(eng.ts - st) % curr_tpb);
+                var dw = 3840 * ratio + move;
+                var dh = 2880 * ratio + move;
+                
+                if(end == true){
+                    return;
+                }
+                
+                ctx.drawImage(i_door,-dw / 2,-dh / 2,1920 + dw,1440 + dh);
+                ctx.fillStyle='rgba(0,0,0,' + (0.9 - (0.5 * ratio)) + ')';
+                ctx.fillRect(0,0,1920,1440);
+                
+                eng.add_draw(0,__draw);
+            } 
 
             eng.add_draw(0,__draw);
         }
 
-        /*
-        expfunc.play_draw = function(ctx,x,y,time){
-            var image = i_marks[Math.floor(time / 36.36364)];
+        curr_mode = 'play';
 
-            ctx.drawImage(image,x + 8,y + 8,304,304);
-        };*/
-        expfunc.play_draw = function(ctx,poslist,ct){
-            var i;
-            var pos;
-            var row;
-            var col;
-            var time;
-            
-            function __drawmark(x,y,time){
-                var image = i_marks[Math.floor(time / 36.36364)];
-
-                ctx.drawImage(image,x + 8,y + 8,304,304);
-            }
-
-            for(i = 0;i < poslist.length;i++){
-                pos = poslist[i];
-
-                time = ct - pos.time; 
-                if(time >= -509 && time < 327){
-                    row = pos.pos[0];
-                    col = pos.pos[1];
-                    __drawmark(butts[row][col].x,butts[row][col].y,time + 509);
-                }
-            }
-        }
-        
-        expfunc.test = function(){
-            st = eng.ts;
-            console.log(new Date().getTime());
-            eng.add_work(_update);
-            _combo();
-            _score();
-        };
-
-        $.get('/toj/sqmod/sqmod_test/html/JOMANDA.ju',function(data){
+        $.get('/toj/sqmod/sqmod_test/html/song/' + song + '/' + song + '.ju',function(data){
             var i;
             var j;
             var k;
@@ -720,6 +830,8 @@ var sqmod_test = function(sq_node){
             var line;
             var parts;
 
+            var delay;
+            var lpb;
             var tpb;
             var lbeat;
             var beat;
@@ -734,19 +846,23 @@ var sqmod_test = function(sq_node){
 
             lines = data.split('\n');
 
-            //Find start
+            //Load param
+            delay = 0;
             for(i = 0;i < lines.length;i++){
                 line = lines[i];
-                if(line == '#start#'){
+                if(line.charAt(0) == 'd'){
+                    delay = parseInt(line.split('=')[1]);
+                }else if(line == '#start#'){
                     i++;
                     break;
                 }
             }
 
             //Read beatmap
+            lpb = 0;
             tpb = 0;
             lbeat = 0;
-            ltime = 200;
+            ltime = delay + 5000;
             total_note = 0;
             for(;i < lines.length;i++){
                 if((line = lines[i]) == ''){
@@ -773,6 +889,10 @@ var sqmod_test = function(sq_node){
                     }
 
                     timemap.push({'time':time,'pos':pos});
+                    if(lpb != tpb){
+                        timemap[timemap.length - 1].tpb = tpb;
+                        lpb = tpb;
+                    }
                 }
 
                 lbeat = beat;
@@ -796,64 +916,80 @@ var sqmod_test = function(sq_node){
 
             j_stage_bottom.css('background-color','#1C1C1C');
 
-            defers.push(load_audio('JOMANDA.ogg'));
+            defers.push(load_audio('song/' + song + '/' + song + '.ogg'));
             for(i = 0;i < 22;i++){
                 defers.push(load_image('mark/mal_' + i + '.png'));
             }
-            //defers.push(load_image('mark/clearmark.png'));
+            for(i = 0;i < 15;i++){
+                defers.push(load_image('mark/fect_' + i + '.png'));
+            }
+            for(i = 0;i < 15;i++){
+                defers.push(load_image('mark/at_' + i + '.png'));
+            }
+            for(i = 0;i < 14;i++){
+                defers.push(load_image('mark/d_' + i + '.png'));
+            }
+            for(i = 0;i < 13;i++){
+                defers.push(load_image('mark/_' + i + '.png'));
+            }
 
             $.when.apply($,defers).done(function(ab_song){
                 var i;
+                var j;
 
-                for(i = 0;i < 22;i++){
-                    i_marks[i] = arguments[i + 1];
+                j = 1;
+                for(i = 0;i < 22;i++,j++){
+                    i_marks[i] = arguments[j];
+                }
+                for(i = 0;i < 15;i++,j++){
+                    i_perfects[i] = arguments[j];
+                }
+                for(i = 0;i < 15;i++,j++){
+                    i_greats[i] = arguments[j];
+                }
+                for(i = 0;i < 14;i++,j++){
+                    i_goods[i] = arguments[j];
+                }
+                for(i = 0;i < 13;i++,j++){
+                    i_bads[i] = arguments[j];
                 }
 
                 defer.resolve();
 
                 //Start
-                console.log(ab_song.sampleRate);
-                console.log(ab_song.length);
-                audio_play(ab_song);
+                param_auto = false;
+                curr_tpb = timemap[0].tpb;
+
+                st = eng.ts;
+                _door();
+                _combo();
+                _score();
+                _prepare().done(function(){
+                    audio_play(ab_song,function(){
+                        console.log(eng.ts);
+                        eng.add_work(_update);
+                    });
+                });
             });
         });
-
-        
 
         return defer.promise();
     }
     
-    expfunc.result_draw = function(ctx,offx,offy,score){
-        ctx.font = '150px Saucer-Regular';
-        ctx.fillText('Result',offx,offy);
-
-        ctx.font = '120px Saucer-Regular';
-        ctx.fillText(score.score,offx,offy + 200);
-
-        ctx.font = '100px Saucer-Regular';
-        ctx.fillText('Perfect',offx,offy + 350);
-        ctx.fillText(score.perfect,offx + 600,offy + 350);
-        ctx.fillText('Great',offx,offy + 450);
-        ctx.fillText(score.great,offx + 600,offy + 450);
-        ctx.fillText('Good',offx,offy + 550);
-        ctx.fillText(score.good,offx + 600,offy + 550);
-        ctx.fillText('Bad',offx,offy + 650);
-        ctx.fillText(score.bad,offx + 600,offy + 650);
-        ctx.fillText('Miss',offx,offy + 750);
-        ctx.fillText(score.miss,offx + 600,offy + 750);
-        ctx.fillText('Max Combo',offx,offy + 900);
-        ctx.fillText(score.max_combo,offx + 600,offy + 900);
-    };
-
-    function result(score){
+    function result(song,score){
+        var st;
+        var ori_score;
+        var show_score;
         var offx = 272 + 352 + 32;
         var offy = 32 + 256;
 
         function _draw(ctx){
+            var ct = eng.ts - st;
+
             if(score.max_combo == score.total_note){
                 ctx.fillStyle = "#F9BF45";
                 ctx.font = '130px Saucer-Regular';
-                ctx.fillText('FULL COMBO',offx + 32,offy + 72);
+                ctx.fillText('FULL COMBO',offx + 32,offy + 56);
 
                 ctx.fillStyle = '#1C1C1C';
             }
@@ -861,220 +997,187 @@ var sqmod_test = function(sq_node){
             ctx.font = '150px Saucer-Regular';
             ctx.fillText('Result',offx,offy);
 
-            ctx.font = '120px Saucer-Regular';
-            ctx.fillText(score.score,offx,offy + 200);
+            ctx.font = '120px Saucer-Mono';
+            ctx.fillText(show_score,offx,offy + 200);
 
             ctx.font = '100px Saucer-Regular';
             ctx.fillText('Perfect',offx,offy + 350);
-            ctx.fillText(score.perfect,offx + 600,offy + 350);
+            ctx.fillText(score.perfect,offx + 700,offy + 350);
             ctx.fillText('Great',offx,offy + 450);
-            ctx.fillText(score.great,offx + 600,offy + 450);
+            ctx.fillText(score.great,offx + 700,offy + 450);
             ctx.fillText('Good',offx,offy + 550);
-            ctx.fillText(score.good,offx + 600,offy + 550);
+            ctx.fillText(score.good,offx + 700,offy + 550);
             ctx.fillText('Bad',offx,offy + 650);
-            ctx.fillText(score.bad,offx + 600,offy + 650);
+            ctx.fillText(score.bad,offx + 700,offy + 650);
             ctx.fillText('Miss',offx,offy + 750);
-            ctx.fillText(score.miss,offx + 600,offy + 750);
+            ctx.fillText(score.miss,offx + 700,offy + 750);
             ctx.fillText('Max Combo',offx,offy + 900);
-            ctx.fillText(score.max_combo,offx + 600,offy + 900);
-        }
-        function _update(){
-            eng.add_draw(0,_draw);
-            eng.add_work(_update);
+            ctx.fillText(score.max_combo,offx + 700,offy + 900);
+
+            ctx.fillStyle = '#1C1C1C';
+            ctx.font = '60px Saucer-Regular';
+            ctx.fillText('BACK',1360,1344);
+
+            if(ct < 1000){
+                eng.add_draw(0,_draw);
+            }else if(show_score < score.score){
+                show_score = Math.min(score.score,ori_score + (ct - 1000) * 20); 
+                eng.add_draw(0,_draw);
+            }
         }
 
+        curr_mode = 'result';
+
+        st = eng.ts;
+        ori_score = Math.ceil(score.score);
+        show_score = ori_score;
+        score.score += 100000 * score.door_note / score.total_note;
         score.score = Math.ceil(score.score);
         audio_play('result.ogg');
 
-        eng.add_work(_update);
+        if(score.auto == false){
+            update_result(player_name,song,score.score,score.max_combo);
+        }
+
+        j_butts[3][3].on('click',function(e){
+            j_butts[3][3].off('click');
+
+            eng.add_work(function(){
+                pro();
+            });
+        });
+
+        eng.add_draw(0,_draw);
         back();
     }
     
+    function pro(){
+        var defers = [];
+        var curr_song = null;
+        var start_cd = null;
+        var end = false;
 
-   /* function test(){
-        var i;
-        var j;
-        var st;
-        var j_div;
-        var j_box;
-        var j_fps;
-        var j_stage_bottom;
-        var j_stage;
-        var j_stage_top;
-        var ctx_bottom;
-        var eng_bottom;
-        var ctx;
-        var eng;
-        var ctx_top;
-        var eng_top;
+        function _draw(ctx){
+            var title;
+            var timer;
 
-        
-        var audio;
-        var ab_select;
-        var ab_song2;
-        var ab_song3;
-        var ab_song4;
+            function __draw_pro(i,j,title,cover){
+                var x,y;
 
-        var i_top = new Image();
-        var i_light = new Image();
-        var i_wave1 = new Image();
-        var i_cover2 = new Image();
-        var i_cover3 = new Image();
-        var i_cover4 = new Image();
+                x = butts[i][j].x;
+                y = butts[i][j].y;
 
-        var i_marks = new Array();
+                if(cover != undefined){
+                    ctx.drawImage(cover,x,y,320,320); 
+                }else{
+                    ctx.fillStyle = '#1C1C1C';
+                    ctx.font = '40px Saucer-Bold';
+                    ctx.fillText(title,x + 32,y + 290);
+                }
+            }
+            
+            if(end == true){
+                return;
+            }
+            
+            __draw_pro(0,0,'A+B Problem');
+            __draw_pro(0,1,'JOMANDA',imgmap['song/JOMANDA/JOMANDA.jpg']);
+            __draw_pro(0,2,'JOMANDA',imgmap['song/SHION/SHION.jpg']);
 
-        function _load(){
+            ctx.fillStyle = '#1C1C1C';
+            ctx.font = '60px Saucer-Regular';
+            if(curr_song != null){
+                if(start_cd == null){
+                    start_cd = eng.ts;
+                }
+
+                timer = 60 - ((eng.ts - start_cd) / 1000);
+                if(timer <= 0){
+                    _start();
+                }
+                
+                ctx.fillText('BACK',1002,1344);
+                ctx.fillText('START',1360,1344);
+
+                ctx.font = '48px Saucer-Regular';
+                ctx.fillText(new Number(timer).toFixed(2),1360,1244);
+
+                title = curr_song;
+            }else{
+                ctx.fillText('PREV',1002,1344);
+                ctx.fillText('NEXT',1360,1344);
+
+                title = 'SELECT  PROBLEM';
+            }
+
+            ctx.rotate(Math.PI / 2);
+            ctx.font = '100px Saucer-Regular';
+            ctx.fillText(title,32,-100);
+
+            eng.add_draw(0,_draw);
+        }
+        function _start(){
             var i;
-            var image;
+            var j;
 
-            
-
-            i_top.src = '/toj/sqmod/sqmod_test/html/top.png';
-            i_light.src = '/toj/sqmod/sqmod_test/html/light.png';
-            i_wave1.src = '/toj/sqmod/sqmod_test/html/wave1.png';
-            i_cover2.src = '/toj/sqmod/sqmod_test/html/IMSOHAPPY.jpg';
-            i_cover3.src = '/toj/sqmod/sqmod_test/html/JOMANDA.jpg';
-            i_cover4.src = '/toj/sqmod/sqmod_test/html/MOTHERSHIP.png';
-
-            for(i = 0;i < 15;i++){
-                image = new Image();
-                image.src = '/toj/sqmod/sqmod_test/html/mark/mal_' + i + '.png';
-                i_marks.push(image);
+            if(curr_song == null){
+                return;
             }
-            for(i = 0;i < 7;i++){
-                image = new Image();
-                image.src = '/toj/sqmod/sqmod_test/html/mark/malpassed_' + i + '.png';
-                i_marks.push(image);
+
+            end = true;
+            audio_stop();
+
+            for(i = 0;i < 4;i++){
+                for(j = 0;j < 4;j++){
+                    j_butts[i][j].off('click');
+                }
             }
-            
-           
-            _load_audio('select.ogg',function(buffer){
-                ab_select = buffer;
-            });
-            _load_audio('IMSOHAPPY.ogg',function(buffer){
-                ab_song2 = buffer;
-            });
-            _load_audio('JOMANDA.ogg',function(buffer){
-                ab_song3 = buffer;
-            });
-            _load_audio('MOTHERSHIP.ogg',function(buffer){
-                ab_song4 = buffer;
+
+            eng.add_work(function(){
+                play(curr_song);
             });
         }
-
         
-        
-        
+        curr_mode = 'pro';
 
-        
+        defers.push(load_audio('song/JOMANDA/JOMANDA.ogg'));
+        defers.push(load_audio('song/SHION/SHION.ogg'));
+        defers.push(load_image('song/JOMANDA/JOMANDA.jpg'));
+        defers.push(load_image('song/SHION/SHION.jpg'));
 
-        function _pro(){
-            var curr_song = null;
-            var start_cd = null;
-
-            function __draw(){
-                eng.add_draw(function(ctx){
-                    var title;
-
-                    function _draw_pro(i,j,title,cover){
-                        var x,y;
-
-                        x = butts[i][j].x;
-                        y = butts[i][j].y;
-
-                        if(cover != undefined){
-                            ctx.drawImage(cover,x + 8,y + 8,304,304); 
-                        }else{
-                            ctx.fillStyle = '#1C1C1C';
-                            ctx.font = '40px Saucer-Bold';
-                            ctx.fillText(title,x + 32,y + 290);
-                        }
-                    }
-
-                    _draw_pro(0,0,'A+B Problem');
-                    _draw_pro(0,1,'I\'m so happy',i_cover2);
-                    _draw_pro(0,2,'JOMANDA',i_cover3);
-                    _draw_pro(0,3,'Mother Ship',i_cover4);
-
-                    ctx.fillStyle = '#1C1C1C';
-                    ctx.font = '60px Saucer-Regular';
-                    if(curr_song != null){
-                        if(start_cd == null){
-                            start_cd = eng.ts;
-                        }
-                        
-                        ctx.fillText('BACK',1002,1344);
-                        ctx.fillText('START',1360,1344);
-
-                        ctx.font = '48px Saucer-Regular';
-                        ctx.fillText(new Number(60 - ((eng.ts - start_cd) / 1000)).toFixed(2),1360,1244);
-
-                        title = curr_song;
-                    }else{
-                        ctx.fillText('PREV',1002,1344);
-                        ctx.fillText('NEXT',1360,1344);
-
-                        title = 'SELECT  PROBLEM';
-                    }
-
-                    ctx.rotate(Math.PI / 2);
-                    ctx.font = '100px Saucer-Regular';
-                    ctx.fillText(title,32,-100);
+        $.when.apply($,defers).done(function(){
+            j_butts[0][1].on('click',function(e){
+                load_audio('song/JOMANDA/JOMANDA.ogg').done(function(ab_song){
+                    audio_play(ab_song);
                 });
-
-                eng.add_work(__draw);
-            }
-
-            butts[0][1].on('click',function(e){
-                _audio_play(ab_song2);
-                curr_song = 'I\'m so happy';
-            });
-            butts[0][2].on('click',function(e){
-                _audio_play(ab_song3);
                 curr_song = 'JOMANDA';
             });
-            butts[0][3].on('click',function(e){
-                _audio_play(ab_song4);
-                curr_song = 'Mother Ship';
+            j_butts[0][2].on('click',function(e){
+                load_audio('song/SHION/SHION.ogg').done(function(ab_song){
+                    audio_play(ab_song);
+                });
+                curr_song = 'SHION';
             });
 
-            butts[3][2].on('click',function(e){
+            j_butts[3][2].on('click',function(e){
                 if(curr_song != null){
-                    _audio_play(ab_select);
+                    audio_play('select.ogg');
                     start_cd = null;
                     curr_song = null;
                 }
             });
-            butts[3][3].on('click',function(e){
-                _test();
+            j_butts[3][3].on('click',function(e){
+                _start(); 
             });
 
-
-            __draw();
-        }
-        
-        function _test(){
-            
-        function _ani(){
-            var et = new Date().getTime();
-            j_fps.text(Math.floor(1 / (et - st) * 1000));
-            st = et;
-
-            window.requestAnimationFrame(_ani);
-
-            eng_bottom.update();
-            eng.update();
-            eng_top.update();
-        }
-
-        
-
-        
-    }*/
+            audio_play('select.ogg');
+            eng.add_draw(0,_draw);
+            back();
+        });
+    }
 };
 
-var engine = function(ctx,expfunc){
+var engine = function(ctx){
     var that = this;
     var workq = new Array();
     var drawq = new Array();
@@ -1120,6 +1223,8 @@ var engine = function(ctx,expfunc){
         var worktq;
         var drawtq;
         
+        var tmp = new Date().getTime();
+
         that.ts = new Date().getTime() - st;
 
         //worker.postMessage({'type':0,'ts':that.ts});
@@ -1142,13 +1247,14 @@ var engine = function(ctx,expfunc){
             });
             for(i = 0;i < drawtq.length;i++){
                 ctx.save();
-                if(drawtq[i].func == undefined){
-                    drawtq[i].draw(ctx);
-                }else{
-                    expfunc[drawtq[i].func].apply(null,drawtq[i].param);
-                }
+                drawtq[i].draw(ctx);
                 ctx.restore();
             }
+        }
+
+        tmp = new Date().getTime() - tmp;
+        if(tmp > 15){
+            console.log('time' + tmp);
         }
     };
 

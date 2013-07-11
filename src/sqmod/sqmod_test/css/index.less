@@ -1,3 +1,6 @@
+@import 'mixin.less';
+@import 'color.less';
+
 @font-face {
   font-family:Saucer-Regular;
   src:url('/toj/sqmod/sqmod_test/html/Saucer-Regular.ttf');
@@ -12,15 +15,20 @@
 }
 
 #index_page{
+    table.jurank{
+        font-size:@SmallFontSize;
+        position:absolute;
+        right:@SmallPad;
+    }
     div.stage{
         width:100%;
         position:absolute;
-        top:41px;
+        top:49px;
         left:0px;
         font-family:Saucer-Regular;
 
         div.box{
-            margin:0px auto 0px auto;
+            margin:0px auto 0px 64px;
             position:relative;
 
             span.fps{

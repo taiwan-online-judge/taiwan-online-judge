@@ -1,3 +1,9 @@
+.show {
+  display: block;
+}
+.hide {
+  display: none;
+}
 @font-face {
   font-family: Saucer-Regular;
   src: url('/toj/sqmod/sqmod_test/html/Saucer-Regular.ttf');
@@ -10,15 +16,20 @@
   font-family: Saucer-Mono;
   src: url('/toj/sqmod/sqmod_test/html/Saucer-Mono.ttf');
 }
+#index_page table.jurank {
+  font-size: 12px;
+  position: absolute;
+  right: 6px;
+}
 #index_page div.stage {
   width: 100%;
   position: absolute;
-  top: 41px;
+  top: 49px;
   left: 0px;
   font-family: Saucer-Regular;
 }
 #index_page div.stage div.box {
-  margin: 0px auto 0px auto;
+  margin: 0px auto 0px 64px;
   position: relative;
 }
 #index_page div.stage div.box span.fps {

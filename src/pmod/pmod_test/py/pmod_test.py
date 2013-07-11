@@ -24,6 +24,8 @@ class pmod_test(Problem):
         self._reg_path = 'pro/' + str(self._proid) + '/'
 
         Proxy.instance.register_call(
+            self._reg_path, 'view', self.view)
+        Proxy.instance.register_call(
             self._reg_path, 'add_mode', self.add_mode)
         Proxy.instance.register_call(
             self._reg_path, 'del_mode', self.del_mode)
@@ -49,6 +51,8 @@ class pmod_test(Problem):
             self._reg_path, 'get_testdata', self.get_testdata)
 
     def unload(self, force):
+        Proxy.instance.unregister_call(
+            self._reg_path, 'view')
         Proxy.instance.unregister_call(
             self._reg_path, 'add_mode')
         Proxy.instance.unregister_call(
@@ -102,6 +106,24 @@ class pmod_test(Problem):
         sqlstr = ('DELETE FROM "PMOD_TEST_TESTDATA" WHERE "proid" = %s;')
         sqlarr = (proid, )
         cur.execute(sqlstr, sqlarr)
+
+    @imc.async.caller
+    def view(self):
+        with TOJAuth.change_current_iden(self._idendesc):
+            mode = self._get_mode_by_modeid(1)
+
+            if mode == None:
+                return 'Emodeid'
+
+            testmode = self._get_testmode_info(mode['testmodeid'])
+
+        ret = {
+            'content':mode['content'],
+            'timelimit':testmode['timelimit'],
+            'memlimit':testmode['memlimit']
+        }
+
+        return ret
 
     @imc.async.caller
     def add_mode(self, content, testmodeid):

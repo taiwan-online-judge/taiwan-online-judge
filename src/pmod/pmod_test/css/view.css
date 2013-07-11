@@ -1,0 +1,12 @@
+.show {
+  display: block;
+}
+.hide {
+  display: none;
+}
+#index_page div.info {
+  position: fixed;
+}
+#index_page div.info table.table {
+  margin-top: 16px;
+}
