@@ -18,7 +18,7 @@ class BlobTable:
     # client
     # server
     @abstractmethod
-    def get_blob_info(self, blobname, attr=None):
+    def get_blob_info(self, container, name, attr=None):
         # if the blobname doesn't exist, return None
         if attr is None:
             # return blob info
@@ -46,19 +46,23 @@ class BlobTable:
     # client
     # server
     @abstractmethod
-    def update_blob(self, blobname, info):
+    def update_blob(self, info):
         pass
 
     # client
     # server
     @abstractmethod
-    def del_blob(self, blobname):
+    def del_blob(self, container, name):
+        # return the info
+        # if the blob doesn't exist, return None
         pass
 
 """
 info:
-    rev (int)
     container (str)
+    name (str)
+    rev (str)
+    sha1 (str)
     metadata (str)
     size (???)
     commit_time (???)

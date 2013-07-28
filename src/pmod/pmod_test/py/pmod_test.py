@@ -46,9 +46,19 @@ class pmod_test(Problem):
         Proxy.instance.register_call(
             self._reg_path, 'list_testmode', self.list_testmode)
         Proxy.instance.register_call(
-            self._reg_path, 'set_testdata', self.set_testdata)
+            self._reg_path, 'create_testdata', self.create_testdata)
+        Proxy.instance.register_call(
+            self._reg_path, 'delete_testdata', self.delete_testdata)
         Proxy.instance.register_call(
             self._reg_path, 'get_testdata', self.get_testdata)
+        Proxy.instance.register_call(
+            self._reg_path, 'list_testdata', self.list_testdata)
+        Proxy.instance.register_call(
+            self._reg_path, 'set_testdata', self.set_testdata)
+        Proxy.instance.register_call(
+            self._reg_path, 'set_testmode_testdata', self.set_testdata)
+        Proxy.instance.register_call(
+            self._reg_path, 'get_testmode_testdata', self.get_testdata)
 
     def unload(self, force):
         Proxy.instance.unregister_call(
@@ -72,9 +82,19 @@ class pmod_test(Problem):
         Proxy.instance.unregister_call(
             self._reg_path, 'get_testmode')
         Proxy.instance.unregister_call(
-            self._reg_path, 'set_testdata')
+            self._reg_path, 'create_testdata')
+        Proxy.instance.unregister_call(
+            self._reg_path, 'delete_testdata')
         Proxy.instance.unregister_call(
             self._reg_path, 'get_testdata')
+        Proxy.instance.unregister_call(
+            self._reg_path, 'list_testdata')
+        Proxy.instance.unregister_call(
+            self._reg_path, 'set_testdata')
+        Proxy.instance.unregister_call(
+            self._reg_path, 'set_testmode_testdata')
+        Proxy.instance.unregister_call(
+            self._reg_path, 'get_testmode_testdata')
 
     @staticmethod
     @TOJAuth.check_access(mod.ProblemMg._accessid, TOJAuth.ACCESS_CREATE)
@@ -398,7 +418,161 @@ class pmod_test(Problem):
         return testmode_list
 
     @imc.async.caller
-    def set_testdata(self, testmodeid, testdata):
+    def create_testdata(self, info, filekey, expire = None):
+        if expire != None:
+            expire = com.isoptime(expire)
+            if expire == None:
+                return 'Eparameter'
+
+        if(
+            type(info) != str or
+            type(filekey) != str
+        ):
+            return 'Eparameter'
+
+        testid = self._create_testdata(info, filekey, expire)
+
+        if testid == None:
+            return 'Eupload'
+
+        return {'testid': testid}
+
+    def _create_testdata(self, info, filekey, expire):
+        TOJAuth.check_access_func(self._accessid, TOJAuth.ACCESS_WRITE)
+
+        # Upload file
+
+        blobname = 'TEST_BLOBNAME'
+
+        with TOJAuth.change_current_iden(self._idendesc):
+            testid = mod.TestdataMg.instance._add_testdata(
+                blobname, expire, self._proid, info)
+
+        return testid
+
+    @imc.async.caller
+    def delete_testdata(self, testid):
+        if(
+            type(testid) != int
+        ):
+            return 'Eparameter'
+
+        with TOJAuth.change_current_iden(self._idendesc):
+            test = mod.TestdataMg.instance._get_testdata(testid)
+
+        if test == None:
+            return 'Etestid'
+
+        if test['proid'] != self._proid:
+            return 'Eother_proid'
+
+        self._delete_testdata(testid)
+
+        return 'Success'
+
+    def _delete_testdata(self, testid):
+        TOJAuth.check_access_func(self._accessid, TOJAuth.ACCESS_DELETE)
+
+        with TOJAuth.change_current_iden(self._idendesc):
+            mod.TestdataMg.instance._del_testdata(testid)
+
+    @imc.async.caller
+    def get_testdata(self, testid):
+        if(
+            type(testid) != int
+        ):
+            return 'Eparameter'
+
+        TOJAuth.check_access_func(self._accessid, TOJAuth.ACCESS_WRITE)
+
+        with TOJAuth.change_current_iden(self._idendesc):
+            test = mod.TestdataMg.instance._get_testdata(testid)
+
+        if test == None:
+            return 'Etestid'
+
+        if test['proid'] != self._proid:
+            return 'Eother_proid'
+
+        del test['blobname']
+        del test['proid']
+
+        return test
+
+    @imc.async.caller
+    def list_testdata(self):
+        testdata_list = self._list_testdata()
+
+        return testdata_list
+
+    def _list_testdata(self):
+        TOJAuth.check_access_func(self._accessid, TOJAuth.ACCESS_WRITE)
+
+        with TOJAuth.change_current_iden(self._idendesc):
+            testdata_list = mod.TestdataMg.instance._list_testdata(self._proid)
+
+        for test in testdata_list:
+            del test['blobname']
+            del test['proid']
+
+        return testdata_list
+
+    @imc.async.caller
+    def set_testdata(self, testid, info, filekey = None, expire = None):
+        if expire != None:
+            expire = com.isoptime(expire)
+            if expire == None:
+                return 'Eparameter'
+
+        if(
+            type(testid) != int or
+            type(info) != str or
+            (filekey != None and type(filekey) != str)
+        ):
+            return 'Eparameter'
+
+        with TOJAuth.change_current_iden(self._idendesc):
+            test = mod.TestdataMg.instance._get_testdata(testid)
+
+        if test == None:
+            return 'Etestid'
+
+        if test['proid'] != self._proid:
+            return 'Eother_proid'
+
+        result = self._set_testdata(testid, info, filekey, expire)
+
+        if result == None:
+            return 'Efailed'
+
+        if result == False:
+            return 'Eupload'
+
+        return 'Success'
+
+    def _set_testdata(self, testid, info, filekey, expire):
+        TOJAuth.check_access_func(self._accessid, TOJAuth.ACCESS_WRITE)
+        
+        with TOJAuth.change_current_iden(self._idendesc):
+            test = mod.TestdataMg.instance._get_testdata(testid)
+        
+        blobname = test['blobname']
+        if test['proid'] != self._proid:
+            return None
+
+        if filekey != None:
+            # Upload file
+            # Update blob 'blobname'
+            # If failed return False
+
+        with TOJAuth.change_current_iden(self._idendesc):
+            mod.TestdataMg.instance._update_testdata(
+                testid, blobname, expire, self._proid, info)
+
+        return True
+
+    @imc.async.caller
+    def set_testmode_testdata(self, testmodeid, testdata):
         if(
             type(testmodeid) != int or
             type(testdata) != list
@@ -432,7 +606,7 @@ class pmod_test(Problem):
 
         return 'Success'
 
-    def _set_testdata(self, testmodeid, testdata):
+    def _set_testmode_testdata(self, testmodeid, testdata):
         TOJAuth.check_access_func(self._accessid, TOJAuth.ACCESS_WRITE)
 
         cur = self.db.cursor()
@@ -472,7 +646,7 @@ class pmod_test(Problem):
         cur.execute(sqlstr, sqlarr)
 
     @imc.async.caller
-    def get_testdata(self, testmodeid):
+    def get_testmode_testdata(self, testmodeid):
         if(
             type(testmodeid) != int
         ):
@@ -485,7 +659,7 @@ class pmod_test(Problem):
 
         return testdata
 
-    def _get_testdata(self, testmodeid):
+    def _get_testmode_testdata(self, testmodeid):
         TOJAuth.check_access_func(self._accessid, TOJAuth.ACCESS_WRITE)
 
         cur = self.db.cursor()

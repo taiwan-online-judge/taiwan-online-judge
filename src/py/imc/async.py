@@ -101,7 +101,7 @@ def ret(retid,value = None,err = None):
     global gr_idmap
     global ret_idmap
 
-    assert greenlet.getcurrent() == gr_main
+    #assert greenlet.getcurrent() == gr_main
 
     try:
         gr = ret_idmap.pop(retid)
@@ -122,7 +122,7 @@ def ret(retid,value = None,err = None):
 
     except Exception as err:
         traceback.print_stack()
-        print(err)
+        print(type(err))
 
     finally:
         tornado.stack_context._state.contexts = old_contexts

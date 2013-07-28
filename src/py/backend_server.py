@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import os
 import traceback
 import sys
 import socket
@@ -7,6 +8,8 @@ import json
 import datetime
 import time
 import random
+import uuid
+from collections import deque
 from multiprocessing import Process
 
 import tornado.ioloop
@@ -16,14 +19,15 @@ import tornado.websocket
 
 import imc.async
 from imc.proxy import Proxy,Connection
+from imc.blobclient import BlobClient
 
 import mod
 import netio
-from netio import SocketStream,SocketConnection,WebSocketConnection
+from netio import SocketStream,SocketConnection
+from netio import WebSocketStream,WebSocketConnection
 from tojauth import TOJAuth
 
 from test_blob import TOJBlobTable,TOJBlobHandle
-from imc.blobclient import BlobClient
 
 class StdLogger(object):
     def __init__(self,callback):
@@ -48,7 +52,7 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         self._link = None
         self._idendesc = None
         self._pend_mainconn_linkmap = {}
-        self._pend_filestream_filekeymap = {}
+        self._pend_filekeymap = {}
         self._client_linkmap = {}
 
     def start(self):
@@ -66,7 +70,12 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     def handle_stream(self,stream,addr):
         def _recv_conn_info(data):
             info = json.loads(data.decode('utf-8'))
-            conntype = info['conntype']
+
+            try:
+                conntype = info['conntype']
+
+            except KeyError:
+                socket_stream.close()
 
             if conntype == 'main':
                 self._handle_mainconn(sock_stream,addr,info)
@@ -74,13 +83,16 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             elif conntype == 'file':
                 self._handle_fileconn(sock_stream,addr,info)
 
+            else:
+                socket_stream.close()
+
         fd = stream.fileno()
         self._ioloop.remove_handler(fd)
         sock_stream = SocketStream(socket.fromfd(fd,socket.AF_INET,socket.SOCK_STREAM | socket.SOCK_NONBLOCK,0))
 
         netio.recv_pack(sock_stream,_recv_conn_info)
 
-    def add_client(self,link,handler):
+    def add_client(self,link,main_stream):
         @imc.async.caller
         def _call():
             with TOJAuth.change_current_iden(self._idendesc):
@@ -88,13 +100,12 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
         self._client_linkmap[link] = {}
 
-        conn = netio.WebSocketConnection(link,handler)
+        conn = netio.WebSocketConnection(link,main_stream,self.pend_filestream,
+                                         self.del_pend_filestream)
         conn.add_close_callback(lambda conn : self.del_client(conn.link))
         Proxy.instance.add_conn(conn)
 
         _call()
-
-        return conn
 
     def del_client(self,link):
         @imc.async.caller
@@ -105,6 +116,34 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         del self._client_linkmap[link]
 
         _call()
+    
+    def pend_filestream(self,streamtype,filekey,callback,count = 1):
+        assert(filekey not in self._pend_filekeymap)
+
+        self._pend_filekeymap[filekey] = {
+            'streamtype':streamtype,
+            'count':count,
+            'stream':[],
+            'callback':tornado.stack_context.wrap(callback)
+        }
+
+    def add_filestream(self,streamtype,filekey,stream):
+        try:
+            pend = self._pend_filekeymap[filekey]
+
+        except KeyError:
+            raise
+
+        assert(pend['streamtype'] == streamtype)
+
+        pend['count'] -= 1
+        if pend['count'] == 0:
+            self._pend_filekeymap.pop(filekey)
+
+        pend['callback'](stream)
+
+    def del_pend_filestream(self,filekey):
+        self._pend_filekeymap.pop(filekey,None)
 
     def _conn_center(self):
         def __retry(conn):
@@ -123,14 +162,17 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 self._link = info['worker_link']
                 Proxy(self._link,TOJAuth.instance,self._idendesc,self._conn_link)
 
-                self.center_conn = SocketConnection(info['center_link'],stream,self.center_addr,self._add_pend_filestream)
+                self.center_conn = SocketConnection(info['center_link'],stream,
+                                                    self.center_addr,
+                                                    self.pend_filestream,
+                                                    self.del_pend_filestream)
                 self.center_conn.add_close_callback(__retry)
                 Proxy.instance.add_conn(self.center_conn)
 
-                self._init_blobclient()
+                #self._init_blobclient()
 
                 #Proxy.instance.register_call('test/','get_client_list',self._test_get_client_list)
-                #Proxy.instance.register_call('test/','test_dst',self._test_dst)
+                Proxy.instance.register_call('test/','test_dst',self._test_dst)
                 #Proxy.instance.register_filter('test/',self._test_filter)
 
                 try:
@@ -143,8 +185,8 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                 except Exception as e:
                     print(e)
 
-                #if self._link == '/backend/2/':
-                #    self._test_call(None)
+                if self._link == '/backend/2/':
+                    self._test_call(None)
 
             sock_ip,sock_port = self.sock_addr
             netio.send_pack(stream,bytes(json.dumps({
@@ -171,19 +213,52 @@ class BackendWorker(tornado.tcpserver.TCPServer):
                                 'blobtmp/' + str(self.ws_port - 79),
                                 TOJBlobTable(self.ws_port - 79),
                                 TOJBlobHandle)
-
-        blobclient.open_container('test','ACTIVE')
-        try:
+        
+        print(self.ws_port, "open cantainer test")
+        print(blobclient.open_container('test','ACTIVE'))
+        # if False:
+        if self.ws_port == 81:
             handle = blobclient.open(
                 'test','testblob',
                 TOJBlobHandle.WRITE | TOJBlobHandle.CREATE
             )
-        except:
-            pass
 
-        print(handle._fileno)
-        handle.write(bytes('Hello Data','utf-8'),0)
-        handle.commit(False);
+            print(handle._fileno)
+            handle.write(bytes('Hello Data','utf-8'),0)
+            print('create commit:', handle.commit(False))
+            handle.close()
+            print("#########################################################")
+            # print("wait for 3 secs...")
+            # time.sleep(3)
+            # try:
+                # handle = blobclient.open(
+                    # 'test', 'testblob',
+                    # TOJBlobHandle.CREATE
+                # )
+            # except ValueError as e:
+                # print("catch ValueError:", str(e))
+            # print("#########################################################")
+            # print("wait for 3 secs...")
+            # time.sleep(3)
+            # handle = blobclient.open(
+                # 'test', 'testblob',
+                # TOJBlobHandle.WRITE
+            # )
+            # handle.write(bytes('Hello new line\n','utf-8'),30)
+            # print('write commit:', handle.commit(False))
+            # handle.close()
+            # print("#########################################################")
+            # print("wait for 3 secs...")
+            # time.sleep(3)
+            # handle = blobclient.open(
+                # 'test', 'testblob',
+                # TOJBlobHandle.WRITE | TOJBlobHandle.DELETE
+            # )
+            # handle.delete()
+            # print('delete commit:', handle.commit(False))
+            # handle.close()
+            blobclient.clean()
+        blobclient.show_status()
 
     def _conn_link(self,link):
         def __handle_pend(conn):
@@ -216,7 +291,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         def __recv_cb(data):
             stat = json.loads(data.decode('utf-8'))
             if stat == True:
-                conn = SocketConnection(worker_link,main_stream,sock_addr,self._add_pend_filestream)
+                conn = SocketConnection(worker_link,main_stream,sock_addr,
+                                        self.pend_filestream,
+                                        self.del_pend_filestream)
                 Proxy.instance.add_conn(conn)
                 __handle_pend(conn)
 
@@ -255,9 +332,6 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
                 return imc.async.switch_top()
 
-    def _add_pend_filestream(self,filekey,callback):
-        self._pend_filestream_filekeymap[filekey] = tornado.stack_context.wrap(callback)
-
     def _handle_mainconn(self,main_stream,addr,info):
         link = info['link']
         sock_ip = info['sock_ip']
@@ -268,7 +342,9 @@ class BackendWorker(tornado.tcpserver.TCPServer):
             return
 
         if (link not in self._pend_mainconn_linkmap) or self._link > link:
-            conn = SocketConnection(link,main_stream,(sock_ip,sock_port),self._add_pend_filestream)
+            conn = SocketConnection(link,main_stream,(sock_ip,sock_port),
+                                    self.pend_filestream,
+                                    self.del_pend_filestream)
             Proxy.instance.add_conn(conn)
 
             netio.send_pack(main_stream,bytes(json.dumps(True),'utf-8'))
@@ -283,10 +359,10 @@ class BackendWorker(tornado.tcpserver.TCPServer):
         
     def _handle_fileconn(self,file_stream,addr,info):
         try:
-            self._pend_filestream_filekeymap.pop(info['filekey'])(file_stream)
+            self.add_filestream('socket',info['filekey'],file_stream)
 
-        except KeyError:
-            pass
+        except Exception:
+            file_stream.close()
 
     def _get_link(self,linkclass,uid = 0):
         if linkclass == 'center':
@@ -319,6 +395,10 @@ class BackendWorker(tornado.tcpserver.TCPServer):
     @imc.async.caller
     def _test_call(self,param):
         with TOJAuth.change_current_iden(self._idendesc):
+            ret = Proxy.instance.call('/backend/3/test/','test_dst',1000,'Hello')
+            print(ret)
+
+            '''
             st = time.perf_counter()
             for i in range(0,2):
                 dst = '/backend/' + str((i % 2) + 2) + '/'
@@ -332,33 +412,17 @@ class BackendWorker(tornado.tcpserver.TCPServer):
 
             print(time.perf_counter() - st)
             print(self._link)
-
-        return
-
-        pend = []
-        for i in range(0,32):
-            if str((i % 16) + 2) == self._link:
-                continue
-
-            fileres = Proxy.instance.sendfile('/backend/' + str((i % 16) + 2) + '/','Fedora-18-x86_64-DVD.iso')
-            
-            dst = '/backend/' + str((i % 16) + 2) + '/'
-            ret = Proxy.instance.call(self._idendesc,dst,'test_dst',fileres.filekey)
-
-            pend.append(fileres)
-
-        for p in pend:
-            print(self._link + ' ' + p.wait())
-
-        print(self._link)
+            '''
 
     @imc.async.caller
     def _test_dst(self,filekey):
         print(filekey)
 
-        self._ioloop.add_timeout(datetime.timedelta(milliseconds = 2000),lambda : Proxy.instance.abortfile(filekey))
-        #Proxy.instance.abortfile(filekey)
         fileres = Proxy.instance.recvfile(filekey,'data')
+
+        #self._ioloop.add_timeout(datetime.timedelta(milliseconds = 500),lambda : Proxy.instance.abortfile(filekey))
+        #Proxy.instance.abortfile(filekey)
+        #fileres = Proxy.instance.recvfile(filekey,'data')
         #print('recv ' + fileres.wait())
         print(fileres.wait())
 
@@ -375,24 +439,47 @@ class WebSocketConnHandler(tornado.websocket.WebSocketHandler):
     def on_message(self,msg):
         global backend_worker
 
-        if hasattr(self,'backend_conn'):
-            self.backend_conn.recv_msg(msg)
-        
-        else:
-            try:
-                info = json.loads(msg)
-                print(info)
-                self.backend_conn = backend_worker.add_client(info['client_link'],self)
+        if hasattr(self,'conntype'):
+            self.stream.recv_msg(msg)
 
-            except Exception:
-                self.close()
+        else:
+            info = json.loads(msg)
+            self.conntype = info['conntype']
+            self.stream = WebSocketStream(self)
+
+            if self.conntype == 'main':
+                self._handle_mainconn(self.stream,info)
+
+            elif self.conntype == 'file':
+                self._handle_fileconn(self.stream,info)
+
+            else:
+                self.stream.close()
 
     def on_close(self):
-        global backend_backend
+        if hasattr(self,'conntype'):
+            self.stream.close()
 
-        if hasattr(self,'backend_conn'):
-            self.backend_conn.close()
+    def _handle_mainconn(self,main_stream,info):
+        global backend_worker
 
+        try:
+            backend_worker.add_client(info['client_link'],main_stream)
+
+        except Exception:
+            main_stream.close()
+
+    def _handle_fileconn(self,file_stream,info):
+        global backend_worker
+
+        try:
+            backend_worker.add_filestream('websocket',info['filekey'],
+                                          file_stream)
+            print('test')
+
+        except Exception as err:
+            file_stream.close()
+        
 def start_backend_worker(ws_port):
     global backend_worker
 

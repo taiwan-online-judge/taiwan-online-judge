@@ -26,7 +26,7 @@ def unload(name):
     del mod_list[name]
 
 def load_sqmod(sqmodname):
-    instance = import_module(''.join(['/srv/py/sqmod/',sqmodname,'/py/',sqmodname]))
+    instance = import_module(''.join(['/srv/http/toj/sqmod/',sqmodname,'/py/',sqmodname]))
 
     return getattr(instance,sqmodname)
 

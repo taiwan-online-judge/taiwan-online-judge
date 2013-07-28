@@ -37,7 +37,7 @@ class Connection:
     def start_recv(self,recv_callback):
         pass
 
-    def abort_file(self,filekey):
+    def abort_file(self,filekey,err):
         pass
 
     def add_close_callback(self,callback):
@@ -54,9 +54,11 @@ class Connection:
 
 class FileResult():
     def __init__(self,filekey):
-        self.filekey = filekey
+        self._ioloop = tornado.ioloop.IOLoop.instance()
         self._retid = None
         self._result = None
+
+        self.filekey = filekey
 
     def ret_result(self,res):
         if self._result != None:
@@ -72,6 +74,16 @@ class FileResult():
             async.switch_top()
 
         return self._result
+
+    def wait_async(self,callback):
+        @async.caller
+        def _call():
+            result = self.wait()
+
+            if callback != None:
+                callback(result)
+
+        self._ioloop.add_callback(tornado.stack_context.wrap(_call))
 
 class Proxy:
     def __init__(self,link,auth,idendesc,conn_link_fn = lambda link : None):
@@ -124,7 +136,8 @@ class Proxy:
     def del_conn(self,conn):
         waits = list(self._conn_retidmap[conn.link].values())
         for wait in waits:
-            wait['callback']((False,'Eclose'))
+            self._ret_call(wait['caller_link'],wait['caller_retid'],
+                           (False,'Eclose'))
 
         waits = list(self._conn_filekeymap[conn.link].values())
         for wait in waits:
@@ -175,10 +188,11 @@ class Proxy:
         self._ioloop.add_callback(tornado.stack_context.wrap(_call))
 
     def sendfile(self,dst_link,filepath):
-        def _abort_cb():
-            if self._ret_sendfile(filekey,'Eabort'):
+        def _callback(err):
+            if self._ret_sendfile(filekey,err) and err != None:
                 with Auth.change_current_iden(self._idendesc,self._auth):
-                    self.call(dst_link + 'imc/','abort_sendfile',65536,filekey)
+                    self.call(dst_link + 'imc/','abort_sendfile',65536,
+                              filekey,err)
 
         filekey = SHA512.new(uuid.uuid1().bytes + ssl.RAND_bytes(64)).hexdigest()
         filesize = os.stat(filepath).st_size
@@ -189,8 +203,9 @@ class Proxy:
             'filesize':filesize,
             'filepath':filepath,
             'fileresult':fileresult,
-            'timer':self._ioloop.add_timeout(datetime.timedelta(days = 1),lambda : self._ret_sendfile(filekey,'Etimeout')),
-            'abort_callback':tornado.stack_context.wrap(_abort_cb)
+            'timer':self._ioloop.add_timeout(datetime.timedelta(days = 1),
+                            lambda : self._ret_sendfile(filekey,'Etimeout')),
+            'callback':tornado.stack_context.wrap(_callback)
         }
 
         with Auth.change_current_iden(self._idendesc,self._auth):
@@ -211,7 +226,7 @@ class Proxy:
             
             if err != None:
                 if not in_conn.closed():
-                    in_conn.abort_file(filekey)
+                    in_conn.abort_file(filekey,err)
                     self._send_msg_abortfile(in_conn,filekey,err)
 
             self._ioloop.add_callback(self._ret_sendfile,filekey,err)
@@ -224,7 +239,7 @@ class Proxy:
         in_conn = self._request_conn(src_link)
 
         if filekey in self._info_filekeymap:
-            info['abort_callback'] = tornado.stack_context.wrap(lambda : _callback('Eabort'))
+            info['callback'] = tornado.stack_context.wrap(_callback)
             self._add_wait_filekey(in_conn.link,filekey,filesize,_callback)
 
             in_conn.recv_file(filekey,filesize,filepath,_callback)
@@ -234,7 +249,7 @@ class Proxy:
 
     def abortfile(self,filekey):
         try:
-            self._info_filekeymap[filekey]['abort_callback']()
+            self._info_filekeymap[filekey]['callback']('Eabort')
 
         except:
             pass
@@ -274,10 +289,13 @@ class Proxy:
     
     def _route_call(self,in_conn,caller_link,caller_retid,idendesc,dst,func_name,timeout,param):
         def __add_wait_caller(conn_link):
-            callback = tornado.stack_context.wrap(lambda result : self._ret_call(caller_link,caller_retid,result))
             self._conn_retidmap[conn_link][caller_retid] = {
-                'timer':self._ioloop.add_timeout(datetime.timedelta(milliseconds = timeout),lambda : callback((False,'Etimeout'))),
-                'callback':callback
+                'timer':self._ioloop.add_timeout(datetime.timedelta(
+                    milliseconds = timeout),
+                    lambda : self._ret_call(caller_link,caller_retid,
+                                            (False,'Etimeout'))),
+                'caller_link':caller_link,
+                'caller_retid':caller_retid
             }
 
         def __del_wait_caller(conn_link):
@@ -333,8 +351,8 @@ class Proxy:
             except KeyError:
                 return __ret((False,'Enoexist'))
 
-            #except Exception:
-            #    return __ret((False,'Einternal'))
+            except Exception:
+                return __ret((False,'Einternal'))
 
             if Auth.get_current_idendesc() == idendesc:
                 result = func(*param)
@@ -355,7 +373,9 @@ class Proxy:
             else:
                 if caller_link == self._link:
                     __add_wait_caller(conn.link)
-                    self._send_msg_call(conn,caller_link,caller_retid,idendesc,dst,func_name,timeout,param)
+
+                    self._send_msg_call(conn,caller_link,caller_retid,idendesc,
+                                        dst,func_name,timeout,param)
 
                     result = async.switch_top()
 
@@ -364,7 +384,8 @@ class Proxy:
                     return __ret(result)
 
                 else:
-                    self._send_msg_call(conn,caller_link,caller_retid,idendesc,dst,func_name,timeout,param)
+                    self._send_msg_call(conn,caller_link,caller_retid,idendesc,
+                                        dst,func_name,timeout,param)
 
                     return
     
@@ -391,7 +412,7 @@ class Proxy:
                     
             if err != None:
                 if not out_conn.closed():
-                    out_conn.abort_file(filekey)
+                    out_conn.abort_file(filekey,err)
                     self._send_msg_abortfile(out_conn,filekey,err)
 
             self._ioloop.add_callback(self._ret_sendfile,filekey,err)
@@ -402,7 +423,7 @@ class Proxy:
                 
                 if err != None:
                     if not in_conn.closed():
-                        in_conn.abort_file(filekey)
+                        in_conn.abort_file(filekey,err)
                         self._send_msg_abortfile(in_conn,filekey,err)
 
             except KeyError:
@@ -413,7 +434,7 @@ class Proxy:
                 
                 if err != None:
                     if not out_conn.closed():
-                        out_conn.abort_file(filekey)
+                        out_conn.abort_file(filekey,err)
                         self._send_msg_abortfile(out_conn,filekey,err)
 
             except KeyError:
@@ -425,13 +446,19 @@ class Proxy:
                 if info['filesize'] != filesize:
                     raise ValueError
 
-            except (KeyError,ValueError):
+            except KeyError:
                 self._send_msg_abortfile(out_conn,filekey,'Enoexist')
-                self._ioloop.add_callback(self._ret_sendfile,filekey,'Enoexist')
+
                 return
 
-            info['abort_callback'] = tornado.stack_context.wrap(lambda : __send_cb('Eabort'))
-            self._add_wait_filekey(out_conn.link,filekey,filesize,__send_cb)
+            except ValueError:
+                self._send_msg_abortfile(out_conn,filekey,'Enoexist')
+                self._ioloop.add_callback(self._ret_sendfile,filekey,'Enoexist')
+
+                return
+
+            info['callback'] = tornado.stack_context.wrap(__send_cb)
+            self._add_wait_filekey(out_conn.link,filekey,__send_cb)
             out_conn.send_file(filekey,info['filepath'],__send_cb)
 
         else:
@@ -440,8 +467,10 @@ class Proxy:
                 self._send_msg_abortfile(out_conn,filekey,'Enoexist')
 
             else:
-                self._add_wait_filekey(in_conn.link,filekey,filesize,__bridge_cb)
-                self._add_wait_filekey(out_conn.link,filekey,filesize,__bridge_cb)
+                self._add_wait_filekey(in_conn.link,filekey,filesize,
+                                       __bridge_cb)
+                self._add_wait_filekey(out_conn.link,filekey,filesize,
+                                       __bridge_cb)
 
                 send_fn = out_conn.send_filedata(filekey,filesize,__bridge_cb)
                 in_conn.recv_filedata(filekey,filesize,send_fn)
@@ -450,8 +479,11 @@ class Proxy:
     
     def _add_wait_filekey(self,conn_link,filekey,filesize,callback):
         callback = tornado.stack_context.wrap(callback)
+
         self._conn_filekeymap[conn_link][filekey] = {
-            'timer':self._ioloop.add_timeout(datetime.timedelta(milliseconds = max(filesize,10000)),lambda : callback('Etimeout')),
+            'timer':self._ioloop.add_timeout(
+                datetime.timedelta(milliseconds = max(filesize,10000)),
+                lambda : callback('Etimeout')),
             'callback':callback
         }
     
@@ -607,20 +639,26 @@ class Proxy:
 
     @async.caller
     def _pend_recvfile(self,src_link,filekey,filesize):
-        def __abort_cb():
-            if self._ret_sendfile(filekey,'Eabort'):
+        def __abort_cb(err):
+            if self._ret_sendfile(filekey,err):
                 with Auth.change_current_iden(self._idendesc,self._auth):
-                    self.call(src_link + 'imc/','abort_sendfile',65536,filekey)
+                    self.call(src_link + 'imc/','abort_sendfile',65536,
+                              filekey,err)
 
         self._info_filekeymap[filekey] = {
             'src_link':src_link,
             'filesize':filesize,
             'fileresult':FileResult(filekey),
-            'timer':self._ioloop.add_timeout(datetime.timedelta(days = 1),lambda : self._ret_sendfile(filekey,'Etimeout')),
-            'abort_callback':tornado.stack_context.wrap(__abort_cb)
+            'timer':self._ioloop.add_timeout(datetime.timedelta(days = 1),
+                            lambda : self._ret_sendfile(filekey,'Etimeout')),
+            'callback':tornado.stack_context.wrap(__abort_cb)
         }
+
+        return 'Success'
     
     @async.caller
-    def _abort_sendfile(self,filekey):
+    def _abort_sendfile(self,filekey,err):
         if filekey in self._info_filekeymap:
-            self._ioloop.add_callback(self._ret_sendfile,filekey,'Eabort')
+            self._ioloop.add_callback(self._ret_sendfile,filekey,err)
+
+        return 'Success'

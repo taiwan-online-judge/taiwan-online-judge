@@ -4,6 +4,7 @@ import random
 import json
 import uuid
 import socket
+import time
 
 import tornado.ioloop
 import tornado.tcpserver
@@ -142,13 +143,13 @@ class CenterServer(tornado.tcpserver.TCPServer):
 
     @imc.async.caller
     def _init_blobserver(self):
-        BlobServer(Proxy.instance,
-                   TOJAuth.instance,
-                   self._idendesc,
-                   self._link,
-                   'blobtmp/1',
-                   TOJBlobTable(1),
-                   TOJBlobHandle)
+        blobserver = BlobServer(Proxy.instance,
+                                TOJAuth.instance,
+                                self._idendesc,
+                                self._link,
+                                'blobtmp/1',
+                                TOJBlobTable(1),
+                                TOJBlobHandle)
 
     def _create_link(self,linkclass):
         linkid = uuid.uuid1()

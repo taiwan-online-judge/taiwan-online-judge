@@ -1,17 +1,16 @@
 #! /usr/bin/env python
 
 import os
+import uuid
+from collections import Counter
 
 from imc.auth import Auth
 import imc.async
 from imc.proxy import Proxy
 
-from collections import Counter
-
 class BlobServer:
     def __init__(self, proxy, auth, idendesc, link,
             location, blobtable, BlobHandle):
-
         self._proxy = proxy
         self._auth = auth
         self._idendesc = idendesc
@@ -19,7 +18,9 @@ class BlobServer:
         self._location = location
         self._blobtable = blobtable
         self.BlobHandle = BlobHandle
-        self._clients = {}
+        self._clients = set()
+        self._opencounts = Counter()
+        self._deltags = set()
         self._containers = dict.fromkeys(self._blobtable.get_container_list(),
                                          dict())
         self._proxy.register_call('blobserver/', 'connect_client',
@@ -30,55 +31,55 @@ class BlobServer:
                                   self.close_container)
         self._proxy.register_call('blobserver/', 'check_blob',
                                   self.check_blob)
-        self._proxy.register_call('blobserver/', 'recv_update_result',
-                                  self.recv_update_result)
         self._proxy.register_call('blobserver/', 'recv_commit',
                                   self.recv_commit)
+
+        self.clean()
+##################debug code##########################
+        print('blobserver: init')
+        self.show_status()
+
+    def show_status(self):
+        print('blobserver: containers =>\n', self._containers)
+        print('blobserver: blobs =>\n', self._blobtable.get_blob_list())
+######################################################
 
     def __del__(self):
         self._proxy.unregister_call('blobserver/', 'connect_client')
         self._proxy.unregister_call('blobserver/', 'open_container')
         self._proxy.unregister_call('blobserver/', 'close_container')
         self._proxy.unregister_call('blobserver/', 'check_blob')
-        self._proxy.unregister_call('blobserver/', 'recv_update_result')
         self._proxy.unregister_call('blobserver/', 'recv_commit')
         
-    def _client_call(self, client, func, timeout=10000, *args):
+    def _client_call(self, client, func, *args, timeout=10000):
         client += 'blobclient/'
         with Auth.change_current_iden(self._idendesc):
-            for i in range(5):
-                sta, ret = self._proxy.call(client, func, timeout, *args)
-                if sta or (not sta and ret == 'Enoexist'):
-                    break
+            sta, ret = self._proxy.call(client, func, timeout, *args)
+        if not sta:
+            self.disconnect_client(client)
         return (sta, ret)
 
     def _client_call_async(self, client, func, callback, 
-                           timeout=10000, *args, **kwargs):
+                           *args, timeout=10000):
         client += 'blobclient/'
         with Auth.change_current_iden(self._idendesc):
-            for i in range(5):
-                sta, ret = self._proxy.call_async(client, func, timeout,
-                                                  callback, *args)
-                if sta or (not sta and ret == 'Enoexist'):
-                    break
-        return (sta, ret)
+            self._proxy.call_async(client, func, timeout, callback, *args)
 
     @imc.async.caller
-    def connect_client(self, client, cache_list):
+    def connect_client(self, client):
         if client not in self._clients:
-            self._clients.update({client: cache_list})
-        else:
-            self._clients[client] = cache_list
+            self._clients.add(client)
 
     def disconnect_client(self, client):
         try:
-            self._clients.pop[client]
-        except ValueError:
-            raise Exception("this client doesn't exist")
+            self._clients.remove(client)
+        except KeyError:
+            print("client", client, "doesn't exist")
 
     def create_container(self, container):
-        self._blobtable.create_container(container)
-        self._containers[container] = dict()
+        if container not in self._containers:
+            self._blobtable.create_container(container)
+            self._containers[container] = dict()
 
     def del_container(self, container):
         try:
@@ -101,163 +102,175 @@ class BlobServer:
         try:
             self._containers[container].pop(client)
         except KeyError:
-            raise
+            return False
+        else:
+            return True
 
-    def update_blob(self, blobname, info):
-        self._blobtable.update_blob(blobname, info)
+    def clean(self):
+        del_list = list(self._deltags)
+        for rev in del_list:
+            self.del_real_blob(rev)
+        del_list = []
+        for blob, rev in (self._blobtable.get_blob_list().items()):
+            if not self.blob_exists(rev):
+                del_list.append(blob)
+        for container, name in del_list:
+            self.del_blob(container, name)
 
-    def del_blob(self, blobname):
-        rev = self._blobtable.get_blob_info(blobname, 'rev')
-        blobname_rev = ''.join([blobname, '_', str(rev)])
-        self._blobtable.del_blob(blobname)
-        self.del_real_blob(blobname_rev)
-
-    def del_real_blob(self, blobname_rev):
-        blobpath = self._location + blobname_rev
-        self.BlobHandle.del_blob(blobpath)
-
-    def send_blob(self, client, blobname):
-        rev = str(self._blobtable.get_blob_info(blobname, 'rev'))
-        blobpath = os.path.join(self._location, blobname + '_' + rev)
-        return self._proxy.sendfile(client, blobpath)
-
-    def recv_blob(self, filekey, blobname, rev):
-        blobpath = os.path.join(self._location, blobname +  '_' + str(rev))
-        ret =  self._proxy.recvfile(filekey, blobpath)
-
-        return ret
 
     @imc.async.caller
-    def check_blob(self, client, blobname, cacherev):
-        rev = self._blobtable.get_blob_info(blobname, 'rev')
-        if rev is None:
-            return 'no_exist'
-        elif cacherev < rev:
-            result = self.send_blob(client, blobname)
-            response = {'filekey': result.filekey,
-                        'info': self._blobtable.get_blob_info(blobname)}
-            return response
-        else:
-            return 'up_to_date'
-
-    @imc.async.caller
-    def recv_update_result(self, client, blobname, result,
-                           cacherev, retry=False):
-        if client not in self._clients:
-            return None
-        else:
-            if result == 'Success':
-                self._clients[client].append({blobname: cacherev})
-                return 'Success'
-            elif retry:
-                result = self.send_blob(client, blobname)
-                response = {'filekey': result.filekey,
-                            'info': self._blobtable.get_blob_info(blobname)}
-                return response
+    def check_blob(self, client, container, name, cacherev, cachesha1):
+        info = self._blobtable.get_blob_info(container, name)
+        if info is None:
+            return ('no_exist', None)
+        elif cacherev != info['rev']:
+            if cachesha1 != info['sha1']:
+                result = self.send_blob(container, name, client)
+                return (result.filekey, info)
             else:
-                return 'Finish'
+                return (None, info)
+        else:
+            return ('up_to_date', None)
 
-    def send_update(self, clients, blobname, info, written):
-        result_table = dict.fromkeys(clients)
+    def get_update_list(self, container):
+        clients = set()
+        for client, method in (self._containers[container].items()):
+            if method == "ACTIVE":
+                clients.add(client)
+        return clients
+
+    def send_update(self, client, container, name):
         def recv_result(result):
-            nonlocal result_table
-            nonlocal blobname
-            nonlocal info
-            sta, client = result
+            nonlocal client
+            nonlocal container
+            nonlocal name
+            sta, ret = result
             # TODO:
             # limit retry
             if not sta:
-                self._client_call_async(client, 'get_update',
-                                        recv_result,
-                                        blobname, info, 
-                                        result_table[client].filekey)
-            else:
-                if result_table[client] is None:
-                    result_table.pop(client)
-                elif result_table[client].wait() != 'Success':
-                    result_table[client] = self.send_blob(client, blobname)
-                    self._client_call_async(client, 'get_update',
-                                            recv_result,
-                                            blobname, info, 
-                                            result_table[client].filekey)
-                else:
-                    result_table.pop(client)
+                # self._client_call_async(client, 'get_update',
+                                        # recv_result, container, name)
+                self.disconnect_client(client)
+                self._containers[container].pop(client)
 
-        for client in clients:
-            if written:
-                result_table[client] = self.send_blob(client, blobname)
-            else:
-                result_table[client] = None
-            sta, ret = self._client_call(client, 'get_update',
-                                         recv_result,
-                                         blobname, info, 
-                                         result_table[client].filekey)
-            if not sta:
-                # TODO:
-                pass
+        self._client_call_async(client, 'get_update',
+                                recv_result, container, name)
 
     @imc.async.caller
-    def recv_commit(self, client, commit_info, force_flag, filekey=None):
-        blobname = commit_info['blobname']
-        info = commit_info['info']
-        rev = self._blobtable.get_blob_info(blobname, 'rev')
-        if rev is None:
-            if commit_info['createtag']:
-                rev = 0
-            else:
+    def recv_commit(self, client, commit_info, force_flag):
+        clientinfo = commit_info['info']
+        container = clientinfo['container']
+        name = clientinfo['name']
+        info = self._blobtable.get_blob_info(container, name)
+        if info is None:
+            if not commit_info['createtag']:
+##################debug code##########################
+                print("blob doesn't exist, please add createtag")
+##################debug code##########################
                 return False
-        elif info['rev'] < rev and not force_flag:
+        elif info['rev'] != clientinfo['rev'] and not force_flag:
+##################debug code##########################
+            print("revision conflict")
+##################debug code##########################
             return False
 
         if commit_info['deltag']:
-            self.del_blob(blobname)
-            clients = set()
-            for needed_client, method in (
-                self._containers[info['container']].items()
-            ):
-                if method == "ACTIVE":
-                    clients.add(needed_client)
-            clients.discard(client)
-            self.send_update(clients, blobname, None, False)
-            result = True
+            clientinfo['rev'] = None
+            self.del_blob(container, name)
+            return clientinfo
         else:
-            info['rev'] = rev + 1
-            if commit_info['written']:
-                status = self.recv_blob(filekey, blobname, rev + 1)
-                result = status.wait()
-                if rev:
-                    self.del_real_blob(''.join([blobname, '_', str(rev)]))
+            clientinfo['rev'] = str(uuid.uuid4())
+            if not info or info['sha1'] != clientinfo['sha1']:
+                filekey = self.request_blob(client, commit_info['target'])
+                if (filekey == 'Efailtosend' or
+                    filekey == 'Edisconnected'):
+                    return False
             else:
-                result = True
-        if result:
-            self.update_blob(blobname, info)
-            clients = set()
-            for needed_client, method in (
-                self._containers[info['container']].items()):
-                if method == "ACTIVE":
-                    clients.add(needed_client)
-            clients.discard(client)
-            self.send_update(clients, blobname, 
-                             info, commit_info['written'])
+                filekey = None
+            if filekey:
+                status = self.recv_blob(filekey, clientinfo['rev'])
+                result = status.wait()
+            else:
+                if info:
+                    result = self.copy_blob(info['rev'], clientinfo['rev'])
+                else:
+                    result = False
+            if result:
+                if clientinfo['rev']:
+                    self.update_blob(clientinfo)
+                    if info:
+                        self.del_real_blob(info['rev'])
+                clients = self.get_update_list(container)
+                clients.discard(client)
+                for cli in clients:
+                   self.send_update(cli, container, name)
+                return clientinfo
+            else:
+                return False
 
-            return True
+    # @imc.async.caller
+    # def get_request(self, client, container, name):
+        # result = self.send_blob(client, container, name)
+        # if result:
+            # return result.filekey
+        # else:
+            # return None
+
+    def request_blob(self, client, target):
+        sta, ret = self._client_call(client, 'get_request', target)
+        if not sta:
+            return 'Edisconnected'
         else:
+            return ret
+
+    def send_blob(self, container, name, client):
+        rev = self._blobtable.get_blob_info(container, name, 'rev')
+        if not rev:
             return False
+        else:
+            def send_finish(result):
+                nonlocal rev
+                if self._opencounts[rev] > 0:
+                    self._opencounts[rev] -= 1
 
+            blobpath = os.path.join(self._location, rev)
+            try:
+                ret = self._proxy.sendfile(client, blobpath)
+            except ConnectionError:
+                return False
+            else:
+                self._opencounts[rev] += 1
+                ret.wait_async(send_finish)
+                return ret
 
+    def recv_blob(self, filekey, filename):
+        blobpath = os.path.join(self._location, filename)
+        return self._proxy.recvfile(filekey, blobpath)
 
-################### Testing Code #######################
-'''
-if __name__ == '__main__':
-    global blob_serv
+    def update_blob(self, info):
+        self._blobtable.update_blob(info)
 
-    blob_serv = BlobServer()
-    blob_serv.listen(5730)
+    def del_blob(self, container, name):
+        rev = self._blobtable.get_blob_info(container, name, 'rev')
+        self._blobtable.del_blob(container, name)
+        if rev:
+            self.del_real_blob(rev)
 
-    #http_serv = tornado.httpserver.HTTPServer(tornado.web.Application([
-    #    ('/conn',WebConnHandler),
-    #]))
-    #http_serv.listen(83)
+    def del_real_blob(self, rev):
+        self._deltags.add(rev)
+        if self._opencounts[rev] == 0:
+            self._deltags.remove(rev)
+            path = os.path.join(self._location, rev)
+            self.BlobHandle.del_blob(path)
 
-    tornado.ioloop.IOLoop.instance().start()
-'''
+    def copy_blob(self, rev, newrev):
+        path = os.path.join(self._location, rev)
+        newpath = os.path.join(self._location, newrev)
+        return self.BlobHandle.copy_file(path, newpath)
+
+    def vertify_blob(self, rev, sha1):
+        blobpath = os.path.join(self._location, rev)
+        return self.BlobHandle._sha1(blobpath) == sha1
+
+    def blob_exists(self, rev):
+        return self.BlobHandle.file_exists(os.path.join(self._location, rev))

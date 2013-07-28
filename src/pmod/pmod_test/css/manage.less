@@ -1,14 +1,25 @@
+@import 'mixin.less';
+@import 'color.less';
+
 #index_page{
     div.create_mode,div.set_mode{
-        div.content{
-            height:256px;
+        div.block{
+            margin-bottom:@MediumPad;
+
+            div.data{
+                height:256px;
+            }
         }
     }
     table.table{
-        td.oper{
-            div.btn-group{
-                position:absolute;
+        tr.item{
+            height:48px;
+
+            td.oper{
+                div.btn-group{
+                    position:absolute;
+                }
             }
-        }
+        }   
     }
 }

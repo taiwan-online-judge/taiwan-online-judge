@@ -15,6 +15,7 @@ var imc = new function(){
         that.link = link;
 
         that.send_msg = function(data){};
+        that.send_file = function(filekey,blob,callback){};
         that.start_recv = function(recv_callback){};
 
         that.close = function(){
@@ -29,14 +30,18 @@ var imc = new function(){
     that.Proxy = function(self_link,auth,conn_link){
         var MSGTYPE_CALL = 'call';
         var MSGTYPE_RET = 'ret';
+        var MSGTYPE_SENDFILE = 'sendfile';
+        var MSGTYPE_ABORTFILE = 'abortfile';
 
         var that = this;
         var caller_retid_count = 0;
         var conn_linkmap = {};
         var conn_retidmap = {};
         var callpath_root = {'child':{},'name':{},'filt':[]};
+        var info_filekeymap = {};
+        var conn_filekeymap = {};
 
-        var walk_path = function(path,create){
+        function walk_path(path,create){
             var i;
             var parts;
             var part;
@@ -67,9 +72,9 @@ var imc = new function(){
             }
 
             return cnode;
-        };
+        }
 
-        var route_call = function(caller_link,caller_retid,idendesc,dst,func_name,timeout,callback,param){
+        function route_call(caller_link,caller_retid,idendesc,dst,func_name,timeout,callback,param){
             var i;
             var j;
             var part;
@@ -80,12 +85,12 @@ var imc = new function(){
             var dpart;
             var func;
 
-            var _add_wait_caller = function(conn_link){
+            function _add_wait_caller(conn_link){
                 conn_retidmap[conn_link][caller_retid] = {
                     'timeout':timeout,
                     'callback':callback
                 }   
-            };
+            }
 
             part = dst.split('/');
             dst_link = part.slice(0,3).join('/') + '/'
@@ -114,13 +119,20 @@ var imc = new function(){
                     _add_wait_caller(self_link);
 
                     func.apply(undefined,[function(data){
-                        if(self_link in conn_retidmap && caller_retid in conn_retidmap[self_link]){
+                        if(self_link in conn_retidmap && 
+                            caller_retid in conn_retidmap[self_link]){
+
                             delete conn_retidmap[self_link][caller_retid];
-                            callback({'stat':true,'data':data}); 
+
+                            if(callback != null && callback != undefined){
+                                callback({'stat':true,'data':data}); 
+                            }
                         }   
                     }].concat(param));
                 }else{
-                    callback({'stat':false,'data':'Enoexist'}); 
+                    if(callback != null && callback != undefined){
+                        callback({'stat':false,'data':'Enoexist'}); 
+                    }
                 }   
             }else{
                 that.request_conn(dst_link,function(conn){
@@ -128,22 +140,109 @@ var imc = new function(){
                         _add_wait_caller(conn.link);
                     }
 
-                    send_msg_call(conn,caller_link,caller_retid,idendesc,dst,func_name,timeout,param);
+                    send_msg_call(conn,caller_link,caller_retid,idendesc,dst,
+                                  func_name,timeout,param);
                 });
             }
-        };
+        }
+        function ret_call(conn_link,caller_link,caller_retid,result){
+            var wait;
+            
+            if(conn_link in conn_retidmap &&
+               caller_retid in conn_retidmap[conn_link]){
 
-        var recv_dispatch = function(conn,data){
+                wait = conn_retidmap[conn_link][caller_retid];
+                delete conn_retidmap[conn_link][caller_retid];
+            }else{
+                return;
+            }
+
+            if(caller_link == self_link){
+                wait.callback(result);
+            }else{
+                request_conn(caller_link,function(conn){
+                    send_msg_ret(conn,caller_link,caller_retid,result);
+                });
+            }
+        }
+        function route_sendfile(out_conn,src_link,filekey,filesize){
+            var info;
+
+            function _send_cb(err){
+                if(del_wait_filekey(out_conn,filekey)){
+                    return;
+                }
+
+                if(err != undefined){
+                    out_conn.abort_file(filekey,err);
+                    send_msg_abortfile(out_conn,filekey,err);
+                }
+
+                ret_sendfile(filekey,err);
+            }
+
+            if(src_link != self_link){
+                //TODO
+                return;
+            }
+            
+            if((info = info_filekeymap[filekey]) == undefined){
+                return;
+            }
+
+            info.callback = _send_cb;
+            add_wait_filekey(out_conn.link,filekey,info.blob.size,_send_cb);
+            out_conn.send_file(filekey,info.blob,_send_cb);
+        }
+        function ret_sendfile(filekey,err){
+            var info;
+            
+            if((info = info_filekeymap[filekey]) == undefined){
+                return false;
+            }
+
+            delete info_filekeymap[filekey];
+
+            if(err == undefined){
+                info.result_callback('Success');
+            }else{
+                info.result_callback(err);
+            }
+
+            return true;
+        }
+        function add_wait_filekey(conn_link,filekey,filesize,callback){
+            conn_filekeymap[conn_link][filekey] = {
+                'callback':callback
+            };
+        }
+        function del_wait_filekey(conn_link,filekey){
+            if(conn_link in conn_filekeymap &&
+               filekey in conn_filekeymap[conn_link]){
+
+                delete conn_filekeymap[conn_link][filekey];
+
+                return true;
+            }else{
+                return false;
+            }
+        }
+
+        function recv_dispatch(conn,data){
             var msgo = JSON.parse(data);
 
             if(msgo.type == MSGTYPE_CALL){
                 recv_msg_call(conn,msgo);
             }else if(msgo.type == MSGTYPE_RET){
                 recv_msg_ret(conn,msgo);
+            }else if(msgo.type == MSGTYPE_SENDFILE){
+                recv_msg_sendfile(conn,msgo);
+            }else if(msgo.type == MSGTYPE_ABORTFILE){
+                recv_msg_abortfile(conn,msgo);
             }
-        };
+        }
 
-        var send_msg_call = function(conn,caller_link,caller_retid,idendesc,dst,func_name,timeout,param){
+        function send_msg_call(conn,caller_link,caller_retid,idendesc,dst,func_name,timeout,param){
             var msg = {
                 'type':MSGTYPE_CALL,
                 'caller_link':caller_link,
@@ -156,8 +255,8 @@ var imc = new function(){
             };
 
             conn.send_msg(JSON.stringify(msg));
-        };
-        var recv_msg_call = function(conn,msg){
+        }
+        function recv_msg_call(conn,msg){
             var caller_link = msg.caller_link
             var caller_retid = msg.caller_retid;
             var timeout = msg.timeout;
@@ -171,9 +270,9 @@ var imc = new function(){
                     send_msg_ret(conn,caller_link,caller_retid,result);
                 });
             },param);
-        };
+        }
 
-        var send_msg_ret = function(conn,caller_link,caller_retid,result){
+        function send_msg_ret(conn,caller_link,caller_retid,result){
             var msg = {
                 'type':MSGTYPE_RET,
                 'caller_link':caller_link,
@@ -182,30 +281,43 @@ var imc = new function(){
             };
 
             conn.send_msg(JSON.stringify(msg));
-        };
-        var recv_msg_ret = function(conn,msg){
+        }
+        function recv_msg_ret(conn,msg){
             var caller_link = msg['caller_link'];
             var caller_retid = msg['caller_retid'];
             var result = msg['result'];
-            var wait;
 
-            if(caller_link == self_link){
-                if(conn.link in conn_retidmap && caller_retid in conn_retidmap[conn.link]){
-                    wait = conn_retidmap[conn.link][caller_retid];
-                    delete conn_retidmap[conn.link][caller_retid];
+            ret_call(conn.link,caller_link,caller_retid,result);
+        }
 
-                    wait.callback(result);
-                }   
-            }else{
-                request_conn(caller_link,function(conn){
-                    send_msg_ret(conn,caller_link,caller_retid,result);
-                });
+        function recv_msg_sendfile(conn,msg){
+            route_sendfile(conn,msg.src_link,msg.filekey,msg.filesize);
+        }
+
+        function send_msg_abortfile(conn,filekey,err){
+            var msg = {
+                'type':MSGTYPE_ABORTFILE,
+                'filekey':filekey,
+                'error':err
+            };
+
+            conn.send_msg(JSON.stringify(msg));
+        }
+        function recv_msg_abortfile(conn,msg){
+            var filekey = msg.filekey;    
+            var err = msg.error;
+            
+            if(conn.link in conn_filekeymap &&
+               filekey in conn_filekeymap[conn.link]){
+
+                conn_filekeymap[conn.link][filekey].callback(err);
             }
-        };
+        }
 
         that.add_conn = function(conn){
             conn_linkmap[conn.link] = conn;
             conn_retidmap[conn.link] = {};
+            conn_filekeymap[conn.link] = {};
             conn.start_recv(recv_dispatch);
         };
         that.link_conn = function(link,conn){
@@ -218,7 +330,19 @@ var imc = new function(){
             delete conn.link_linkmap[link];
         };
         that.del_conn = function(conn){
+            retids = conn_retidmap[conn.link];
+            for(retid in retids){
+                ret_call(conn.link,caller_link,caller_retid,result);
+            }
+
+            filekeys = conn_filekeymap[conn.link];
+            for(filekey in filekeys){
+                filekeys[filekey].callback('Eclose');
+            }
+
+            delete conn_retidmap[conn.link];
             delete conn_linkmap[conn.link];
+            delete conn_filekeymap[conn.link];
         };
         that.request_conn = function(link,callback){
             var conn = conn_linkmap[link];
@@ -250,6 +374,32 @@ var imc = new function(){
             caller_retid_count += 1;
 
             route_call(self_link,caller_retid,imc.Auth.get_current_idendesc(),dst,func_name,timeout,callback,params);
+        };
+        that.sendfile = function(dst_link,
+                                 blob,
+                                 filekey_callback,
+                                 result_callback){
+
+            var filekey = self_link + '_' + Math.random();
+
+            info_filekeymap[filekey] = {
+                'blob':blob,
+                'result_callback':result_callback,
+                'callback':function(err){
+                    if(ret_sendfile(filekey,err) && err != undefined){
+                        that.call(dst_link + 'imc/','abort_sendfile',65536,null,filekey,err);
+                    }
+                }
+            };
+
+            that.call(dst_link + 'imc/','pend_recvfile',65536,function(result){
+                filekey_callback(filekey);
+            },self_link,filekey,blob.size);
+        };
+        that.abortfile = function(filekey){
+            if((info = info_filekeymap[filekey]) != undefined){
+                info.callback('Eabort');
+            }  
         };
 
         that.register_call = function(path,func_name,func){
@@ -284,7 +434,15 @@ var imc = new function(){
             cnode.filt.remove(func);
         };
 
+        that.register_call('imc/','abort_sendfile',
+                           function(callback,filekey,err){
+
+            callback('Success');
+            ret_sendfile(filekey,'Eabort');
+        });
+
         conn_retidmap[self_link] = {};
+        conn_filekeymap[self_link] = {};
 
         imc.Proxy.instance = that;
     };

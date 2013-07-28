@@ -10,13 +10,74 @@ var ACCESS_DELETE = 0x8;
 var ACCESS_SETPER = 0x10;
 var ACCESS_EXECUTE = 0x20;
 
-var WebSocketConnection = function(link,ws){
+var WebSocketConnection = function(link,ws,file_addr){
     var that = this;
+    var sendfile_filekeymap = {};
 
     that.__super__(link);
 
     that.send_msg = function(data){
         ws.send(new Blob([data],{'type':'application/octet-stream'}))
+    };
+    that.send_file = function(filekey,blob,callback){
+        var i;
+        var file_ws = new Array(4);
+        var filesize = blob.size;
+        var partsize = Math.ceil(filesize / 4);
+        var count = 0;
+
+        function _callback(err){
+            if(!(filekey in sendfile_filekeymap)){
+                return;
+            }
+
+            delete sendfile_filekeymap[filekey];
+
+            for(i = 0;i < 4;i++){
+                if(file_ws[i] != undefined){
+                    file_ws[i].close();
+                }
+            }
+
+            callback(err);
+        }
+
+        for(i = 0;i < 4;i++){
+            file_ws[i] = new WebSocket('ws://' + file_addr + '/conn');
+            file_ws[i].onopen = function(idx){return function(){
+                var ws = file_ws[idx];
+                var off = idx * partsize;
+                var end = Math.min(filesize,off + partsize);
+
+                ws.onmessage = function(e){
+                    if(off >= end){
+                        count += 1;
+                        if(count == 4){
+                            _callback();
+                        }
+                    }else{
+                        ws.send(blob.slice(off,Math.min(end,off + 524288),
+                                           'application/octet-stream'));
+                        off += 524288;
+                    }
+                };
+
+                console.log('file open ' + off);
+
+                ws.send(JSON.stringify({
+                    'conntype':'file',
+                    'filekey':filekey
+                }));
+
+                ws.send(new Blob([JSON.stringify({'off':off})],
+                             {'type':'application/octet-stream'}));
+            }}(i);       
+        }
+    };
+    that.abort_file = function(filekey,err){
+        if(filekey in sendfile_filekeymap){
+            sendfile_filekeymap[filekey]('Eabort');
+        }
     };
     that.start_recv = function(recv_callback){
         ws.onmessage = function(e){
@@ -197,7 +258,7 @@ var com = new function(){
             }else{
                 return false;
             }
-        }
+        };
         $.fn.tagbox = function(option){
             var tagbox = this.data('tagbox');
 
@@ -206,7 +267,16 @@ var com = new function(){
             }
 
             return tagbox;
-        }
+        };
+        $.fn.codebox = function(option){
+            var codebox = this.data('codebox');
+
+            if(option != undefined){
+                codebox = that.create_codebox(this,option.mode,option.readonly);
+            } 
+
+            return codebox;
+        };
     };
 
     that.url_push = function(url){
@@ -533,7 +603,7 @@ var com = new function(){
         ex($('[exheight="true"]'),'height');
         ex($('[exminheight="true"]'),'min-height');
 
-        $('.modal-body').css('max-height',(winheight * 0.5) + 'px');
+        $('.modal-body').css('max-height',(winheight * 0.9 - 192) + 'px');
     };
     that.get_cookie = function(){
         var ret;
@@ -994,6 +1064,41 @@ var com = new function(){
             var reto;
             var idendesc;
             var ws;
+            var addr;
+            
+            function x(idx){
+                var tws = new WebSocket('ws://' + reto.ip + ':' + reto.port + '/conn');
+                var offset;
+                var end;
+                var blob;
+
+                tws.onmessage = function(){
+                    console.log(offset)
+
+                    if(offset < end){
+                        console.log(offset);
+                        tws.send(blob.slice(offset,Math.min(end,offset + 524288 * 1),'application/octet-stream'));
+                        offset += (524288 * 1);
+                    }else{
+                        console.log(new Date().getTime());
+                    }
+                };
+                tws.onopen = function(){
+                    tws.send('filestream'); 
+                };
+                $('#test_fs').on('change',function(e){
+                    blob = this.files[0];
+                    offset = Math.floor(blob.size / 4) * idx;
+                    if(idx != 3){
+                        end = offset + Math.floor(blob.size / 4);
+                    }else{
+                        end = blob.size;
+                    }
+
+                    console.log(new Date().getTime());
+                    tws.send('start');
+                });
+            }
 
             if(res[0] != 'E'){
                 reto = JSON.parse(res)
@@ -1001,8 +1106,9 @@ var com = new function(){
                 that.link = reto.client_link;
                 that.backend_link = reto.backend_link;
                 idendesc = reto.client_idendesc;
+                addr = reto.ip + ':' + reto.port;
 
-                ws = new WebSocket('ws://' + reto.ip + ':' + reto.port + '/conn');
+                ws = new WebSocket('ws://' + addr + '/conn');
                 ws.onopen = function(){
                     var i;
                     var conn;
@@ -1011,10 +1117,11 @@ var com = new function(){
                     console.log('open');
 
                     ws.send(JSON.stringify({
+                        'conntype':'main',
                         'client_link':that.link
                     }));
 
-                    conn = new WebSocketConnection(reto.backend_link,ws);
+                    conn = new WebSocketConnection(reto.backend_link,ws,addr);
 
                     new imc.Auth();
                     new imc.Proxy(that.link,imc.Auth.instance,function(link,callback){
@@ -1037,12 +1144,30 @@ var com = new function(){
                     }else{
                         that.conn_callback.fire();
                     }
+
+                    $('#test_fs').on('change',function(e){
+                        var blob = this.files[0];
+
+                        console.log(new Date().getTime());
+
+                        that.sendfile_backend(blob,function(filekey){
+                            that.call_backend('test/','test_dst',function(result){
+                                console.log(result);
+                            },filekey);
+                            console.log(filekey);
+                        },function(result){
+                            console.log(result);
+                        }); 
+
+                    });
+
                 };
             }else{
                 setTimeout(that.conn_backend,5000);
             }
         });
     }
+
     that.call_backend = function(path,func_name,callback){
         var i;
         var params = new Array()
@@ -1053,5 +1178,9 @@ var com = new function(){
         }
 
         imc.Proxy.instance.call.apply(undefined,params);
-    }
+    };
+    that.sendfile_backend = function(blob,filekey_callback,result_callback){
+        return imc.Proxy.instance.sendfile(that.backend_link,blob,
+                                           filekey_callback,result_callback);
+    };
 };

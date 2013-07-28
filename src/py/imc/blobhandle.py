@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 from abc import abstractmethod
+import os
 
 class BlobHandle:
     READ = 0x1
@@ -8,36 +9,28 @@ class BlobHandle:
     CREATE = 0x4
     DELETE = 0x8
     WRITEMETA = 0x10
-    def __init__(self, name, info, flag, blobclient):
-        self._name = name
+    def __init__(self, info, flag, blobclient):
         self._info = info
         self._flag = flag
         self._blobclient = blobclient
         self._location = self._blobclient._location
         self._is_closed = False
         self._deltag = False
-        self._written = False
         self._createtag = False
-        self._need_commit = False
         self._tmpfile = None
-        self._blobpath = ''.join([self._location, self._name,
-                                  '_', str(self.get_rev())])
+        if info['rev']:
+            self._blobpath = os.path.join(self._location, self._info['rev'])
+        else:
+            self._blobpath = None
         if flag & BlobHandle.CREATE:
-            if not flag & BlobHandle.WRITE:
-                raise ValueError("invalid flag")
-            else:
-                self._need_commit = True
-                self._createtag = True
-                self._written = True
+            self._createtag = True
         if flag & BlobHandle.WRITE:
             self._tmpfile = self.gen_tmp()
 
     def __del__(self):
-        self.del_tmp()
-        self._blobclient.close(self)
-
-    def create(self):
-        self._create(self.location + self._name)
+        if self._flag & BlobHandle.WRITE:
+            self.del_tmp()
+        self.close()
     
     def read(self, length, offset):
         if self._is_closed:
@@ -51,9 +44,7 @@ class BlobHandle:
             raise Exception("This Blob is closed")
         if not self._flag & BlobHandle.WRITE:
             raise Exception("Permission Denied")
-        self._need_commit = True
         written_bytes = self._write(data, offset)
-        self._written = bool(written_bytes)
         self._info['size'] = self._get_size()
         return written_bytes
 
@@ -62,20 +53,18 @@ class BlobHandle:
             raise Exception("This Blob is closed")
         if not self._flag & BlobHandle.DELETE:
             raise Exception("Permission Denied")
-        self._need_commit = True
+        self._info['name'] = newname
         
     def delete(self, deltag=True):
         if self._is_closed:
             raise Exception("This Blob is closed")
         if not self._flag & BlobHandle.DELETE:
             raise Exception("Permission Denied")
-        self._need_commit = True
         self._deltag = deltag
 
     def close(self):
         self._is_closed = True
-        if self._flag != BlobHandle.READ:
-            self._blobclient.close(self)
+        self._blobclient.close(self._info['rev'])
 
     def get_metadata(self):
         if self._is_closed:
@@ -86,9 +75,8 @@ class BlobHandle:
         if self._is_closed:
             raise Exception("This Blob is closed")
         if not self._flag & BlobHandle.WRITEMETA:
-            raise Exception("Permission Deniedd")
+            raise Exception("Permission Denied")
         self._info['metadata'] = metadata
-        self._need_commit = True
 
     def get_rev(self):
         if self._is_closed:
@@ -105,29 +93,29 @@ class BlobHandle:
             raise Exception("This Blob is closed")
         return self._info['size']
 
+    def get_sha1(self):
+        if self._is_closed:
+            raise Exception("This Blob is closed")
+        return self._info['sha1']
+
     def commit(self, flag):
         if self._is_closed:
             raise Exception("This Blob is closed")
-        if not self._need_commit:
-            return False
+        self._info['sha1'] = self._sha1(self._tmpfile)
         commit_info = dict()
-        commit_info['blobname'] = self._name
+        commit_info['info'] = self._info
+        commit_info['target'] = self._tmpfile
         if self._deltag:
             commit_info['deltag'] = True
+            commit_info['createtag'] = False
         else:
             commit_info['deltag'] = False
             commit_info['createtag'] = self._createtag
-            commit_info['info'] = self._info
-            commit_info['written'] = self._written
         return self._blobclient.commit(commit_info, flag, self)
 
-    def copy_tmp(self):
-        BlobHandle.copy_file(
-            self._tmpfile,
-            ''.join([self._location, self._info['container'], '_',
-                     self._name, '_', str(self._info['rev'])])
-        )
-        pass
+    def copy_tmp(self, rev):
+        path = os.path.join(self._location, rev)
+        return self.copy_file(self._tmpfile, path)
 
     @abstractmethod
     def gen_tmp(self):
@@ -152,7 +140,15 @@ class BlobHandle:
 
     @staticmethod
     @abstractmethod
+    def _sha1(file):
+        # calculate the sha1 of file
+        # return string
+       pass
+
+    @staticmethod
+    @abstractmethod
     def copy_file(source, dest):
+        # return Boolean
         pass
 
     @staticmethod
@@ -160,4 +156,8 @@ class BlobHandle:
     def del_blob(blobpath):
         pass
         
-
+    @staticmethod
+    @abstractmethod
+    def file_exists(path):
+        # return Boolean
+        pass

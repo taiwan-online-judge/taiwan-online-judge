@@ -35,6 +35,8 @@ class SquareMg:
         self.get_link = get_link_fn
         self._sqmod_list = {}
 
+        Proxy.instance.register_filter('sq/', self.sqmod_filter)
+
         Proxy.instance.register_call(
             'core/square/', 'list_category', self.list_category)
         Proxy.instance.register_call(
@@ -55,6 +57,8 @@ class SquareMg:
             'core/square/', 'list_sqmod', self.list_sqmod)
 
     def unload(self):
+        Proxy.instance.unregister_filter('sq/', self.sqmod_filter)
+
         Proxy.instance.unregister_call(
             'core/square/', 'list_category')
         Proxy.instance.unregister_call(
@@ -651,6 +655,11 @@ class SquareMg:
     def does_sqmodid_exist(self, sqmodid):
         sqmodname = self.get_sqmodname_by_sqmodid(sqmodid)
         return sqmodname != None
+
+    def sqmod_filter(self, res_path, dst_func):
+        sqid = int(res_path[0])
+        with TOJAuth.change_current_iden(self._idendesc):
+            self.load_square(sqid)
 
 class Square:
     def unload(self, Force):

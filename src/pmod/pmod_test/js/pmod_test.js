@@ -86,7 +86,7 @@ var pmod_test = function(proid,pro_node){
             }
         }
         function _mode_create(modeid,testmodeid){
-            var j_item = $('<tr><td class="id"></td><td class="testmode"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>')
+            var j_item = $('<tr class="item"><td class="id"></td><td class="testmode"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>')
 
             _mode_set(j_item,modeid,testmodeid);
 
@@ -160,7 +160,7 @@ var pmod_test = function(proid,pro_node){
             });
         }
         function _testmode_create(testmodeid,testmodename){
-            var j_item = $('<tr><td class="id"></td><td class="name"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>')
+            var j_item = $('<tr class="item"><td class="id"></td><td class="name"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>')
 
             _testmode_set(j_item,testmodeid,testmodename);
 
@@ -198,6 +198,79 @@ var pmod_test = function(proid,pro_node){
         function _update(){
             _testmode_update().done(_mode_update);
         }
+        function _mix_content(j_box){
+            var content_title = j_box.find('div.content input.title').val();
+            var content = j_box.find('div.content div.data').data('codebox').getValue();
+            var format_title = j_box.find('div.format input.title').val();
+            var format = j_box.find('div.format div.data').data('codebox').getValue();
+            var testdata_title = j_box.find('div.testdata input.title').val();
+            var testdata = j_box.find('div.testdata div.data').data('codebox').getValue();
+
+            console.log(content_title);
+
+            return '<!--content_title_start--><h4>' + content_title + '</h4><!--content_title_end-->' + 
+                   '<!--content_start-->' + content + '<!--content_end-->' + 
+                   '<!--format_title_start--><h4>' + format_title + '</h4><!--format_title_end-->' +
+                   '<!--format_start-->' + format + '<!--format_end-->' + 
+                   '<!--testdata_title_start--><h4>' + testdata_title + '</h4><!--testdata_title_end-->' +
+                   '<!--testdata_start-->' + testdata + '<!--testdata_end-->';
+        }
+        function _parse_content(j_box,mix_content){
+            var part;
+            var content_title;
+            var content;
+            var format_title;
+            var format;
+            var testdata_title;
+            var testdata;
+
+            console.log(mix_content);
+            part = mix_content.match(/<!--content_title_start--><h4>([\s\S.]*)<\/h4><!--content_title_end-->/);
+            if(part != null){
+                content_title = part[1];
+            }else{
+                content_title = '';
+            }
+            part = mix_content.match(/<!--content_start-->([\s\S.]*)<!--content_end-->/);
+            if(part != null){
+                content = part[1];
+            }else{
+                content = '';
+            }
+            
+            part = mix_content.match(/<!--format_title_start--><h4>([\s\S.]*)<\/h4><!--format_title_end-->/);
+            if(part != null){
+                format_title = part[1];
+            }else{
+                format_title = '';
+            }
+            part = mix_content.match(/<!--format_start-->([\s\S.]*)<!--format_end-->/);
+            if(part != null){
+                format = part[1];
+            }else{
+                format = '';
+            }
+            
+            part = mix_content.match(/<!--testdata_title_start--><h4>([\s\S.]*)<\/h4><!--testdata_title_end-->/);
+            if(part != null){
+                testdata_title = part[1];
+            }else{
+                testdata_title = '';
+            }
+            part = mix_content.match(/<!--testdata_start-->([\s\S.]*)<!--testdata_end-->/);
+            if(part != null){
+                testdata = part[1];
+            }else{
+                testdata = '';
+            }
+
+            j_box.find('div.content input.title').val(content_title);
+            j_box.find('div.content div.data').codebox().setValue(content);
+            j_box.find('div.format input.title').val(format_title);
+            j_box.find('div.format div.data').codebox().setValue(format);
+            j_box.find('div.testdata input.title').val(testdata_title);
+            j_box.find('div.testdata div.data').codebox().setValue(testdata);
+        }
 
         if(direct == 'in'){
             com.loadpage('/toj/pmod/pmod_test/html/manage.html').done(function(){
@@ -205,17 +278,37 @@ var pmod_test = function(proid,pro_node){
                 j_testmode_list = j_index_page.find('table.testmode > tbody');
 
                 j_create_mode = j_index_page.find('div.create_mode');
-                com.create_codebox(j_create_mode.find('div.content'),'text/html');
+                j_create_mode.find('div.content div.data').codebox({'mode':'text/html'});
+                j_create_mode.find('div.format div.data').codebox({'mode':'text/html'});
+                j_create_mode.find('div.testdata div.data').codebox({'mode':'text/html'});
 
                 j_create_mode.on('shown',function(e){
-                    j_create_mode.find('div.content').data('codebox').refresh();
+                    var i;
+                    var codeboxs;
+
+                    codeboxs = j_create_mode.find('div.block div.data');
+                    for(i = 0;i < codeboxs.length;i++){
+                        $(codeboxs[i]).data('codebox').refresh();
+                    }
                 });
                 j_create_mode.on('hide',function(e){
-                    j_create_mode.find('div.content').data('codebox').setValue('');
+                    var i;
+                    var codeboxs;
+
+                    j_create_mode.find('div.content input.title').val('內容');
+                    j_create_mode.find('div.format input.title').val('I/O格式');
+                    j_create_mode.find('div.testdata input.title').val('範例測資');
+                    
+                    codeboxs = j_create_mode.find('div.block div.data');
+                    for(i = 0;i < codeboxs.length;i++){
+                        $(codeboxs[i]).data('codebox').setValue('');
+                    }
                 });
                 j_create_mode.find('button.submit').on('click',function(e){
-                    var content = j_create_mode.find('div.content').data('codebox').getValue();
                     var testmodeid = parseInt(j_create_mode.find('[name="testmode"]').val());
+                    var mix_content;
+
+                    mix_content = _mix_content(j_create_mode);
 
                     com.call_backend(callpath,'add_mode',function(result){
                         if(com.is_callerr(result)){
@@ -226,7 +319,7 @@ var pmod_test = function(proid,pro_node){
 
                             _update();
                         } 
-                    },content,testmodeid); 
+                    },mix_content,testmodeid); 
                 });
                 j_create_mode.find('button.cancel').on('click',function(e){
                     j_create_mode.modal('hide'); 
@@ -237,16 +330,20 @@ var pmod_test = function(proid,pro_node){
                 });
 
                 j_set_mode = j_index_page.find('div.set_mode');
-                com.create_codebox(j_set_mode.find('div.content'),'text/html');
+                j_set_mode.find('div.content div.data').codebox({'mode':'text/html'});
+                j_set_mode.find('div.format div.data').codebox({'mode':'text/html'});
+                j_set_mode.find('div.testdata div.data').codebox({'mode':'text/html'});
                 
                 j_set_mode.on('show',function(e){
                     com.call_backend(callpath,'get_mode',function(result){
                         var data = result.data;
+                        var parse_content;
 
                         if(com.is_callerr(result)){
                             index.add_alert('','警告','管理發生錯誤');
                         }else{
-                            j_set_mode.find('div.content').data('codebox').setValue(data.content);
+                            parse_content = _parse_content(j_set_mode,data.content);
+
                             if(data.testmodeid == null){
                                 j_set_mode.find('[name="testmode"]').val(0);
                             }else{
@@ -256,19 +353,36 @@ var pmod_test = function(proid,pro_node){
                     },set_mode_id);
                 });
                 j_set_mode.on('shown',function(e){
-                    j_set_mode.find('div.content').data('codebox').refresh();
+                    var i;
+                    var codeboxs;
+
+                    codeboxs = j_set_mode.find('div.block div.data');
+                    for(i = 0;i < codeboxs.length;i++){
+                        $(codeboxs[i]).data('codebox').refresh();
+                    }
                 });
                 j_set_mode.on('hide',function(e){
+                    var i;
+                    var codeboxs;
+
                     set_mode_id = null;
-                    j_set_mode.find('div.content').data('codebox').setValue('');
+
+                    j_set_mode.find('div.block input.title').val('');
+                    
+                    codeboxs = j_set_mode.find('div.block div.data');
+                    for(i = 0;i < codeboxs.length;i++){
+                        $(codeboxs[i]).data('codebox').setValue('');
+                    }
                 });
                 j_set_mode.find('button.submit').on('click',function(e){
-                    var content = j_set_mode.find('div.content').data('codebox').getValue();
                     var testmodeid = parseInt(j_set_mode.find('[name="testmode"]').val());
+                    var mix_content;
 
                     if(testmodeid == 0){
                         testmodeid = null;
                     }
+
+                    mix_content = _mix_content(j_set_mode);
 
                     com.call_backend(callpath,'set_mode',function(result){
                         if(com.is_callerr(result)){
@@ -279,7 +393,7 @@ var pmod_test = function(proid,pro_node){
 
                             _update();
                         }
-                    },set_mode_id,content,testmodeid); 
+                    },set_mode_id,mix_content,testmodeid); 
                 });
                 j_set_mode.find('button.cancel').on('click',function(e){
                     j_set_mode.modal('hide'); 
