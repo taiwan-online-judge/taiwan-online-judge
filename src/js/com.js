@@ -19,11 +19,11 @@ var WebSocketConnection = function(link,ws,file_addr){
     that.send_msg = function(data){
         ws.send(new Blob([data],{'type':'application/octet-stream'}))
     };
-    that.send_file = function(filekey,blob,callback){
+    that.send_file = function(filekey,blob,callback,prog_callback){
         var i;
-        var file_ws = new Array(4);
+        var file_ws = new Array(8);
         var filesize = blob.size;
-        var partsize = Math.ceil(filesize / 4);
+        var partsize = Math.ceil(filesize / 8);
         var count = 0;
 
         function _callback(err){
@@ -33,7 +33,7 @@ var WebSocketConnection = function(link,ws,file_addr){
 
             delete sendfile_filekeymap[filekey];
 
-            for(i = 0;i < 4;i++){
+            for(i = 0;i < 8;i++){
                 if(file_ws[i] != undefined){
                     file_ws[i].close();
                 }
@@ -42,7 +42,7 @@ var WebSocketConnection = function(link,ws,file_addr){
             callback(err);
         }
 
-        for(i = 0;i < 4;i++){
+        for(i = 0;i < 8;i++){
             file_ws[i] = new WebSocket('ws://' + file_addr + '/conn');
             file_ws[i].onopen = function(idx){return function(){
                 var ws = file_ws[idx];
@@ -52,7 +52,7 @@ var WebSocketConnection = function(link,ws,file_addr){
                 ws.onmessage = function(e){
                     if(off >= end){
                         count += 1;
-                        if(count == 4){
+                        if(count == 8){
                             _callback();
                         }
                     }else{
@@ -195,7 +195,7 @@ var com = new function(){
                 j_e.empty();
                 j_e.attr('checked',null);
             }else{
-                j_e.append($('<i class="icon-ok"></i>'));
+                j_e.append($('<i class="glyphicon glyphicon-ok"></i>'));
                 j_e.attr('checked','checked');
             }
 
@@ -239,6 +239,8 @@ var com = new function(){
         });
         $(document).on('click','span.check',function(e){
             var j_e = $(e.target);
+
+            console.log('test');
 
             if(!j_e.is('span.check')){
                 j_e = j_e.parent('span.check');
@@ -603,7 +605,7 @@ var com = new function(){
         ex($('[exheight="true"]'),'height');
         ex($('[exminheight="true"]'),'min-height');
 
-        $('.modal-body').css('max-height',(winheight * 0.9 - 192) + 'px');
+        //$('.modal-body').css('max-height',(winheight * 0.9 - 192) + 'px');
     };
     that.get_cookie = function(){
         var ret;
@@ -690,7 +692,7 @@ var com = new function(){
 
         return codebox;
     };
-    that.create_pagination = function(j_div,start,end,curr,step){
+    that.create_pagination = function(j_ul,start,end,curr,step){
         var i;
         var j_ul;
         var j_li;
@@ -701,11 +703,8 @@ var com = new function(){
         end = Math.floor(Math.max(0,(end - 1)) / step);
         curr = Math.floor(curr / step);
 
-        j_div.empty();
-
-        j_div.addClass('pagination');
-        j_div.append('<ul></ul>');
-        j_ul = j_div.find('ul')
+        j_ul.empty();
+        j_ul.addClass('pagination');
 
         j_li = $('<li class="prev"><a href="">←</a></li>');
         if(curr == 0){
@@ -783,25 +782,25 @@ var com = new function(){
             var left;
             var top;
             
-            left = 6;
-            top = 4;
+            left = 12;
+            top = 8;
             if((j_tag = j_box.find('span.tag:last')).length == 1){
                 pos = j_tag.position();
-                left += pos.left + j_tag.width() + 14;
+                left += pos.left + j_tag.width() + 20;
 
-                top += pos.top + j_tag.height() + 1;
+                top += pos.top + j_tag.height() + 2;
 
                 if((inwidth - left) < 70){
-                    left = 6;
-                    top += 6;
+                    left = 12;
+                    top += 8;
                 }else{
                     top -= (j_tag.height() + 2);
                 }
             }
 
-            j_input.width(inwidth - left + 6);
             j_input.css('padding-left',left);
             j_input.css('padding-top',top);
+            j_input.css('height',top + 30);
         }
         function _match(value){
             var i;
@@ -884,12 +883,11 @@ var com = new function(){
             }
         }
         function _init(){
-            j_input.css('width','');
-            width = j_input.width() + 14;
-            inwidth = width - 14;
+            j_div.css('width','100%');
+            width = j_div.width();
+            inwidth = width - 24;
 
-            j_div.width(width);
-            j_input.width(inwidth);
+            j_box.width(inwidth);
             j_menu.width(width - 2);
         }
         function _set_words(new_words){
@@ -942,7 +940,7 @@ var com = new function(){
 
         j_div.empty();
         j_div.addClass('tagbox');
-        j_div.append($('<div></div><input type="text"><ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu"></ul>'));
+        j_div.append($('<div></div><input class="form-control" type="text"><ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu"></ul>'));
 
         j_box = j_div.find('div');
         j_input = j_div.find('input');
@@ -1043,7 +1041,7 @@ var com = new function(){
         }
         j_span.text(text);
 
-        j_i = $('<i class="icon-remove-circle icon-white"></i>');
+        j_i = $('<i class="glyphicon glyphicon-remove-circle"></i>');
         j_span.append(j_i);
         j_i.on('click',function(e){
             j_span.remove();

@@ -27,7 +27,7 @@ var square = new function(){
         j_oper = j_box.find('div.oper');
         j_oper.empty();
         if(active == null){
-            j_oper.append('<button class="btn btn-primary join" data-loading-text="處理中">加入</button><a class="btn open">開啓</a>');
+            j_oper.append('<button class="btn btn-primary join" data-loading-text="處理中">加入</button><a class="btn btn-default open">開啓</a>');
             j_oper.find('button.join').on('click',function(e){
                 $(this).button('loading');
 
@@ -48,10 +48,10 @@ var square = new function(){
                 },id); 
             });
         }else{
-            if(active== true){
-                j_oper.append('<button class="btn btn-success quit" data-loading-text="處理中">退出</button><a class="btn open">開啓</a>');
+            if(active == true){
+                j_oper.append('<button class="btn btn-success quit" data-loading-text="處理中">退出</button><a class="btn btn-default open">開啓</a>');
             }else{
-                j_oper.append('<button class="btn btn-warning quit" data-loading-text="處理中">取消申請</button><a class="btn open">開啓</a>');
+                j_oper.append('<button class="btn btn-warning quit" data-loading-text="處理中">取消申請</button><a class="btn btn-default open">開啓</a>');
             }
 
             j_oper.find('button.quit').on('click',function(e){
@@ -85,7 +85,7 @@ var square = new function(){
         }
     }
     function box_create(id,logo,title,start_time,end_time,intro,active){
-        var j_box = $('<div class="span5 box"><div class="logo"></div><h5 class="title"></h5><div class="time start"></div><div class="time end"></div><p class="intro"></p><div class="btn-group oper"></div></div>');
+        var j_box = $('<div class="col-lg-6 box"><div class="logo"></div><h5 class="title"></h5><div class="time start"></div><div class="time end"></div><p class="intro"></p><div class="btn-group oper"></div></div>');
 
         box_set(j_box,id,logo,title,start_time,end_time,intro,active);
 
@@ -158,11 +158,11 @@ var square = new function(){
                         return;
                     }
 
-                    j_cate = $('<li><a href=""></a></li>');
-                    j_a = j_cate.find('a');
-                    j_a.text(cateo.catename);
-                    j_a.on('click',function(e){
+                    j_cate = $('<a class="list-group-item" href=""></a>');
+                    j_cate.text(cateo.catename);
+                    j_cate.on('click',function(e){
                         $(window).scrollTop(j_indexlist.find('[cateid="' + cateo.cateid + '"]').offset().top - 66);
+
                         return false;
                     });
                     j_catelist.append(j_cate);
@@ -235,7 +235,7 @@ var square = new function(){
                 square_node.child_delayset('index');
 
                 com.loadpage('/toj/html/square.html','/toj/css/square.css').done(function(){
-                    j_catelist = j_index_page.find('ul.catelist');
+                    j_catelist = j_index_page.find('div.catelist');
                     j_indexlist = j_index_page.find('div.indexlist');
 
                     if(user.uid != null){

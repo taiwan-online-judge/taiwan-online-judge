@@ -23,6 +23,8 @@ var pmod_test = function(proid,pro_node){
                     var data = result.data;
                     var j_info;
 
+                    console.log(result);
+
                     if(com.is_callerr(result)){
                         index.add_alert('alert-error','錯誤','讀取題目失敗');
                     }else{
@@ -53,8 +55,11 @@ var pmod_test = function(proid,pro_node){
         var j_set_mode;
         var j_create_testmode;
         var j_set_testmode;
+        var j_create_testdata;
+        var j_set_testdata;
         var j_mode_list;
         var j_testmode_list;
+        var j_testdata_list;
 
         var set_mode_id = null;
         var set_testmode_id = null;
@@ -86,7 +91,7 @@ var pmod_test = function(proid,pro_node){
             }
         }
         function _mode_create(modeid,testmodeid){
-            var j_item = $('<tr class="item"><td class="id"></td><td class="testmode"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>')
+            var j_item = $('<tr class="item"><td class="id"></td><td class="testmode"></td><td class="oper"><div class="btn-group"><button class="btn btn-default btn-small set"><i class="glyphicon glyphicon-cog"></i></button><button class="btn btn-default btn-small del"><i class="glyphicon glyphicon-trash"></i></button></div></td></tr>');
 
             _mode_set(j_item,modeid,testmodeid);
 
@@ -160,7 +165,7 @@ var pmod_test = function(proid,pro_node){
             });
         }
         function _testmode_create(testmodeid,testmodename){
-            var j_item = $('<tr class="item"><td class="id"></td><td class="name"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>')
+            var j_item = $('<tr class="item"><td class="id"></td><td class="name"></td><td class="oper"><div class="btn-group"><button class="btn btn-default btn-small set"><i class="glyphicon glyphicon-cog"></i></button><button class="btn btn-default btn-small del"><i class="glyphicon glyphicon-trash"></i></button></div></td></tr>');
 
             _testmode_set(j_item,testmodeid,testmodename);
 
@@ -195,7 +200,62 @@ var pmod_test = function(proid,pro_node){
 
             return defer.promise();
         }
+        
+        function _testdata_set(j_item,id,info){
+            j_item.find('td.id').text(id);
+            j_item.find('td.info').text(info);
+
+            j_item.find('button.set').off('click').on('click',function(e){
+                set_testdata_id = id;
+                j_set_testdata.modal('show'); 
+            });
+            j_item.find('button.del').off('click').on('click',function(e){
+                com.call_backend(callpath,'del_testdata',function(result){
+                    if(com.is_callerr(result)){
+                        index.add_alert('','警告','管理發生錯誤'); 
+                    }else{
+                        _update();
+                    }
+                },id);
+            });
+        }
+        function _testdata_create(id,info){
+            var j_item = $('<tr class="item"><td class="id"></td><td class="info"></td><td class="oper"><div class="btn-group"><button class="btn btn-default btn-small set"><i class="glyphicon glyphicon-cog"></i></button><button class="btn btn-default btn-small del"><i class="glyphicon glyphicon-trash"></i></button></div></td></tr>');
+
+            _testdata_set(j_item,id,info);
+
+            return j_item;
+        }
+        function _testdata_update(){
+            var defer = $.Deferred();
+
+            com.call_backend(callpath,'list_testdata',function(result){
+                var i;
+                var data = result.data;
+                var testdatao;
+                var j_item;
+
+                if(com.is_callerr(result)){
+                    index.add_alert('','警告','管理發生錯誤');
+                }else{
+                    j_testdata_list.empty();
+                    for(i = 0;i < data.length;i++){
+                        testdatao = data[i];
+
+                        j_item = _testdata_create(testdatao.testid,
+                                                  testdatao.info);
+                        j_testdata_list.append(j_item);
+                    }
+
+                    defer.resolve(data);
+                }
+            });
+
+            return defer.promise();
+        }
+        
         function _update(){
+            _testdata_update();
             _testmode_update().done(_mode_update);
         }
         function _mix_content(j_box){
@@ -273,16 +333,17 @@ var pmod_test = function(proid,pro_node){
         }
 
         if(direct == 'in'){
-            com.loadpage('/toj/pmod/pmod_test/html/manage.html').done(function(){
+            com.loadpage('/toj/pmod/pmod_test/html/manage.html','/toj/pmod/pmod_test/css/manage.css').done(function(){
                 j_mode_list = j_index_page.find('table.mode > tbody');
                 j_testmode_list = j_index_page.find('table.testmode > tbody');
+                j_testdata_list = j_index_page.find('table.testdata > tbody');
 
                 j_create_mode = j_index_page.find('div.create_mode');
                 j_create_mode.find('div.content div.data').codebox({'mode':'text/html'});
                 j_create_mode.find('div.format div.data').codebox({'mode':'text/html'});
                 j_create_mode.find('div.testdata div.data').codebox({'mode':'text/html'});
 
-                j_create_mode.on('shown',function(e){
+                j_create_mode.on('shown.bs.modal',function(e){
                     var i;
                     var codeboxs;
 
@@ -291,7 +352,7 @@ var pmod_test = function(proid,pro_node){
                         $(codeboxs[i]).data('codebox').refresh();
                     }
                 });
-                j_create_mode.on('hide',function(e){
+                j_create_mode.on('hide.bs.modal',function(e){
                     var i;
                     var codeboxs;
 
@@ -324,7 +385,6 @@ var pmod_test = function(proid,pro_node){
                 j_create_mode.find('button.cancel').on('click',function(e){
                     j_create_mode.modal('hide'); 
                 });
-
                 j_index_page.find('button.create_mode').on('click',function(e){
                     j_create_mode.modal('show');
                 });
@@ -334,7 +394,7 @@ var pmod_test = function(proid,pro_node){
                 j_set_mode.find('div.format div.data').codebox({'mode':'text/html'});
                 j_set_mode.find('div.testdata div.data').codebox({'mode':'text/html'});
                 
-                j_set_mode.on('show',function(e){
+                j_set_mode.on('show.bs.modal',function(e){
                     com.call_backend(callpath,'get_mode',function(result){
                         var data = result.data;
                         var parse_content;
@@ -352,7 +412,7 @@ var pmod_test = function(proid,pro_node){
                         }
                     },set_mode_id);
                 });
-                j_set_mode.on('shown',function(e){
+                j_set_mode.on('shown.bs.modal',function(e){
                     var i;
                     var codeboxs;
 
@@ -361,7 +421,7 @@ var pmod_test = function(proid,pro_node){
                         $(codeboxs[i]).data('codebox').refresh();
                     }
                 });
-                j_set_mode.on('hide',function(e){
+                j_set_mode.on('hide.bs.modal',function(e){
                     var i;
                     var codeboxs;
 
@@ -400,7 +460,7 @@ var pmod_test = function(proid,pro_node){
                 });
 
                 j_create_testmode = j_index_page.find('div.create_testmode');
-                j_create_testmode.on('hide',function(e){
+                j_create_testmode.on('hide.bs.modal',function(e){
                     j_create_testmode.find('input').val('');
                 });
                 j_create_testmode.find('button.submit').on('click',function(e){
@@ -422,9 +482,12 @@ var pmod_test = function(proid,pro_node){
                 j_create_testmode.find('button.cancel').on('click',function(e){
                     j_create_testmode.modal('hide'); 
                 });
+                j_index_page.find('button.create_testmode').on('click',function(e){
+                    j_create_testmode.modal('show');
+                });
 
                 j_set_testmode = j_index_page.find('div.set_testmode');
-                j_set_testmode.on('show',function(e){
+                j_set_testmode.on('show.bs.modal',function(e){
                     com.call_backend(callpath,'get_testmode',function(result){
                         var data = result.data;
 
@@ -437,7 +500,7 @@ var pmod_test = function(proid,pro_node){
                         }
                     },set_testmode_id);
                 });
-                j_set_testmode.on('hide',function(e){
+                j_set_testmode.on('hide.bs.modal',function(e){
                     set_testmode_id = null; 
                 });
                 j_set_testmode.find('button.submit').on('click',function(e){
@@ -454,6 +517,7 @@ var pmod_test = function(proid,pro_node){
                             index.add_alert('alert-success','成功','測試已設定');
                             j_set_testmode.modal('hide');
 
+                            _update();
                         }
                     },set_testmode_id,name,timelimit,memlimit);
 
@@ -462,9 +526,74 @@ var pmod_test = function(proid,pro_node){
                     j_set_testmode.modal('hide'); 
                 });
                 
-                j_index_page.find('button.create_testmode').on('click',function(e){
-                    j_create_testmode.modal('show');
+
+                j_create_testdata = j_index_page.find('div.create_testdata');
+                j_create_testdata.on('hide.bs.modal',function(e){
+                    j_create_testdata.find('input').val('');
                 });
+                j_create_testdata.find('button.submit').on('click',function(e){
+                    var info = j_create_testdata.find('[name="info"]').val();     
+                    var blob = j_create_testdata.find('[name="pack"]')[0].files[0];
+
+                    com.sendfile_backend(blob,function(filekey){
+
+                        com.call_backend(callpath,'add_testdata',function(result){
+                            console.log(result);
+
+                            if(com.is_callerr(result)){
+                                index.add_alert('','警告','管理發生錯誤');
+                            }else{
+                                index.add_alert('alert-success','成功','測試資料已建立');
+                                j_create_testdata.modal('hide');
+
+                                _update();
+                            }
+                        },info,filekey);
+   
+                    },function(result){});
+                });
+                j_create_testdata.find('button.cancel').on('click',function(e){
+                    j_create_testdata.modal('hide'); 
+                });
+                j_index_page.find('button.create_testdata').on('click',function(e){
+                    j_create_testdata.modal('show'); 
+                });
+
+                j_set_testdata = j_index_page.find('div.set_testdata');
+                j_set_testdata.on('show.bs.modal',function(e){
+                    com.call_backend(callpath,'get_testdata',function(result){
+                        var data = result.data;
+
+                        if(com.is_callerr(result)){
+                            index.add_alert('','警告','管理發生錯誤');
+                        }else{
+                            j_set_testdata.find('[name="info"]').val(data.info);
+                        }
+                    },set_testdata_id);
+                });
+                j_set_testdata.on('hide.bs.modal',function(e){
+                    set_testdata_id = null; 
+                });
+                j_set_testdata.find('button.submit').on('click',function(e){
+                    var info = j_set_testdata.find('[name="info"]').val();
+
+                    com.call_backend(callpath,'set_testdata',function(result){
+                        var data = result.data;
+
+                        if(com.is_callerr(result)){
+                            index.add_alert('','警告','管理發生錯誤');
+                        }else{
+                            index.add_alert('alert-success','成功','測試資料已設定');
+                            j_set_testdata.modal('hide');
+
+                            _update();
+                        }
+                    },set_testdata_id,info,null);
+                });
+                j_set_testdata.find('button.cancel').on('click',function(e){
+                    j_set_testdata.modal('hide'); 
+                });
+
 
                 _update();
             });

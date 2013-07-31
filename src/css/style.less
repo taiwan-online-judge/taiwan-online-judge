@@ -7,17 +7,14 @@
     src:url('/DejaVuSansMono.woff');
 }
 
-div.tiny_modal{
+div.tiny-modal > div.modal-dialog{
     width:270px;
-    margin-left:-135px;
 }
-div.small_modal{
+div.small-modal > div.modal-dialog{
     width:570px;
-    margin-left:-285px;
 }
-div.medium_modal{
+div.medium-modal > div.modal-dialog{
     width:970px;
-    margin-left:-485px;
 }
 span.check{
     width:14px;
@@ -31,27 +28,28 @@ span.check{
     }
 
     i{
+        font-size:10px;
         position:absolute;
-        top:-2px;
-        left:0px;
+        top:1px;
+        left:1px;
     }
 }
 span.check_bold{
-    border:@darkgray 2px solid;
+    border:@darkgray 1px solid;
 }
 .time{
     font-size:@SmallFontSize;
     font-family:monospace;
 }
-.uneditable-input{
-    cursor:default;
-}
 span.tag{
     margin-right:@SmallPad;
     font-size:13px;
+    position:relative;
 
     i{
         margin-left:@SmallPad;
+        position:relative;
+        top:2px;
         cursor:pointer;
         opacity:0.8;
 
@@ -61,20 +59,24 @@ span.tag{
     }
 }
 div.tagbox{
+    width:100%;
     position:relative;
 
     div{
         height:0px;
         position:absolute;
-        top:4px;
-        left:7px;
+        top:9px;
+        left:11px;
         z-index:1;
 
         span.tag{
             margin-bottom:3px;
+            float:left;
         }
     }
     input{
+        padding-left:12px;
+        padding-top:8px;
         z-index:0;
     }
     ul{

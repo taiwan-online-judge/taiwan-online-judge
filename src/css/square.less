@@ -2,8 +2,7 @@
 @import 'mixin.less';
 
 #index_page{
-    div.catelist{
-        position:fixed;
+    div.sidelist{
     }
     div.indexlist{
         div.catebox{
@@ -19,7 +18,7 @@
 
             div.box{
                 height:108px;
-                margin-bottom:12px;
+                margin-bottom:@SmallPad * 2;
                 box-shadow:0px 0px 6px 0px fade(@black,30%);
                 position:relative;
 
@@ -46,8 +45,8 @@
                 &:hover{
                     box-shadow:0px 0px 6px 1px fade(@black,30%);
                 }
-                &:nth-child(2n - 1){
-                    margin-left:0px;
+                &:nth-child(2n){
+                    margin-left:@SmallPad * 2;
                 }
             }
         }

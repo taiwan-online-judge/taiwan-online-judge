@@ -156,7 +156,7 @@ var manage = new function(){
                 });
             }
             function _item_create(id,title,hidden,start_time,end_time,cateid,intro,logo){
-                var j_item = $('<tr class="item"><td class="id"></td><td class="title"><td class="time"><div class="time start"></div><div class="time end"></div></td><td class="hid"></td></td><td class="cate"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>');
+                var j_item = $('<tr class="item"><td class="id"></td><td class="title"><td class="time"><div class="time start"></div><div class="time end"></div></td><td class="hid"></td></td><td class="cate"></td><td class="oper"><div class="btn-group"><button class="btn btn-default btn-small set"><i class="glyphicon glyphicon-cog"></i></button><button class="btn btn-default btn-small del"><i class="glyphicon glyphicon-trash"></i></button></div></td></tr>');
                 
                 _item_set(j_item,id,title,hidden,start_time,end_time,cateid,intro,logo);
 
@@ -346,7 +346,7 @@ var manage = new function(){
                     j_create.find('button.cancel').on('click',function(e){
                         j_create.modal('hide');
                     });
-                    j_create.on('show',function(e){
+                    j_create.on('show.bs.modal',function(e){
                         _update_sqmod().done(function(sqmod_list){
                             var i;
                             var j_sqmod;
@@ -366,7 +366,10 @@ var manage = new function(){
                             }
                         });
                     });
-                    j_create.on('hide',function(e){
+                    j_create.on('shown.bs.modal',function(e){
+                        create_tagbox_cate.refresh();
+                    });
+                    j_create.on('hide.bs.modal',function(e){
                         j_create.find('input').val(''); 
                         j_create.find('img.logo').attr('src',null);
                         create_tagbox_cate.clear();
@@ -386,7 +389,7 @@ var manage = new function(){
                             j_logo.attr('src',url);
                         }
                     });
-                    j_set.on('show',function(e){
+                    j_set.on('show.bs.modal',function(e){
                         var i;
                         var url;
 
@@ -409,10 +412,9 @@ var manage = new function(){
                         for(i = 0;i < set_data.cateid.length;i++){
                             set_tagbox_cate.add_tag(cate_idmap[set_data.cateid[i]]); 
                         }
-
-                        j_set.on('shown',function(e){
-                            set_tagbox_cate.refresh();
-                        });
+                    });
+                    j_set.on('shown.bs.modal',function(e){
+                        set_tagbox_cate.refresh();
                     });
                     j_set.find('button.submit').on('click',function(e){
                         var i;
@@ -470,7 +472,7 @@ var manage = new function(){
                     j_set.find('button.cancel').on('click',function(e){
                         j_set.modal('hide');
                     });
-                    j_set.on('hide',function(e){
+                    j_set.on('hide.bs.modal',function(e){
                         j_set.find('input').val(''); 
                         j_set.find('img.logo').attr('src',null);
                         set_tagbox_cate.clear();
@@ -524,7 +526,7 @@ var manage = new function(){
                 });
             }
             function _item_create(proid,title,hidden,pmodid){
-                var j_item = $('<tr class="item"><td class="proid"></td><td class="title"></td><td class="hid"></td><td class="oper"><div class="btn-group"><button class="btn btn-small set"><i class="icon-cog"></i></button><button class="btn btn-small del"><i class="icon-trash"></i></button></div></td></tr>');
+                var j_item = $('<tr class="item"><td class="proid"></td><td class="title"></td><td class="hid"></td><td class="oper"><div class="btn-group"><button class="btn btn-default btn-small set"><i class="glyphicon glyphicon-cog"></i></button><button class="btn btn-default btn-small del"><i class="glyphicon glyphicon-trash"></i></button></div></td></tr>');
 
                 _item_set(j_item,proid,title,hidden,pmodid);
 
@@ -587,7 +589,7 @@ var manage = new function(){
                         j_create.modal('show'); 
                     });
 
-                    j_create.on('show',function(e){
+                    j_create.on('show.bs.modal',function(e){
                         _update_pmod().done(function(pmod_list){
                             var i;
                             var j_pmod;
@@ -604,7 +606,7 @@ var manage = new function(){
                             }
                         });
                     });
-                    j_create.on('hide',function(e){
+                    j_create.on('hide.bs.modal',function(e){
                         j_create.find('input').val('');
                     });
                     j_create.find('button.submit').on('click',function(e){
@@ -645,7 +647,7 @@ var manage = new function(){
                         j_create.modal('hide');
                     });
                     
-                    j_set.on('show',function(e){
+                    j_set.on('show.bs.modal',function(e){
                         j_set.find('[name="title"]').val(set_data.title);
                         if(set_data.hidden == false){
                             j_set.find('[name="hidden"]').val(0);
@@ -653,7 +655,7 @@ var manage = new function(){
                             j_set.find('[name="hidden"]').val(1);
                         }
                     });
-                    j_set.on('hide',function(e){
+                    j_set.on('hide.bs.modal',function(e){
                         j_set.find('input').val('');
                     });
                     j_set.find('button.submit').on('click',function(e){

@@ -1,56 +1,60 @@
-<div class="modal hide fade medium_modal newmail">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>寫新郵件</h3>
-    </div>
-    <div class="modal-body container-fluid">
-        <div class="row-fluid">
-            <div class="span13"> 
-                <div class="input-prepend">
-                    <span class="add-on">收件人</span>
-                    <input class="to_username" type="text" placeholder="使用者名稱">
+<div class="modal fade medium-modal newmail">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>寫新郵件</h3>
+            </div>
+            <div class="modal-body row">
+                <div class="span13"> 
+                    <div class="input-group">
+                        <span class="input-group-addon">收件人</span>
+                        <input class="form-control to_username" type="text" placeholder="使用者名稱">
+                    </div><br>
+                    <div class="input-group">
+                        <span class="input-group-addon">標題</span>
+                        <input class="form-control title" type="text">
+                    </div><br>
+                    <div class="content"></div>
                 </div>
-                <div class="input-prepend">
-                    <span class="add-on">標題</span>
-                    <input class="title" type="text">
-                </div>
-                <div class="content" exheight=true exratio=38%></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">寄出</button>
+                <button class="btn cancel">取消</button>
             </div>
         </div>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary submit">寄出</button>
-        <button class="btn cancel">取消</button>
     </div>
 </div>
 
-<div class="modal hide fade medium_modal readmail">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3 class="title"></h3>
-    </div>
-    <div class="modal-body container-fluid">
-        <div class="row-fluid">
-            <div class="span13"> 
-                <div class="input-prepend">
-                    <span class="add-on username_label"></span>
-                    <span class="uneditable-input username" type="text"></span>
+<div class="modal fade medium-modal readmail">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 class="title"></h3>
+            </div>
+            <div class="modal-body row">
+                <div class="span13"> 
+                    <div class="input-group">
+                        <span class="input-group-addon username_label"></span>
+                        <input class="form-control username" type="text" disabled></input>
+                    </div><br>
+                    <div class="content"></div>
                 </div>
-                <div class="content" exheight=true exratio=38%></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn reply">回信</button>
             </div>
         </div>
-    </div>
-    <div class="modal-footer">
-        <button class="btn reply">回信</button>
     </div>
 </div>
 
 <div class="row">
-    <div class="offset1 span2 oper">
+    <div class="col-lg-2 col-offset-1 oper">
         <button class="btn btn-primary newmail">寫新郵件</button><br><br>
-        <button class="btn delmail">刪除所選</button>
+        <button class="btn btn-default delmail">刪除所選</button>
     </div>
-    <div class="span8 mail">
+    <div class="col-lg-8 mail">
         <table class="table table-hover maillist">
             <thead>
                 <tr>
@@ -62,6 +66,6 @@
             </thead>
             <tbody></tbody>
         </table>
-        <div class="pagination"></div>
+        <ul class="pagination"></ul>
     </div>
 </div>

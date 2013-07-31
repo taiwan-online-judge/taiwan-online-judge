@@ -14,7 +14,7 @@ var notice = new function(){
         }
 
         j_noticetag = $('#index_paneltag > div.notice');
-        j_noticelist = $('#index_panel > div.notice > ul.nav');
+        j_noticelist = $('#index_panel > div.notice');
 
         j_noticetag.on('click',function(e){
             j_noticelist.empty();
@@ -31,12 +31,12 @@ var notice = new function(){
                     for(i = 0;i < data.length;i++){
                         notice = data[i];
 
-                        j_item = $('<li><a><h5></h5><p></p></a></li>'); 
+                        j_item = $('<a class="list-group-item"><h5></h5><p></p></a>'); 
                         j_item.find('h5').text(notice.title);
                         j_item.find('p').text(notice.content);
 
                         if(notice.noticemodid == null){
-                            j_item.find('a').attr('href','/toj' + notice.metadata); 
+                            j_item.attr('href','/toj' + notice.metadata); 
                         }
 
                         j_noticelist.append(j_item);

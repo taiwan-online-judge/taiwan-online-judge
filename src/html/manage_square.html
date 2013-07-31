@@ -1,89 +1,97 @@
 <link href="/toj/css/manage_square.css" rel="stylesheet">
 
-<div class="modal hide fade small_modal create">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>建立方塊</h3>
-    </div>
-    <div class="modal-body container-fluid">
-        <div class="row-fluid">
-            <div class="span6"> 
-                <label>方塊名稱</label>
-                <input name="title" type="text">
-                <label>方塊介紹</label>
-                <input name="intro" type="text">
-                <label>方塊圖片</label>
-                <input name="logo" type="text">
-                <img class="img-polaroid hide logo"></img>
+<div class="modal fade small-modal create">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>建立方塊</h3>
             </div>
-            <div class="span7">
-                <label>方塊模組</label>
-                <select name="sqmod"></select>
-                <label>公開狀態</label>
-                <select name="hidden">
-                    <option value=0>顯示</option>
-                    <option value=1>隱藏</option>
-                </select>
-                <label>分類</label>
-                <div class="catebox"></div>
+            <div class="modal-body row">
+                <div class="col-lg-6"> 
+                    <label>方塊名稱</label>
+                    <input class="form-control" name="title" type="text"><br>
+                    <label>方塊介紹</label>
+                    <input class="form-control" name="intro" type="text"><br>
+                    <label>方塊圖片</label>
+                    <input class="form-control" name="logo" type="text"><br>
+                    <img class="thumbnail logo" style="display:none;"></img>
+                </div>
+                <div class="col-lg-7">
+                    <label>方塊模組</label>
+                    <select class="form-control" name="sqmod"></select><br>
+                    <label>公開狀態</label>
+                    <select class="form-control" name="hidden"><br>
+                        <option value=0>顯示</option>
+                        <option value=1>隱藏</option>
+                    </select><br>
+                    <label>分類</label>
+                    <div class="catebox"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">確定</button>
+                <button class="btn cancel">取消</button>
             </div>
         </div>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary submit">確定</button>
-        <button class="btn cancel">取消</button>
     </div>
 </div>
-<div class="modal hide fade small_modal set">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>方塊設定</h3>
-    </div>
-    <div class="modal-body container-fluid">
-        <div class="row-fluid">
-            <div class="span6"> 
-                <label>方塊名稱</label>
-                <input name="title" type="text">
-                <label>方塊介紹</label>
-                <input name="intro" type="text">
-                <label>方塊圖片</label>
-                <input name="logo" type="text">
-                <img class="img-polaroid logo"></img>
+<div class="modal fade small_modal set">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>方塊設定</h3>
             </div>
-            <div class="span7">
-                <label>公開狀態</label>
-                <select name="hidden">
-                    <option value=0>顯示</option>
-                    <option value=1>隱藏</option>
-                </select>
-                <label>分類</label>
-                <div class="catebox"></div>
+            <div class="modal-body row">
+                <div class="row-fluid">
+                    <div class="col-lg-6"> 
+                        <label>方塊名稱</label>
+                        <input class="form-control" name="title" type="text"><br>
+                        <label>方塊介紹</label>
+                        <input class="form-control" name="intro" type="text"><br>
+                        <label>方塊圖片</label>
+                        <input class="form-control" name="logo" type="text"><br>
+                        <img class="img-thumbnail logo"></img>
+                    </div>
+                    <div class="col-lg-7">
+                        <label>公開狀態</label>
+                        <select class="form-control" name="hidden">
+                            <option value=0>顯示</option>
+                            <option value=1>隱藏</option>
+                        </select><br>
+                        <label>分類</label>
+                        <div class="catebox"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">確定</button>
+                <button class="btn cancel">取消</button>
             </div>
         </div>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary submit">確定</button>
-        <button class="btn cancel">取消</button>
     </div>
 </div>
 
-<div class="row clearfix">
-    <div class="span2 offset1 oper">
-        <button class="btn create" style="display:none;">建立方塊</button>
+<div class="row">
+    <div class="col-lg-2 col-offset-1 oper">
+        <button class="btn btn-default create" style="display:none;">建立方塊</button>
     </div>
-    <table class="span10 table table-hover list">
-        <thead>
-            <tr>
-                <th class="span1">#</th>
-                <th class="span2">名稱</th>
-                <th class="span2">時間</th>
-                <th class="span1">公開狀態</th>
-                <th class="span3">分類</th>
-                <th class="span1"></th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
+    <div class="col-lg-10">
+        <table class="table table-hover list">
+            <thead>
+                <tr>
+                    <th class="col-lg-1">#</th>
+                    <th class="col-lg-2">名稱</th>
+                    <th class="col-lg-2">時間</th>
+                    <th class="col-lg-1">公開狀態</th>
+                    <th class="col-lg-3">分類</th>
+                    <th class="col-lg-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
 </div>
 

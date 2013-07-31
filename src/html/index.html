@@ -72,11 +72,17 @@ $(document).ready(function(){
 <div id="index_header" class="navbar navbar-fixed-top navbar-inverse">
     <div class="navbar-inner">
         <div class="container">
-            <p class="title offset1 span2 navbar-text"></p>
-            <ul class="nav tabnav"></ul>
+            <div class="row">
+                <div class="col-lg-2 col-offset-1">
+                    <p class="title navbar-text"></p>
+                </div>
+                <div class="col-lg-10">
+                    <ul class="nav navbar-nav"></ul>
+                </div>
+            </div>
         </div>
-        <div style="position:absolute; top:0px; right:0px;">
-            <ul class="nav">
+        <div class="side">
+            <ul class="nav navbar-nav">
                 <li class="nickname" style="display:none;"><a></a></li>
                 <li class="logout" style="display:none;"><a href="/toj/logout/">登出</a></li>
                 <li class="login"><a href="/toj/login/">登入</a></li>
@@ -91,16 +97,14 @@ $(document).ready(function(){
 </div>
 <div id="index_menu" exheight=true>
     <div class="tagblock"></div>
-    <div class="menu">
-        <ul class="nav nav-list">
-            <li><a href="/toj/home/">首頁</a></li>
-            <li class="profile" style="display:none;"><a href="">個人</a></li>
-            <li class="square" style="display:none;"><a href="/toj/square/user/">方塊</a></li>
-            <li class="mail" style="display:none;"><a href="/toj/mail/inbox/">信箱</a></li>
-            <li class="manage" style="display:none;"><a href="/toj/manage/dash/">管理</a></li>
-            <li class="stat"><a href="/toj/stat/">狀態</a></li>
-            <li><a href="#">關於</a></li>
-        </ul>
+    <div class="list-group menu">
+        <a class="list-group-item" href="/toj/home/">首頁</a>
+        <a class="list-group-item profile" href="" style="display:none;">個人</a>
+        <a class="list-group-item square" href="/toj/square/">方塊</a>
+        <a class="list-group-item mail" href="/toj/mail/inbox/" style="display:none;">信箱</a>
+        <a class="list-group-item manage" href="/toj/manage/dash/" style="display:none;">管理</a>
+        <a class="list-group-item stat" href="/toj/stat/">狀態</a>
+        <a class="list-group-item" href="#">關於</a>
     </div>
 </div>
 
@@ -109,15 +113,14 @@ $(document).ready(function(){
 </div>
 <div id="index_panel" exheight=true>
     <div class="tagblock"></div>
-    <div class="notice" exheight=true extop=41px>
-        <ul class="nav nav-list"></ul>
-    </div>
+    <div class="list-group notice" exheight=true extop=32px></div>
 </div>
 
 <div id="index_alert" style="z-index:2000;"></div>
-<div id="index_page" class="container" exminheight=true extop=56px exbottom=62px></div>
+<div id="index_page" class="container" exminheight=true extop=48px exbottom=62px></div>
 <div id="index_footer">
-    <p class="muted">εpsilon team</p>
+    <p class="text-muted">εpsilon team</p>
 </div>
+
 </body>
 </html>

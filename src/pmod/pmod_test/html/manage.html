@@ -1,215 +1,265 @@
-<link href="/toj/pmod/pmod_test/css/manage.css" rel="stylesheet">
+<div class="modal fade medium-modal create_mode">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>建立模式</h3>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-lg-3"> 
+                        <label>測試名稱</label>
+                        <select class="form-control" name="testmode"></select>
+                    </div>
+                </div><br>
 
-<div class="modal hide fade medium_modal create_mode">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>建立模式</h3>
-    </div>
-    <div class="modal-body container-fluid">
-        <div class="row-fluid">
-            <div class="span7"> 
-                <label>測試名稱</label>
-                <select name="testmode"></select>
+                <div class="block content">
+                    <div class="row">
+                        <div class="input-group col-lg-13">
+                            <span class="input-group-addon">題目內容</span>
+                            <input class="col-lg-2 form-control title" type="text" value="內容" placeholder="區塊標題">
+                        </div>
+                    </div><br>
+                    <div class="row">
+                        <div class="col-lg-13">
+                            <div class="data"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="block format">
+                    <div class="row">
+                        <div class="input-group col-lg-13">
+                            <span class="input-group-addon">格式說明</span>
+                            <input class="col-lg-2 form-control title" type="text" value="I/O格式" placeholder="區塊標題">
+                        </div>
+                    </div><br>
+                    <div class="row">
+                        <div class="col-lg-13">
+                            <div class="data"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="block testdata">
+                    <div class="row">
+                        <div class="input-group col-lg-13">
+                            <span class="input-group-addon">範例資料</span>
+                            <input class="col-lg-2 form-control title" type="text" value="範例測資" placeholder="區塊標題">
+                        </div>
+                    </div><br>
+                    <div class="row">
+                        <div class="col-lg-13">
+                            <div class="data"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">確定</button>
+                <button class="btn btn-default cancel">取消</button>
             </div>
         </div>
-
-        <div class="block content">
-            <div class="row-fluid">
-                <div class="input-prepend span13">
-                    <span class="add-on">題目內容</span>
-                    <input class="span2 title" type="text" value="內容" placeholder="區塊標題">
-                </div>
-            </div>
-            <div class="row-fluid">
-                <div class="span13">
-                    <div class="data"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="block format">
-            <div class="row-fluid">
-                <div class="input-prepend span13">
-                    <span class="add-on">格式說明</span>
-                    <input class="span2 title" type="text" value="I/O格式" placeholder="區塊標題">
-                </div>
-            </div>
-            <div class="row-fluid">
-                <div class="span13">
-                    <div class="data"></div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="block testdata">
-            <div class="row-fluid">
-                <div class="input-prepend span13">
-                    <span class="add-on">範例資料</span>
-                    <input class="span2 title" type="text" value="範例測資" placeholder="區塊標題">
-                </div>
-            </div>
-            <div class="row-fluid">
-                <div class="span13">
-                    <div class="data"></div>
-                </div>
-            </div>
-        </div>    </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary submit">確定</button>
-        <button class="btn cancel">取消</button>
     </div>
 </div>
-<div class="modal hide fade medium_modal set_mode">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>設定模式</h3>
-    </div>
-    <div class="modal-body container-fluid">
-        <div class="row-fluid">
-            <div class="span7"> 
-                <label>測試名稱</label>
-                <select name="testmode"></select>
+<div class="modal fade medium-modal set_mode">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>設定模式</h3>
             </div>
-        </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-lg-3"> 
+                        <label>測試名稱</label>
+                        <select class="form-control" name="testmode"></select>
+                    </div>
+                </div><br>
 
-        <div class="block content">
-            <div class="row-fluid">
-                <div class="input-prepend span13">
-                    <span class="add-on">題目內容</span>
-                    <input class="span2 title" type="text" placeholder="區塊標題">
+                <div class="block content">
+                    <div class="row">
+                        <div class="input-group col-lg-13">
+                            <span class="input-group-addon">題目內容</span>
+                            <input class="col-lg-2 form-control title" type="text" placeholder="區塊標題">
+                        </div>
+                    </div><br>
+                    <div class="row">
+                        <div class="col-lg-13">
+                            <div class="data"></div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="row-fluid">
-                <div class="span13">
-                    <div class="data"></div>
-                </div>
-            </div>
-        </div>
 
-        <div class="block format">
-            <div class="row-fluid">
-                <div class="input-prepend span13">
-                    <span class="add-on">格式說明</span>
-                    <input class="span2 title" type="text" placeholder="區塊標題">
+                <div class="block format">
+                    <div class="row">
+                        <div class="input-group col-lg-13">
+                            <span class="input-group-addon">格式說明</span>
+                            <input class="col-lg-2 form-control title" type="text" placeholder="區塊標題">
+                        </div>
+                    </div><br>
+                    <div class="row">
+                        <div class="col-lg-13">
+                            <div class="data"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="block testdata">
+                    <div class="row">
+                        <div class="input-group col-lg-13">
+                            <span class="input-group-addon">範例資料</span>
+                            <input class="col-lg-2 form-control title" type="text" placeholder="區塊標題">
+                        </div>
+                    </div><br>
+                    <div class="row">
+                        <div class="col-lg-13">
+                            <div class="data"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="row-fluid">
-                <div class="span13">
-                    <div class="data"></div>
-                </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">確定</button>
+                <button class="btn btn-default cancel">取消</button>
             </div>
         </div>
-        
-        <div class="block testdata">
-            <div class="row-fluid">
-                <div class="input-prepend span13">
-                    <span class="add-on">範例資料</span>
-                    <input class="span2 title" type="text" placeholder="區塊標題">
-                </div>
-            </div>
-            <div class="row-fluid">
-                <div class="span13">
-                    <div class="data"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary submit">確定</button>
-        <button class="btn cancel">取消</button>
     </div>
 </div>
-
-<div class="modal hide fade medium_modal create_testmode">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>建立測試</h3>
-    </div>
-    <div class="modal-body container-fluid">
-        <div class="row-fluid">
-            <div class="span7"> 
-                <label>測試名稱</label>
-                <input type="text" name="name">
-                <label>執行時間限制</label>
-                <input type="text" name="timelimit">
-                <label>記憶體限制</label>
-                <input type="text" name="memlimit">
+<div class="modal fade medium-modal create_testmode">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>建立測試</h3>
+            </div>
+            <div class="modal-body row">
+                <div class="col-lg-7"> 
+                    <label>測試名稱</label>
+                    <input class="form-control" type="text" name="name"><br>
+                    <label>執行時間限制</label>
+                    <input class="form-control" type="text" name="timelimit"><br>
+                    <label>記憶體限制</label>
+                    <input class="form-control" type="text" name="memlimit">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">確定</button>
+                <button class="btn btn-default cancel">取消</button>
             </div>
         </div>
     </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary submit">確定</button>
-        <button class="btn cancel">取消</button>
-    </div>
 </div>
-<div class="modal hide fade medium_modal set_testmode">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>設定測試</h3>
-    </div>
-    <div class="modal-body container-fluid">
-        <div class="row-fluid">
-            <div class="span7"> 
-                <label>測試名稱</label>
-                <input type="text" name="name">
-                <label>執行時間限制</label>
-                <input type="text" name="timelimit">
-                <label>記憶體限制</label>
-                <input type="text" name="memlimit">
+<div class="modal fade medium-modal set_testmode">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>設定測試</h3>
+            </div>
+            <div class="modal-body row">
+                <div class="col-lg-7"> 
+                    <label>測試名稱</label>
+                    <input class="form-control" type="text" name="name"><br>
+                    <label>執行時間限制</label>
+                    <input class="form-control" type="text" name="timelimit"><br>
+                    <label>記憶體限制</label>
+                    <input class="form-control" type="text" name="memlimit">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">確定</button>
+                <button class="btn btn-default cancel">取消</button>
             </div>
         </div>
     </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary submit">確定</button>
-        <button class="btn cancel">取消</button>
+</div>
+<div class="modal fade medium-modal create_testdata">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>建立測試資料</h3>
+            </div>
+            <div class="modal-body row">
+                <div class="col-lg-7"> 
+                    <label>描述</label>
+                    <input class="form-control" type="text" name="info"><br>
+                    <label>檔案</label>
+                    <input class="form-control" type="file" name="pack">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">確定</button>
+                <button class="btn btn-default cancel">取消</button>
+            </div>
+        </div>
     </div>
 </div>
-
+<div class="modal fade medium-modal set_testdata">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>設定測試資料</h3>
+            </div>
+            <div class="modal-body row">
+                <div class="col-lg-7"> 
+                    <label>描述</label>
+                    <input class="form-control" type="text" name="info"><br>
+                    <label>檔案(留空表示不更新)</label>
+                    <input class="form-control" type="file" name="pack">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">確定</button>
+                <button class="btn btn-default cancel">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="row">
-    <div class="span3">
-
-    </div>
-    <div class="span4">
+    <div class="col-lg-4 col-offset-1">
         <h3>模式</h3>
-        <button class="btn create_mode">建立模式</button>
+        <button class="btn btn-default create_mode">建立模式</button>
         <table class="table mode">
             <thead>
                 <tr>
-                    <th class="span1">#</th>
-                    <th class="span2">測試名稱</th>
-                    <th class="span1"></th>
+                    <th class="col-lg-1">#</th>
+                    <th class="col-lg-2">測試名稱</th>
+                    <th class="col-lg-1"></th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
-    <div class="span4">
+    <div class="col-lg-4">
         <h3>測試</h3>
-        <button class="btn create_testmode">建立測試</button>
+        <button class="btn btn-default create_testmode">建立測試</button>
         <table class="table testmode">
             <thead>
                 <tr>
-                    <th class="span1">#</th>
-                    <th class="span2">測試名稱</th>
-                    <th class="span1"></th>
+                    <th class="col-lg-1">#</th>
+                    <th class="col-lg-2">測試名稱</th>
+                    <th class="col-lg-1"></th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
-    <div class="span2">
+    <div class="col-lg-4">
         <h3>測試資料</h3>
-        <button class="btn create_testdata">建立測試資料</button>
+        <button class="btn btn-default create_testdata">建立測試資料</button>
         <table class="table testdata">
             <thead>
                 <tr>
-                    <th class="span1">#</th>
-                    <th class="span1"></th>
+                    <th class="col-lg-1">#</th>
+                    <th class="col-lg-2">描述</th>
+                    <th class="col-lg-1"></th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
-
 </div>

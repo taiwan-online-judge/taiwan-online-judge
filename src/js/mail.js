@@ -59,7 +59,7 @@ var mail = new function(){
 
         com.call_backend('core/mail/','get_mail_count',function(result){
             var i;
-            var j_div = j_index_page.find('div.pagination');
+            var j_ul = j_index_page.find('ul.pagination');
             var offs;
             var as;
             var pfix;
@@ -73,8 +73,8 @@ var mail = new function(){
                     pfix = '/toj/mail/backup:';
                 }
 
-                offs = com.create_pagination(j_div,0,result.data.tot_count,maillist_off,20);
-                as = j_div.find('a');
+                offs = com.create_pagination(j_ul,0,result.data.tot_count,maillist_off,20);
+                as = j_ul.find('a');
                 for(i = 0;i < as.length;i++){
                     $(as[i]).attr('href',pfix + offs[i] + '/');
                 }
@@ -140,8 +140,10 @@ var mail = new function(){
                     j_maillist = j_index_page.find('table.maillist > tbody');
                     j_newmail = j_index_page.find('div.newmail');
                     j_readmail = j_index_page.find('div.readmail');
-                    newmail_content = com.create_codebox(j_newmail.find('div.content'),'text/html');
-                    readmail_content = com.create_codebox(j_readmail.find('div.content'),'text/html',true);
+                    newmail_content = j_newmail.find('div.content').codebox(
+                        {'mode':'text/html'});
+                    readmail_content = j_readmail.find('div.content').codebox(
+                        {'mode':'text/html','readonly':true});
 
                     inbox_tabnav = index.add_tabnav('收件匣','/toj/mail/inbox/');
                     backup_tabnav = index.add_tabnav('寄件備份','/toj/mail/backup/');
@@ -177,10 +179,11 @@ var mail = new function(){
                         }
                     });
 
-                    j_newmail.on('shown',function(e){
+                    j_newmail.on('shown.bs.modal',function(e){
+                        console.log('test');
                         newmail_content.refresh();
                     });
-                    j_newmail.on('hide',function(e){
+                    j_newmail.on('hide.bs.modal',function(e){
                         j_newmail.find('input').val('');
                         newmail_content.setValue('');
                     });
@@ -219,7 +222,7 @@ var mail = new function(){
                         j_newmail.modal('hide');
                     });
 
-                    j_readmail.on('show',function(e){
+                    j_readmail.on('show.bs.modal',function(e){
                         com.call_backend('core/mail/','recv_mail',function(result){
                             var data;
 
@@ -229,24 +232,24 @@ var mail = new function(){
                                 data = result.data;
 
                                 j_readmail.find('h3.title').text(data.title);
-                                j_readmail.find('span.username').text(data.from_username);
+                                j_readmail.find('input.username').val(data.from_username);
                                 readmail_content.setValue(data.content);
                             }
                         },readmail_mailid); 
                     });
-                    j_readmail.on('shown',function(e){
+                    j_readmail.on('shown.bs.modal',function(e){
                         readmail_content.refresh();
                     });
-                    j_readmail.on('hide',function(e){
+                    j_readmail.on('hide.bs.modal',function(e){
                         j_readmail.find('h3.title').text('');
-                        j_readmail.find('span.from_username').text('');
+                        j_readmail.find('input.username').val('');
                         readmail_content.setValue('');
                         readmail_mailid = null;
                         
                         update_maillist();
                     });
                     j_readmail.find('button.reply').on('click',function(e){
-                        j_newmail.find('input.to_username').val(j_readmail.find('span.username').text());
+                        j_newmail.find('input.to_username').val(j_readmail.find('input.username').val());
                         j_newmail.find('input.title').val('Re: ' + j_readmail.find('h3.title').text());
 
                         j_readmail.modal('hide');

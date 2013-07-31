@@ -130,8 +130,8 @@ var index = new function(){
                 j_li = j_menu.find('div.menu li.profile');
                 j_li.find('a').attr('href','/toj/user:' + user.uid + '/main/'); 
                 j_li.show();
-                j_menu.find('div.menu li.mail').show();
-                j_menu.find('div.menu li.manage').show();
+                j_menu.find('div.menu a.mail').show();
+                j_menu.find('div.menu a.manage').show();
             }   
         });
 
@@ -150,17 +150,17 @@ var index = new function(){
         j_a.text(text);
         j_a.attr('href',link);
 
-        j_header.find('ul.tabnav').append(j_li);        
+        j_header.find('div.container ul.navbar-nav').append(j_li);        
 
         j_li.active = function(){
-            j_header.find('ul.tabnav > li.active').removeClass('active');
+            j_header.find('div.container ul.navbar-nav > li.active').removeClass('active');
             j_li.addClass('active');
         };
 
         return j_li;
     };
     that.clear_tabnav = function(){
-        j_header.find('ul.tabnav').empty();        
+        j_header.find('div.container ul.navbar-nav').empty();        
     };
     that.add_alert = function(type,title,content,autofade){
         var j_alert;

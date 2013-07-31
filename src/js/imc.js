@@ -378,13 +378,15 @@ var imc = new function(){
         that.sendfile = function(dst_link,
                                  blob,
                                  filekey_callback,
-                                 result_callback){
+                                 result_callback,
+                                 prog_callback){
 
             var filekey = self_link + '_' + Math.random();
 
             info_filekeymap[filekey] = {
                 'blob':blob,
                 'result_callback':result_callback,
+                'prog_callback':prog_callback,
                 'callback':function(err){
                     if(ret_sendfile(filekey,err) && err != undefined){
                         that.call(dst_link + 'imc/','abort_sendfile',65536,null,filekey,err);

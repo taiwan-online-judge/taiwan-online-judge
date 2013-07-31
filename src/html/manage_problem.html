@@ -1,64 +1,68 @@
-<div class="modal hide fade tiny_modal create">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>建立題目</h3>
-    </div>
-    <div class="modal-body container-fluid">
-        <div class="row-fluid">
-            <div class="span13"> 
-                <label>題目名稱</label>
-                <input name="title" type="text">
-                <label>題目模組</label>
-                <select name="pmod"></select>
-                <label>公開狀態</label>
-                <select name="hidden">
-                    <option value=0>顯示</option>
-                    <option value=1>隱藏</option>
-                </select>
+<div class="modal fade tiny-modal create">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>建立題目</h3>
+            </div>
+            <div class="modal-body row">
+                <div class="col-lg-13"> 
+                    <label>題目名稱</label>
+                    <input class="form-control" name="title" type="text"><br>
+                    <label>題目模組</label>
+                    <select class="form-control" name="pmod"></select><br>
+                    <label>公開狀態</label>
+                    <select class="form-control" name="hidden">
+                        <option value=0>顯示</option>
+                        <option value=1>隱藏</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">確定</button>
+                <button class="btn cancel">取消</button>
             </div>
         </div>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary submit">確定</button>
-        <button class="btn cancel">取消</button>
     </div>
 </div>
-<div class="modal hide fade tiny_modal set">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>題目設定</h3>
-    </div>
-    <div class="modal-body container-fluid">
-        <div class="row-fluid">
-            <div class="span13"> 
-                <label>題目名稱</label>
-                <input name="title" type="text">
-                <label>公開狀態</label>
-                <select name="hidden">
-                    <option value=0>顯示</option>
-                    <option value=1>隱藏</option>
-                </select>
+<div class="modal fade tiny-modal set">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3>題目設定</h3>
+            </div>
+            <div class="modal-body row">
+                <div class="col-lg-13"> 
+                    <label>題目名稱</label>
+                    <input class="form-control" name="title" type="text"><br>
+                    <label>公開狀態</label>
+                    <select class="form-control" name="hidden">
+                        <option value=0>顯示</option>
+                        <option value=1>隱藏</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary submit">確定</button>
+                <button class="btn cancel">取消</button>
             </div>
         </div>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-primary submit">確定</button>
-        <button class="btn cancel">取消</button>
     </div>
 </div>
 
 <div class="row">
-    <div class="span2 offset1 oper">
-        <button class="btn create" style="display:none;">建立題目</button>
+    <div class="col-lg-2 col-offset-1 oper">
+        <button class="btn btn-default create" style="display:none;">建立題目</button>
     </div>
-    <div class="span5">
+    <div class="col-lg-5">
         <table class="table list">
             <thead>
                 <tr>
-                    <th class="span1">#</th>
-                    <th class="span2">題目名稱</th>
-                    <th class="span1">公開狀態</th>
-                    <th class="span1"></th>
+                    <th class="col-lg-1">#</th>
+                    <th class="col-lg-2">題目名稱</th>
+                    <th class="col-lg-1">公開狀態</th>
+                    <th class="col-lg-1"></th>
                 </tr>
             </thead>
             <tbody></tbody>
