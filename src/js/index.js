@@ -114,7 +114,6 @@ var index = new function(){
 
         user.datachg_callback.add(function(type){
             var j_a;
-            var j_li;
 
             j_a = j_header.find('li.nickname > a');
             j_a.text(user.nickname);
@@ -127,9 +126,9 @@ var index = new function(){
                 j_header.find('li.nickname').show();
                 j_header.find('li.logout').show();
                 
-                j_li = j_menu.find('div.menu li.profile');
-                j_li.find('a').attr('href','/toj/user:' + user.uid + '/main/'); 
-                j_li.show();
+                j_a = j_menu.find('div.menu a.profile');
+                j_a.attr('href','/toj/user:' + user.uid + '/main/'); 
+                j_a.show();
                 j_menu.find('div.menu a.mail').show();
                 j_menu.find('div.menu a.manage').show();
             }   

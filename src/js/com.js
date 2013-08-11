@@ -1166,14 +1166,23 @@ var com = new function(){
         });
     }
 
-    that.call_backend = function(path,func_name,callback){
+    that.call_backend = function(path,func_name,timeout,callback){
         var i;
         var params = new Array()
 
-        params = [that.backend_link + path,func_name,1000,callback]
-        for(i = 3;i < arguments.length;i++){
-            params.push(arguments[i]); 
+        if(typeof(timeout) == 'function'){
+            callback = timeout
+            params = [that.backend_link + path,func_name,1000,callback]
+            for(i = 3;i < arguments.length;i++){
+                params.push(arguments[i]); 
+            }
+        }else{
+            params = [that.backend_link + path,func_name,timeout,callback]
+            for(i = 4;i < arguments.length;i++){
+                params.push(arguments[i]); 
+            }
         }
+
 
         imc.Proxy.instance.call.apply(undefined,params);
     };
